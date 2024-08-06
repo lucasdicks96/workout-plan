@@ -1,4 +1,4 @@
-import styles from "./LandingPage.module.css";
+import styles from "./LandingPage/LandingPage.module.css";
 
 export default function Footer() {
   const date = new Date().getFullYear();
