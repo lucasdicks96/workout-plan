@@ -5,23 +5,32 @@ import Form from "./components/LandingPage/Form/Form";
 // import RegisterForm from "./components/LandingPage/Register/RegisterForm";
 import Dashboard from "./components/Dashboard/Dashboard";
 import NotFound from "./components/NotFound";
+import Exercises from "./components/Exercises/Exercises";
+import History from "./components/Workouts/History";
+import Workout from "./components/Workouts/Workouts";
 // import './App.css'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path={"/"} element={<LandingPage />} />
+        <Route path="/" element={<LandingPage />} />
         <Route
-          path={"/login"}
+          path="/login"
           element={<Form route="login" buttonName="Login" />}
         />
         <Route
-          path={"/register"}
+          path="/register"
           element={<Form route="register" buttonName="Register" />}
         />
-        <Route path={"/dashboard"} element={<Dashboard />} />
-        <Route path={"*"} element={<NotFound />} />
+
+        <Route path="/dashboard" element={<Dashboard />}>
+          <Route path="exercises" element={<Exercises />} />
+          <Route path="workouts" element={<Workout />} />
+          <Route path="history" element={<History />} />
+        </Route>
+
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
