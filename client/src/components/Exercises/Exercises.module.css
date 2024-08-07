@@ -1,0 +1,151 @@
+/* .exerciseList {
+  height: inherit;
+  width: inherit;
+  overflow: auto;
+}
+.exerciseCardContainer {
+  display: flex;
+  flex-direction: row;
+  width: 275px;
+  height: 150px;
+  background-color: rgb(0, 129, 204);
+  border-radius: 10px;
+  margin: 10px;
+}
+.exerciseImageContainer {
+  flex: 30;
+  align-self: center;
+}
+.exerciseImage {
+  flex: 30;
+
+  width: 75px;
+  height: 75px;
+}
+img {
+  border-radius: 10px;
+  width: 70px;
+  height: 70px;
+}
+.exerciseCardBody {
+  flex: 70;
+  display: flex;
+  flex-direction: column;
+}
+
+h2 {
+  margin: 0;
+  font-weight: 500;
+} */
+
+.exerciseList {
+  display: flex; /* Verwandelt den Container in ein flexibles Layout */
+  flex-wrap: wrap; /* Erlaubt das Umbrechen der Karten in neue Zeilen */
+  width: 100%; /* Stellt sicher, dass der Container die volle Breite hat */
+  height: 800px;
+  overflow: auto;
+  padding: 10px; /* Optional: Innenabstand hinzufügen */
+  box-sizing: border-box; /* Bezieht Polsterung und Rand in die Breite ein */
+  align-items: center;
+  justify-content: center;
+}
+
+.exerciseCardContainer {
+  display: flex;
+  flex-direction: row;
+  flex: 1 0 30%; /* Flexibler Basiswert, um 3 Karten nebeneinander anzuzeigen */
+  max-width: 275px; /* Begrenzung der maximalen Breite jeder Karte */
+  height: 175px;
+  background-color: rgb(0, 129, 204);
+  border-radius: 10px;
+  margin: 10px;
+  box-sizing: border-box; /* Bezieht Polsterung und Rand in die Breite ein */
+}
+
+.exerciseImageContainer {
+  flex: 0 0 75px; /* Fixiert die Breite des Bildcontainers */
+  align-self: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.exerciseImage {
+  width: 75px;
+  height: 75px;
+}
+
+img {
+  border-radius: 10px;
+  width: 70px;
+  height: 70px;
+  object-fit: cover; /* Bild skaliert sich, um den Container zu füllen */
+}
+
+.exerciseCardBody {
+  flex: 1; /* Nutzt den verbleibenden Platz im Card-Container */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Zentriert den Text vertikal */
+  padding: 10px; /* Optional: Innenabstand für den Text */
+}
+
+h2 {
+  padding-top: 50px;
+  font-weight: 500;
+}
+
+.button {
+  color: white;
+  background-color: rgb(0, 129, 204);
+  border-style: none;
+  margin: 10px;
+  height: 60px;
+  width: 140px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 16px;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* Media Queries für unterschiedliche Bildschirmgrößen */
+
+/* Für große Tablets und kleinere Desktops */
+@media (max-width: 1200px) {
+  .exerciseCardContainer {
+    flex: 1 0 45%; /* Zeige zwei Karten nebeneinander */
+  }
+}
+
+/* Für Tablets im Hochformat */
+@media (max-width: 768px) {
+  .exerciseCardContainer {
+    flex: 1 0 100%; /* Zeige eine Karte pro Zeile */
+    max-width: 90%; /* Entferne die maximale Breitenbeschränkung */
+  }
+}
+
+/* Für Smartphones */
+@media (max-width: 480px) {
+  .exerciseCardContainer {
+    flex-direction: column; /* Karte vertikal anordnen */
+    align-items: center; /* Zentriere den Inhalt horizontal */
+    text-align: center; /* Text zentrieren */
+    height: auto; /* Automatische Höhe, um den Inhalt aufzunehmen */
+  }
+
+  .exerciseImageContainer,
+  .exerciseImage {
+    width: 100px;
+    height: 100px;
+  }
+
+  img {
+    width: 90px;
+    height: 90px;
+  }
+
+  .exerciseCardBody {
+    padding: 5px;
+  }
+}
