@@ -3,8 +3,9 @@
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  /* background-image: "./images/BackgroundImage.png"; */
-  background-image: linear-gradient(
+  background-image: "./images/BackgroundImage.png";
+  background-image: rgb(#004494);
+  /* background-image: linear-gradient(
     to bottom right,
     rgb(0, 0, 255),
     rgb(34, 0, 184),
@@ -12,15 +13,16 @@
     rgb(34, 0, 184),
     rgb(0, 0, 255),
     rgb(59, 35, 167)
-  );
+  );*/
 }
+
 .content {
   display: flex;
   flex-direction: row;
 }
 
 .side {
-  flex: 20;
+  flex: 10;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -40,7 +42,8 @@
 .menu > a {
   background-color: aquamarine;
   height: 40px;
-  width: 125px;
+  max-width: 125px;
+  min-width: 40px;
   border-radius: 10px;
   margin: 10px 0;
   padding: 0 0 0 5px;
@@ -63,6 +66,7 @@
   background-color: red;
   height: 40px;
   width: 125px;
+  min-width: 40px;
   border-radius: 10px;
   margin: 10px 0;
   padding: 0 0 0 5px;
