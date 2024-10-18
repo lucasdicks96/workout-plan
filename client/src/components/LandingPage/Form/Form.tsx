@@ -40,22 +40,25 @@ export default function Form({ route, buttonName }: FormProps) {
 
     try {
       const response = await axios.post(
-        `http://localhost:5000/${route}`,
+        `http://localhost:5000/users/${route}`,
         {
           email: formState.email,
           password: formState.password,
-          //   withCredentials: true,
         },
         {
+          withCredentials: true,
           headers: {
-            // "Access-Control-Allow-Origin": "*",
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            // "Access-Control-Allow-Origin": "http://localhost:5173/",
+            // "Access-Control-Allow-Credentials": true,
             // "Access-Control-Allow-Methods": "GET,PUT,POST,DELETE,PATCH,OPTIONS",
-            "Content-Type": "application/x-www-form-urlencoded",
           },
         }
       );
-      if (response.status === 200) {
-        navigate("/dashboard");
+      if (response.status === 200 || response.status === 201) {
+        // console.log("Response Login", response.data);
+        navigate("/users");
       }
     } catch (error) {
       console.error(`${buttonName} failed `, error);
@@ -102,11 +105,11 @@ export default function Form({ route, buttonName }: FormProps) {
             </div>
 
             <div className={styles.buttonGroup}>
-              <button type="submit" className={stylesLandingPage.button}>
+              <button type="submit" className={styles.button}>
                 {buttonName}
               </button>
-              <Link to="/" className={stylesLandingPage.button}>
-                Close
+              <Link to="/" className={styles.button}>
+                <a>Close</a>
               </Link>
             </div>
           </form>
