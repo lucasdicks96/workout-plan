@@ -107,6 +107,9 @@ h2 {
   font-size: 16px;
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
+.button:hover {
+  color: black;
+}
 
 /* Media Queries für unterschiedliche Bildschirmgrößen */
 
