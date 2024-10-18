@@ -1,5 +1,6 @@
+import { useNavigate } from "react-router-dom";
 import styles from "./Exercises.module.css";
-import stylesDashboard from "../Dashboard/Dashboard.module.css";
+import stylesDashboard from "../dashboard/Dashboard.module.css";
 // import image from "../../assets/BackgroundImage.png";
 // const img: string = image;
 
@@ -36,6 +37,7 @@ function ExerciseCard({ title, description, img_path }: ExerciseType) {
 }
 
 export default function Exercise() {
+  const navigate = useNavigate();
   return (
     <>
       <h2>Exercises</h2>
@@ -43,8 +45,18 @@ export default function Exercise() {
         <ExerciseList />
       </div>
       <div>
-        <button className={styles.button}>Edit Exercise</button>
-        <button className={styles.button}>Create Exercise</button>
+        <button
+          className={styles.button}
+          onClick={() => navigate("/users/edit-exercises")}
+        >
+          Edit Exercise
+        </button>
+        <button
+          className={styles.button}
+          onClick={() => navigate("/users/create-exercises")}
+        >
+          Create Exercise
+        </button>
       </div>
     </>
   );
@@ -57,12 +69,7 @@ type ExerciseType = {
   img_path: string;
 };
 
-const exerciseList: {
-  id: number;
-  title: string;
-  description: string;
-  img_path: string;
-}[] = [
+const exerciseList: ExerciseType[] = [
   {
     id: 1,
     title: "Pushup",
