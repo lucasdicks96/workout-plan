@@ -6,7 +6,22 @@ export default function Logout() {
   const navigate = useNavigate();
   const handleLogout = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/logout");
+      const response = await axios.post(
+        "http://localhost:5000/users/logout",
+        {},
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            // "Access-Control-Allow-Origin": "http://localhost:5173/",
+            // "Access-Control-Allow-Credentials": true,
+            // "Access-Control-Allow-Methods": "GET,PUT,POST,DELETE,PATCH,OPTIONS",
+          },
+        }
+      );
+      console.log(response.data);
+
       if (response.status === 200) {
         navigate("/");
       }
@@ -16,12 +31,7 @@ export default function Logout() {
     }
   };
   return (
-    <button
-      className={styles.button}
-      type="submit"
-      formMethod="GET"
-      onClick={handleLogout}
-    >
+    <button className={styles.button} type="submit" onClick={handleLogout}>
       Logout
     </button>
   );
