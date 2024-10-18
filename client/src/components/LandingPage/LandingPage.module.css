@@ -51,9 +51,9 @@
   flex: auto;
   align-content: center;
   margin: auto;
-  justify-content: center;
+  justify-items: center;
   text-align: center;
-  max-width: 1600px;
+  max-width: 800px;
   overflow: auto;
 }
 .button_group {

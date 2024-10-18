@@ -4,41 +4,41 @@
   height: 35vh;
   width: 25vw;
   min-width: 300px;
-  min-height: 300px;
+  min-height: 450px;
   background-color: rgb(69, 221, 221);
   border-radius: 20px;
-  place-items: center;
-  /* margin: auto; */
+  align-items: center;
+  justify-items: center;
+  box-sizing: border-box;
+  padding: 20px;
 }
+
 .loginForm {
   display: flex;
   flex-direction: column;
-  place-content: center;
-  place-items: center;
-  height: 35vh;
-  width: 25vw;
-  min-width: 300px;
-  min-height: 300px;
-  flex: auto;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .buttonGroup {
   display: flex;
   flex-direction: row;
-  color: black;
+  align-items: center;
   justify-content: center;
-  /* margin: auto; */
+  margin-top: 1rem;
 }
 
 .inputGroup {
   display: flex;
   flex-direction: row;
+  align-self: center;
   justify-content: center;
   align-items: center;
-  place-items: center;
-  width: 250px;
+  width: 100%;
+  max-width: 300px;
   height: 50px;
-  margin: 1rem;
+  margin: 1rem 0;
 }
 
 .input {
@@ -46,70 +46,125 @@
   color: black;
   border-style: none;
   border-radius: 5px;
-  width: auto;
+  width: 220px;
   height: 2rem;
   text-align: center;
+  box-sizing: border-box;
+  padding: 5px;
 }
+
 label {
   width: 80px;
-  /* padding-right: 1rem; */
+  /* text-align: ; */
+  margin-right: 10px;
+}
+
+.button {
+  display: inline-block;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  background-color: #007bff;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 1rem;
+  width: auto;
+  margin: 5px;
+  height: 50px;
+  width: 80px;
+  font-weight: 500;
+}
+
+.button > a {
+  text-align: center;
+  place-content: center;
+  color: white;
+}
+
+.button:hover {
+  background-color: #0056b3;
+}
+
+.button:active {
+  background-color: #004494;
 }
 
 ::placeholder {
   text-align: center;
 }
 
-@media (max-width: 350px) {
-  h2 {
-    font-size: 16px;
-  }
+@media (max-width: 600px) {
   .formContainer {
-    width: 350px;
+    width: 90%;
+    min-width: unset;
+    padding: 15px;
   }
+
   .loginForm {
-    width: 150px;
+    width: 100%;
+    padding: 10px;
   }
+
   .inputGroup {
-    /* flex: auto; */
     flex-direction: column;
-    /* align-content: center;
-    place-items: center; */
-    justify-content: center;
-    height: 60px;
-    width: 200px;
-    margin: 0.5rem;
+    align-items: center;
+    width: 100%;
+  }
+
+  .input {
+    width: 100%;
+  }
+
+  label {
+    width: 100%;
+    text-align: left;
+    margin-bottom: 5px;
   }
 
   .buttonGroup {
-    /* flex-direction: column; */
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
   }
+
   .button {
-    height: 30px;
+    width: 75%;
+    font-size: calc(14rem / 16);
+    height: 40px;
   }
-  .input {
-    width: 150px;
+
+  .button > a {
+    height: 40px;
+    width: 75%;
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 350px) {
   .formContainer {
-    width: 300px;
-  }
-  .loginForm {
-    width: 300px;
-  }
-  .inputGroup {
-    /* flex: auto; */
-    /* flex-direction: column; */
-    /* align-content: center;
-    place-items: center; */
-    justify-content: center;
-    height: 60px;
-    width: 275px;
-    margin: 0.5rem;
+    padding: 10px;
   }
 
-  .input {
-    /* height: 100px; */
+  h2 {
+    font-size: 16px;
+  }
+
+  .inputGroup {
+    margin: 0.5rem 0;
+  }
+
+  .button {
+    width: 75%;
+    margin-top: 8px;
+    font-size: 12px;
+    height: 40px;
+  }
+
+  .button > a {
+    height: 40px;
+    width: 75%;
+    padding: 0;
   }
 }
