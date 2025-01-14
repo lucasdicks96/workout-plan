@@ -115,6 +115,9 @@ h2 {
 
 /* Für große Tablets und kleinere Desktops */
 @media (max-width: 1200px) {
+  .exerciseList {
+    height: 600px;
+  }
   .exerciseCardContainer {
     flex: 1 0 45%; /* Zeige zwei Karten nebeneinander */
   }
@@ -130,11 +133,15 @@ h2 {
 
 /* Für Smartphones */
 @media (max-width: 480px) {
+  .exerciseList {
+    height: 400px;
+  }
+
   .exerciseCardContainer {
     flex-direction: column; /* Karte vertikal anordnen */
     align-items: center; /* Zentriere den Inhalt horizontal */
     text-align: center; /* Text zentrieren */
-    height: auto; /* Automatische Höhe, um den Inhalt aufzunehmen */
+    height: 150px; /* Automatische Höhe, um den Inhalt aufzunehmen */
   }
 
   .exerciseImageContainer,

@@ -1,9 +1,9 @@
 .body {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   width: 100vw;
-  background-image: "./images/BackgroundImage.png";
+  /* background-image: "./images/BackgroundImage.png"; */
   background-image: rgb(#004494);
   /* background-image: linear-gradient(
     to bottom right,
