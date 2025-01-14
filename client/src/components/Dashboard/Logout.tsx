@@ -7,7 +7,7 @@ export default function Logout() {
   const handleLogout = async () => {
     try {
       const response = await axios.post(
-        "http://localhost:5000/users/logout",
+        "http://localhost:5000/user/logout",
         {},
         {
           withCredentials: true,
@@ -23,7 +23,7 @@ export default function Logout() {
       console.log(response.data);
 
       if (response.status === 200) {
-        navigate("/");
+        navigate("/#");
       }
       console.log(response);
     } catch (error) {

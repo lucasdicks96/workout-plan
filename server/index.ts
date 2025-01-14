@@ -3,6 +3,7 @@ import express, { NextFunction, Request, Response } from "express";
 import session from "express-session";
 import passport from "./config/passport";
 import userRoute from "./routes/user";
+import exerciseRoute from "./routes/exercise";
 var cors = require("cors");
 var cookieParser = require("cookie-parser");
 
@@ -45,7 +46,8 @@ app.use(
   })
 );
 
-app.use("/users", userRoute);
+app.use("/user", userRoute);
+app.use("/exercise", exerciseRoute);
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);

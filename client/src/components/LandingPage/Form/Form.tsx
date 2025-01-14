@@ -18,7 +18,6 @@ interface FormProps {
 }
 
 export default function Form({ route, buttonName }: FormProps) {
-  // const [route, buttonName] = props;
   const [formState, setFormState] = useState<FormState>({
     email: "",
     password: "",
@@ -40,7 +39,7 @@ export default function Form({ route, buttonName }: FormProps) {
 
     try {
       const response = await axios.post(
-        `http://localhost:5000/users/${route}`,
+        `http://localhost:5000/user/${route}`,
         {
           email: formState.email,
           password: formState.password,
@@ -50,14 +49,11 @@ export default function Form({ route, buttonName }: FormProps) {
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
-            // "Access-Control-Allow-Origin": "http://localhost:5173/",
-            // "Access-Control-Allow-Credentials": true,
-            // "Access-Control-Allow-Methods": "GET,PUT,POST,DELETE,PATCH,OPTIONS",
           },
         }
       );
+
       if (response.status === 200 || response.status === 201) {
-        // console.log("Response Login", response.data);
         navigate("/users");
       }
     } catch (error) {

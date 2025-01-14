@@ -15,7 +15,7 @@ export default function Dashboard() {
 
   async function checkAuth() {
     try {
-      const response = await axios.get("http://localhost:5000/users/users", {
+      const response = await axios.get("http://localhost:5000/user/users", {
         withCredentials: true,
       });
 
