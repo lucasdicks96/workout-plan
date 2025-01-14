@@ -35,8 +35,8 @@ router.post("/register", async (req: Request, res: Response) => {
 router.post(
   "/login",
   passport.authenticate("local", {
-    successRedirect: "/users/users",
-    failureRedirect: "/users/login",
+    successRedirect: "/user/users",
+    failureRedirect: "/login",
   })
 );
 
@@ -45,7 +45,6 @@ router.get("/users", isAuthenticated, (req: Request, res: Response) => {
 });
 
 router.post("/logout", (req: Request, res: Response) => {
-  // console.log(req.user);
   req.logout(() => {
     res.json({ message: "logged out" });
   });
@@ -53,7 +52,6 @@ router.post("/logout", (req: Request, res: Response) => {
 
 function isAuthenticated(req: Request, res: Response, next: NextFunction) {
   if (req.isAuthenticated()) {
-    // return res.status(200).json({ user: req.user });
     return next();
   }
   return res.status(401).json({ message: "Not authorized. Please login" });
