@@ -104,8 +104,8 @@ export default function Form({ route, buttonName }: FormProps) {
               <button type="submit" className={styles.button}>
                 {buttonName}
               </button>
-              <Link to="/" className={styles.button}>
-                <a>Close</a>
+              <Link to="/" className={styles.linkButton}>
+                Close
               </Link>
             </div>
           </form>
