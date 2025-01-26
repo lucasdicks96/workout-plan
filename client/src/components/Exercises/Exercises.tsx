@@ -1,6 +1,6 @@
-import { useNavigate } from "react-router-dom";
-import styles from "./Exercises.module.css";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import stylesDashboard from "../dashboard/Dashboard.module.css";
+import styles from "./Exercises.module.css";
 // import image from "../../assets/BackgroundImage.png";
 // const img: string = image;
 
@@ -38,26 +38,37 @@ function ExerciseCard({ title, description, img_path }: ExerciseType) {
 
 export default function Exercise() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isSubRoute =
+    location.pathname.includes("edit-exercises") ||
+    location.pathname.includes("create-exercises");
   return (
     <>
-      <h2>Exercises</h2>
-      <div className={stylesDashboard.content}>
-        <ExerciseList />
-      </div>
-      <div>
-        <button
-          className={styles.button}
-          onClick={() => navigate("/users/exercises/edit-exercises")}
-        >
-          Edit Exercise
-        </button>
-        <button
-          className={styles.button}
-          onClick={() => navigate("/users/exercises/create-exercises")}
-        >
-          Create Exercise
-        </button>
-      </div>
+      {!isSubRoute && (
+        <>
+          <h2>Exercises</h2>
+          <div className={stylesDashboard.content}>
+            <ExerciseList />
+          </div>
+          <div>
+            <button
+              className={styles.button}
+              onClick={() => navigate("/users/exercises/edit-exercises")}
+            >
+              Edit Exercise
+            </button>
+            <button
+              className={styles.button}
+              onClick={() => navigate("create-exercises")}
+            >
+              Create Exercise
+            </button>
+          </div>
+        </>
+      )}
+
+      <Outlet />
     </>
   );
 }
