@@ -13,6 +13,7 @@ router.post("/create-exercise", async (req: Request, res: Response) => {
     title: req.body.title,
     description: req.body.description,
     img_path: "/BackgroundImage.png",
+    user_id: req.body.user_id,
   };
   exerciseList.push(newExercise);
   res.status(201).json({
