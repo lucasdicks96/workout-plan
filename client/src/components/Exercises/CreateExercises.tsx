@@ -1,16 +1,29 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useEffect, useState, useRef, MutableRefObject } from "react";
+import { useNavigate } from "react-router-dom";
 
 type FormState = {
   title: string;
   description: string;
+  uid: MutableRefObject<number>;
 };
 
 export default function CreateExercise() {
+  const uid = useRef(0);
+  useEffect(() => {
+    async function fetchId() {
+      const response = await axios.get("http://localhost:5000/user/id", {
+        withCredentials: true,
+      });
+      console.log(response.data.uid);
+      uid.current = response.data.uid;
+    }
+    fetchId();
+  });
   const [formState, setFormState] = useState<FormState>({
     title: "",
     description: "",
+    uid: uid,
   });
 
   const navigate = useNavigate();
@@ -32,6 +45,7 @@ export default function CreateExercise() {
         {
           title: formState.title,
           description: formState.description,
+          user_id: uid,
         },
         {
           withCredentials: true,
@@ -61,6 +75,7 @@ export default function CreateExercise() {
             value={formState.title}
             onChange={handleChange}
             placeholder="Exercise Name"
+            maxLength={15}
             required
           />
         </div>
@@ -71,6 +86,7 @@ export default function CreateExercise() {
             value={formState.description}
             onChange={handleChange}
             placeholder="Exercise Description"
+            maxLength={50}
             required
           />
         </div>
