@@ -21,11 +21,11 @@ export default function LandingPage() {
       <div className={styles.body}>
         <div className={styles.content}>
           <div className={styles.button_group}>
-            <Link to="login" className={styles.button}>
+            <Link to="/login" className={styles.button}>
               Login
             </Link>
 
-            <Link to="register" className={styles.button}>
+            <Link to="/register" className={styles.button}>
               Register
             </Link>
           </div>
