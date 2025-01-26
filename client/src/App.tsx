@@ -68,9 +68,10 @@ function App() {
         {/* <Route index element={<Dashboard />} /> */}
         {/* <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}> */}
         <Route path="/users" element={<Dashboard />}>
-          <Route path="exercises" element={<Exercises />} />
-          <Route path="edit-exercises" element={<EditExercises />} />
-          <Route path="create-exercises" element={<CreateExercises />} />
+          <Route path="/users/exercises" element={<Exercises />}>
+            <Route path="edit-exercises" element={<EditExercises />} />
+            <Route path="create-exercises" element={<CreateExercises />} />
+          </Route>
           <Route path="workouts" element={<Workouts />} />
           <Route path="edit-workouts" element={<EditWorkouts />} />
           <Route path="create-workouts" element={<CreateWorkouts />} />
