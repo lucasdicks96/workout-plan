@@ -52,9 +52,6 @@
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
-.menu {
-  /* opacity: 60%; */
-}
 .menu > a:hover {
   color: white;
 }
