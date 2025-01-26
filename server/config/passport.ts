@@ -1,8 +1,8 @@
-import passport, { deserializeUser } from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcrypt";
-import pool from "./db";
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
 import userModel from "../types/userModel";
+import pool from "./db";
 // const LocalStrategy = passport.Strategy;
 
 passport.use(
@@ -50,7 +50,7 @@ passport.deserializeUser(async function (id: number, done: any) {
       id,
     ]);
     if (result.rows.length > 0) {
-      const user = result.rows[0];
+      const user: userModel = result.rows[0];
       done(null, user);
     } else {
       done(new Error("User not found"), null);
