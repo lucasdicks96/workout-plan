@@ -1,43 +1,3 @@
-/* .exerciseList {
-  height: inherit;
-  width: inherit;
-  overflow: auto;
-}
-.exerciseCardContainer {
-  display: flex;
-  flex-direction: row;
-  width: 275px;
-  height: 150px;
-  background-color: rgb(0, 129, 204);
-  border-radius: 10px;
-  margin: 10px;
-}
-.exerciseImageContainer {
-  flex: 30;
-  align-self: center;
-}
-.exerciseImage {
-  flex: 30;
-
-  width: 75px;
-  height: 75px;
-}
-img {
-  border-radius: 10px;
-  width: 70px;
-  height: 70px;
-}
-.exerciseCardBody {
-  flex: 70;
-  display: flex;
-  flex-direction: column;
-}
-
-h2 {
-  margin: 0;
-  font-weight: 500;
-} */
-
 .exerciseList {
   display: flex; /* Verwandelt den Container in ein flexibles Layout */
   flex-wrap: wrap; /* Erlaubt das Umbrechen der Karten in neue Zeilen */
@@ -60,6 +20,8 @@ h2 {
   border-radius: 10px;
   margin: 10px;
   box-sizing: border-box; /* Bezieht Polsterung und Rand in die Breite ein */
+  overflow: hidden;
+  flex-wrap: nowrap;
 }
 
 .exerciseImageContainer {
@@ -87,7 +49,17 @@ img {
   display: flex;
   flex-direction: column;
   justify-content: center; /* Zentriert den Text vertikal */
-  padding: 10px; /* Optional: Innenabstand für den Text */
+  padding: 5px 2px 0px 5px; /* Optional: Innenabstand für den Text */
+  max-width: 190px;
+}
+h3 {
+  overflow-wrap: anywhere;
+}
+
+.exerciseCardDescription {
+  max-height: 30px;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
 }
 
 h2 {
