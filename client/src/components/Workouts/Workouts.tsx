@@ -19,13 +19,13 @@ export default function Workout() {
           <div>
             <button
               className={styles.button}
-              onClick={() => navigate("/users/workouts/edit-workouts")}
+              onClick={() => navigate("edit-workouts")}
             >
               Edit Workout
             </button>
             <button
               className={styles.button}
-              onClick={() => navigate("/users/workouts/create-workouts")}
+              onClick={() => navigate("create-workouts")}
             >
               Create Workout
             </button>
