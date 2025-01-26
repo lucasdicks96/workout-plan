@@ -20,7 +20,7 @@ export default function Dashboard() {
       });
 
       if (response.status === 200 || response.status === 201) {
-        console.log(response.data);
+        console.log("authenticated");
         setIsAuthenticated(true);
       }
     } catch (err) {
