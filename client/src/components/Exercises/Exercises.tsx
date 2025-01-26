@@ -47,13 +47,13 @@ export default function Exercise() {
       <div>
         <button
           className={styles.button}
-          onClick={() => navigate("/users/edit-exercises")}
+          onClick={() => navigate("/users/exercises/edit-exercises")}
         >
           Edit Exercise
         </button>
         <button
           className={styles.button}
-          onClick={() => navigate("/users/create-exercises")}
+          onClick={() => navigate("/users/exercises/create-exercises")}
         >
           Create Exercise
         </button>
