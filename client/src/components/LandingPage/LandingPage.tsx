@@ -20,7 +20,7 @@ export default function LandingPage() {
     <>
       <div className={styles.body}>
         <div className={styles.content}>
-          <div className={styles.button_group}>
+          <div className={styles.buttonGroup}>
             <Link to="/login" className={styles.button}>
               Login
             </Link>
