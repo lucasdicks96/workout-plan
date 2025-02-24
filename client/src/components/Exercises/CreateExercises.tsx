@@ -1,6 +1,6 @@
 import axios from "axios";
-import { useEffect, useState, useRef, MutableRefObject } from "react";
-import { useNavigate } from "react-router-dom";
+import { MutableRefObject, useEffect, useRef, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 
 type FormState = {
   title: string;
@@ -91,6 +91,7 @@ export default function CreateExercise() {
           />
         </div>
         <button type="submit">Submit</button>
+        <Link to="../">Cancel</Link>
       </form>
     </>
   );
