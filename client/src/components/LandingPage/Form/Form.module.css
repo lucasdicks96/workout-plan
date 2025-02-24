@@ -1,16 +1,14 @@
 .formContainer {
   display: flex;
   flex-direction: column;
-  height: 35vh;
-  width: 25vw;
-  min-width: 300px;
+  height: 25vh;
+  width: 35vw;
+  min-width: 275px;
+  max-width: 350px;
   min-height: 450px;
   background-color: rgb(69, 221, 221);
   border-radius: 20px;
-  align-items: center;
-  justify-items: center;
   box-sizing: border-box;
-  padding: 20px;
 }
 
 .loginForm {
@@ -18,7 +16,17 @@
   flex-direction: column;
   height: 100%;
   width: 100%;
+  align-content: center;
+  justify-content: center;
   box-sizing: border-box;
+}
+h2 {
+  height: 3rem;
+  font-size: 1.75rem;
+  text-align: center;
+  margin: 0px;
+  padding: 0px;
+  justify-content: flex-start;
 }
 
 .buttonGroup {
@@ -35,7 +43,7 @@
   align-self: center;
   justify-content: center;
   align-items: center;
-  width: 100%;
+  /* width: 100%; */
   max-width: 300px;
   height: 50px;
   margin: 1rem 0;
@@ -46,7 +54,7 @@
   color: black;
   border-style: none;
   border-radius: 5px;
-  width: 220px;
+  max-width: 200px;
   height: 2rem;
   text-align: center;
   box-sizing: border-box;
@@ -59,26 +67,9 @@ label {
   margin-right: 10px;
 }
 
-.button {
-  display: inline-block;
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  background-color: #007bff;
-  color: white;
-  text-align: center;
-  text-decoration: none;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  font-size: 1rem;
-  width: auto;
-  margin: 5px;
-  height: 50px;
-  width: 80px;
-  font-weight: 500;
-}
-
+.button,
 .linkButton {
+  /* display: inline-block; */
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   background-color: #007bff;
   color: white;
@@ -89,19 +80,15 @@ label {
   cursor: pointer;
   transition: background-color 0.3s ease;
   font-size: 1rem;
-  width: auto;
   margin: 5px;
   height: 50px;
   width: 80px;
   font-weight: 500;
 }
 
-.button:hover {
-  background-color: #0056b3;
-}
-
+.button:hover,
 .button:active {
-  background-color: #004494;
+  background-color: #0056b3;
 }
 
 ::placeholder {
@@ -142,15 +129,11 @@ label {
     align-items: center;
   }
 
-  .button {
+  .button,
+  .linkButton {
     width: 75%;
     font-size: calc(14rem / 16);
     height: 40px;
-  }
-
-  .button > a {
-    height: 40px;
-    width: 75%;
   }
 }
 
@@ -159,24 +142,19 @@ label {
     padding: 10px;
   }
 
-  h2 {
-    font-size: 16px;
-  }
+  /* h2 {
+    font-size: 24px;
+  } */
 
   .inputGroup {
     margin: 0.5rem 0;
   }
 
-  .button {
+  .button,
+  .linkButton {
     width: 75%;
     margin-top: 8px;
     font-size: 12px;
     height: 40px;
-  }
-
-  .button > a {
-    height: 40px;
-    width: 75%;
-    padding: 0;
   }
 }
