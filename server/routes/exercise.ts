@@ -6,6 +6,12 @@ router.get("/all-exercises", (req: Request, res: Response) => {
   res.json({ exercises: exerciseList }).status(200);
 });
 
+router.get("/exercise/:id", (req: Request, res: Response) => {
+  const exerciseId = parseInt(req.params.id);
+  const exercise = exerciseList.find((ex) => ex.id === exerciseId);
+  res.json({ exercise }).status(200);
+});
+
 router.post("/create-exercise", async (req: Request, res: Response) => {
   console.log(req.body);
   let newExercise = {
