@@ -22,6 +22,12 @@
   box-sizing: border-box; /* Bezieht Polsterung und Rand in die Breite ein */
   overflow: hidden;
   flex-wrap: nowrap;
+  border: 1px solid black; /* Standard-Rahmen */
+  cursor: pointer;
+  transition: border 0.2s ease-in-out;
+}
+.active {
+  border: 2.5px solid white;
 }
 
 .exerciseImageContainer {
