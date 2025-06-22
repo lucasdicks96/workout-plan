@@ -4,6 +4,7 @@ import session from "express-session";
 import passport from "./config/passport";
 import userRoute from "./routes/user";
 import exerciseRoute from "./routes/exercise";
+import workoutRoute from "./routes/workout";
 var cors = require("cors");
 var cookieParser = require("cookie-parser");
 
@@ -54,6 +55,7 @@ app.use(
 
 app.use("/user", userRoute);
 app.use("/exercise", exerciseRoute);
+app.use("/workout", workoutRoute);
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
