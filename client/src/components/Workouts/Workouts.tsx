@@ -1,33 +1,61 @@
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { useEffect, useState } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 // import stylesDashboard from "../dashboard/Dashboard.module.css";
-import styles from "../exercises/Exercises.module.css";
+import { fetchAllWorkouts } from "../../api/fetchWorkout";
+import { IWorkout } from "../../types/workouts";
+import styles from "../exercises/ExercisesList.module.css";
 
 export default function Workout() {
-  const [workoutList, setWorkoutList] = useState<Workout[]>([]);
+  const [workoutList, setWorkoutList] = useState<IWorkout[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   // const workouts: Workout[] = [];
 
-  async function fetchWorkouts() {
-    try {
-      const response = await axios.get(
-        "http://localhost:5000/workout/all-workouts",
-        {
-          withCredentials: true,
-        }
-      );
-      setWorkoutList(response.data.workouts);
-      console.log("Fetched workouts:", response.data);
-    } catch (error) {
-      console.error("Error fetching workouts:", error);
-      // Optionally, you can handle the error here, e.g., show a notification
+  function WorkoutList() {
+    if (isLoading) {
+      return <p>Lade Übungen...</p>; // Ladeanzeige
     }
+
+    if (workoutList.length === 0) {
+      return <p>Keine Übungen verfügbar.</p>; // Kein Inhalt
+    }
+    return (
+      <div className={styles.exerciseList}>
+        {workoutList.map((item) => (
+          <WorkoutCard
+            key={item.id}
+            id={item.id}
+            title={item.title}
+            description={item.description}
+          />
+        ))}
+      </div>
+    );
+  }
+  function WorkoutCard({ title, description }: IWorkout) {
+    return (
+      <div className={styles.exerciseCardContainer}>
+        <div className={styles.exerciseCardBody}>
+          <h3>{title}</h3>
+          <div className={styles.exerciseCardDescription}>{description}</div>
+        </div>
+      </div>
+    );
   }
 
   useEffect(() => {
-    fetchWorkouts();
+    const loadAllWorkouts = async () => {
+      try {
+        const workouts = await fetchAllWorkouts();
+        setWorkoutList(workouts);
+      } catch (error) {
+        console.error("Fehler beim Abrufen der Workouts:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadAllWorkouts();
   }, []);
 
   const isSubRoute =
@@ -39,7 +67,7 @@ export default function Workout() {
       {!isSubRoute && (
         <>
           <h2>Workouts</h2>
-          {/* <div className={stylesDashboard.content}></div> */}
+          <WorkoutList />
           <div>
             <button
               className={styles.button}
@@ -59,10 +87,4 @@ export default function Workout() {
       <Outlet />
     </>
   );
-}
-
-interface Workout {
-  id: number;
-  name: string;
-  description: string;
 }
