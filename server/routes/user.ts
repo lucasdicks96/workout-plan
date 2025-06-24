@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import { NextFunction, Request, Response, Router } from "express";
 import passport from "passport";
 import pool from "../config/db";
-import userModel from "../types/userModel";
+// import { IUserModel } from "../types/userModel";
 
 const router = Router();
 
@@ -32,14 +32,6 @@ router.post("/register", async (req: Request, res: Response) => {
     client.release();
   }
 });
-
-// router.post(
-//   "/login",
-//   passport.authenticate("local", {
-//     successRedirect: "/user/users",
-//     failureRedirect: "/login",
-//   })
-// );
 
 router.post("/login", (req: Request, res: Response, next: NextFunction) => {
   passport.authenticate("local", (err: any, user: any, info: any) => {
