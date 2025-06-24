@@ -6,7 +6,7 @@ import LandingPage from "./components/landingPage/LandingPage";
 import Dashboard from "./components/dashboard/Dashboard";
 import CreateExercises from "./components/exercises/CreateExercises";
 import EditExercises from "./components/exercises/EditExercises";
-import Exercises from "./components/exercises/Exercises";
+import ExercisesList from "./components/Exercises/ExercisesList";
 import NotFound from "./components/NotFound";
 import CreateWorkouts from "./components/workouts/CreateWorkouts";
 import EditWorkouts from "./components/workouts/EditWorkouts";
@@ -28,7 +28,7 @@ function App() {
           element={<Form route="register" buttonName="Register" />}
         />
         <Route path="/users" element={<Dashboard />}>
-          <Route path="exercises" element={<Exercises />}>
+          <Route path="exercises" element={<ExercisesList />}>
             <Route path="edit-exercises" element={<EditExercises />} />
             <Route path="create-exercises" element={<CreateExercises />} />
           </Route>
