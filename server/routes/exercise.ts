@@ -1,4 +1,5 @@
 import { Request, Response, Router } from "express";
+import { IExercise } from "../types/exercises";
 
 const router = Router();
 
@@ -31,15 +32,7 @@ router.get("/edit", (req: Request, res: Response) => {});
 
 export default router;
 
-type ExerciseType = {
-  id: number;
-  title: string;
-  description: string;
-  img_path: string;
-  user_id?: number;
-};
-
-const exerciseList: ExerciseType[] = [
+const exerciseList: IExercise[] = [
   {
     id: 1,
     title: "Pushup",
