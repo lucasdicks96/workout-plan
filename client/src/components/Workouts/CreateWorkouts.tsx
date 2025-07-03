@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchAllExercises } from "../../api/fetchExercise";
 import { IExerciseForWorkout, IExercisesList } from "../../types/exercises";
+import Button from "../Button";
 import Exercise from "../Exercises/Exercises";
 import ExerciseSelectionList from "../Exercises/ExerciseSelectionList"; // Importiere die ExerciseSelectionList Komponente
 import Modal from "../Modal";
@@ -95,9 +96,10 @@ export default function CreateWorkout() {
                 onEditExercise={handleEditExercise}
                 onRemoveExercise={handleRemoveExercise}
               />
-              <button onClick={() => setShowExerciseSelection(true)}>
-                <span>+</span> Übung hinzufügen
-              </button>
+              <Button
+                name="Übung hinzufügen"
+                onClick={() => setShowExerciseSelection(true)}
+              />
             </>
           )}
           {exerciseForModal && (

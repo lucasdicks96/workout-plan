@@ -1,5 +1,6 @@
-import styles from "../Exercises/ExercisesList.module.css";
 import { IExercisesList } from "../../types/exercises";
+import Button from "../Button";
+import styles from "../Exercises/ExercisesList.module.css";
 
 type ExerciseSelectionListProps = {
   exerciseList: IExercisesList[];
@@ -37,9 +38,10 @@ export default function ExerciseSelectionList({
           );
         })}
       </div>
-      <button onClick={() => setShowExerciseSelection(false)}>
-        Zurück zum Plan
-      </button>
+      <Button
+        name="Zurück zum Plan"
+        onClick={() => setShowExerciseSelection(false)}
+      />
     </>
   );
 }
