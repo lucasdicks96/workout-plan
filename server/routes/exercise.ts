@@ -1,5 +1,9 @@
 import { Request, Response, Router } from "express";
-import { IExercise } from "../types/exercises";
+import {
+  IExerciseForWorkout,
+  IExercisesList,
+  IFinishedExercise,
+} from "../types/exercises";
 
 const router = Router();
 
@@ -32,7 +36,7 @@ router.get("/edit", (req: Request, res: Response) => {});
 
 export default router;
 
-const exerciseList: IExercise[] = [
+const exerciseList: IExercisesList[] = [
   {
     id: 1,
     title: "Pushup",
@@ -342,3 +346,18 @@ const exerciseList: IExercise[] = [
     img_path: "/BackgroundImage.png",
   },
 ];
+
+const exerciseForWorkout: IExerciseForWorkout[] = exerciseList.map(
+  (exercise) => ({
+    id: exercise.id,
+    title: exercise.title,
+    decription: exercise.description,
+    repetitions: Math.floor(Math.random() * 15) + 5, // Random repetitions between 5 and 20
+    sets: Math.floor(Math.random() * 3) + 1, // Random sets between 1 and 3
+    weight: 0, // Default weight, can be adjusted later
+  })
+);
+
+// const finishedExercises: IFinishedExercise[] = exerciseForWorkout.map();
+
+export { exerciseForWorkout };
