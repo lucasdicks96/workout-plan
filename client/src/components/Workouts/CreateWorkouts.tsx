@@ -15,6 +15,7 @@ export default function CreateWorkout() {
   const [exerciseForModal, setExerciseForModal] = useState<
     IExercisesList | IExerciseForWorkout | null
   >(null);
+  // const [finishedWorkout, setFinishedWorkout] = useState<
 
   useEffect(() => {
     const loadAllExercises = async () => {
@@ -66,6 +67,8 @@ export default function CreateWorkout() {
     setShowExerciseSelection(false); // Zurück zur Plan-Ansicht
   };
 
+  const handleCreateWorkoutPlan = () => {};
+
   // Öffnet das Modal zum BEARBEITEN einer Übung aus dem Workout-Plan
   const handleEditExercise = (exercise: IExerciseForWorkout) => {
     setExerciseForModal(exercise);
@@ -99,6 +102,10 @@ export default function CreateWorkout() {
               <Button
                 name="Übung hinzufügen"
                 onClick={() => setShowExerciseSelection(true)}
+              />
+              <Button
+                name="Plan erstellen"
+                onClick={() => handleCreateWorkoutPlan}
               />
             </>
           )}
