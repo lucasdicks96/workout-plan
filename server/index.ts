@@ -8,11 +8,11 @@ import workoutRoute from "./routes/workout";
 var cors = require("cors");
 var cookieParser = require("cookie-parser");
 
-declare module "express-session" {
-  export interface SessionData {
-    sessionUser: { id: number; email: string }; // Beispiel: spezifischere Typen
-  }
-}
+// declare module "express-session" {
+//   export interface SessionData {
+//     sessionUser: { id: number; email: string }; // Beispiel: spezifischere Typen
+//   }
+// }
 const port = parseInt(process.env.PORT || "5000");
 
 const app = express();
@@ -28,7 +28,7 @@ app.use(
     unset: "destroy",
     cookie: {
       path: "/",
-      secure: false,
+      secure: process.env.NODE_ENV === "production" ? true : false, // Setze auf true in der Produktion
       httpOnly: true,
       maxAge: 1000 * 60 * 300,
     },
@@ -46,12 +46,6 @@ app.use(
     credentials: true,
   })
 );
-// app.use(
-//   cors({
-//     origin: "*",
-//     credentials: true,
-//   })
-// );
 
 app.use("/user", userRoute);
 app.use("/exercise", exerciseRoute);
@@ -60,6 +54,7 @@ app.use("/workout", workoutRoute);
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ message: "Something went wrong" });
+  next();
 });
 
 app.listen(port, () => {
