@@ -85,7 +85,7 @@ export default function Form({ route, buttonName }: FormProps) {
                 className={styles.input}
                 placeholder={"email"}
                 required
-              ></input>
+              />
             </div>
             <div className={styles.inputGroup}>
               <label htmlFor="password">Passwort:</label>
