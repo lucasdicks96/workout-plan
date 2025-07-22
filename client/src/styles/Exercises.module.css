@@ -1,0 +1,121 @@
+.exerciseList {
+  display: flex; /* Verwandelt den Container in ein flexibles Layout */
+  flex-wrap: wrap; /*Erlaubt das Umbrechen der Karten in neue Zeilen */
+  flex: 1;
+  width: 100%; /* Stellt sicher, dass der Container die volle Breite hat */
+  min-width: 200px;
+  max-width: 1700px;
+  height: 75vh;
+  overflow: auto;
+  padding: 10px; /* Optional: Innenabstand hinzufügen */
+  box-sizing: border-box; /* Bezieht Polsterung und Rand in die Breite ein */
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+}
+
+.active {
+  border: 2.5px solid white;
+}
+
+.exerciseCardDescription {
+  max-height: fit-content;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+
+h2 {
+  /* padding-top: 50px; */
+  font-weight: 500;
+}
+
+.button {
+  color: white;
+  background-color: rgb(0, 129, 204);
+  border-style: none;
+  margin: 10px;
+  height: 60px;
+  width: 140px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 16px;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+.button:hover {
+  color: black;
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  position: relative;
+}
+
+.disabled::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.3);
+  z-index: 1;
+}
+
+.addedLabel {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #28a745;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  z-index: 2;
+}
+.deleteButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background-color: #e0e0e0;
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  line-height: 1;
+  z-index: 5;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.deleteButton:hover {
+  background-color: #d93025; /* Rot beim Hovern */
+  color: white;
+}
+
+/* Media Queries für unterschiedliche Bildschirmgrößen */
+
+/* Für Tablets im Hochformat */
+@media (max-width: 768px) {
+  h3 {
+    padding: 0px;
+  }
+  .exerciseList {
+    width: 100%;
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .exerciseList {
+    width: 100%;
+    min-width: 300px;
+  }
+}
