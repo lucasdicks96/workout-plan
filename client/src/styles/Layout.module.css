@@ -1,0 +1,67 @@
+.mainLayout {
+  display: flex;
+  height: 100vh;
+  background-color: var(--c-bg);
+  color: var(--c-text-primary);
+  font-family: var(--font-sans);
+}
+.mainContent {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+.pageTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--c-text-primary);
+}
+.gridContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .mainContent {
+    padding: 1rem 1rem 6rem 1rem; /* Add padding-bottom for sidebar */
+  }
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .pageTitle {
+    font-size: 2rem;
+  }
+  .pageHeader .button {
+    width: 100%;
+  }
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 769px) {
+  .dashboardGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .pageHeader {
+    flex-direction: row;
+    align-items: center;
+  }
+  .pageHeader .button {
+    width: auto;
+  }
+}
