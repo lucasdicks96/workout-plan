@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import userModel from "../types/userModel";
+import User from "../types/user";
 import pool from "./db";
 // const LocalStrategy = passport.Strategy;
 
@@ -19,7 +19,8 @@ passport.use(
           "SELECT * FROM users WHERE email = $1",
           [email]
         );
-        const user: userModel = result.rows[0];
+        // console.log(result.rows);
+        const user: User = result.rows[0];
 
         if (!user) {
           return done(null, false, { message: "User not found" });
@@ -50,7 +51,7 @@ passport.deserializeUser(async function (id: number, done: any) {
       id,
     ]);
     if (result.rows.length > 0) {
-      const user: userModel = result.rows[0];
+      const user: User = result.rows[0];
       done(null, user);
     } else {
       done(new Error("User not found"), null);
