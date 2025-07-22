@@ -1,6 +1,9 @@
-import axios from "axios";
 import { MutableRefObject, useEffect, useRef, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { apiService } from "../../services/apiService";
+import { useAuth } from "../../context/AuthContext";
+import "../../styles/global.css"; // Import global styles
+import stylesLayout from "../../styles/Layout.module.css"; // Import layout styles
 
 type FormState = {
   title: string;
@@ -10,16 +13,23 @@ type FormState = {
 
 export default function CreateExercise() {
   const uid = useRef(0);
+  const { user } = useAuth();
+
   useEffect(() => {
     async function fetchId() {
-      const response = await axios.get("http://localhost:5000/user/id", {
-        withCredentials: true,
-      });
-      console.log(response.data.uid);
-      uid.current = response.data.uid;
+      try {
+        if (!user || user.id === undefined || user.id === null) {
+          console.error("User is not logged in or does not have an ID.");
+          return;
+        }
+        uid.current = user.id;
+      } catch (error) {
+        console.error("Error fetching user ID:", error);
+      }
     }
     fetchId();
-  });
+  }, [user]);
+
   const [formState, setFormState] = useState<FormState>({
     title: "",
     description: "",
@@ -40,36 +50,25 @@ export default function CreateExercise() {
     e.preventDefault();
 
     try {
-      const response = await axios.post(
-        `http://localhost:5000/exercise/create-exercise`,
-        {
-          title: formState.title,
-          description: formState.description,
-          user_id: uid,
-        },
-        {
-          withCredentials: true,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
+      await apiService.createExercise(
+        formState.title,
+        formState.description,
+        formState.uid.current
       );
-      console.log("Created exercise!");
-      response.status === 201
-        ? navigate("/users/exercises")
-        : navigate("/users");
+      navigate("/exercises", { replace: true });
+      console.log("Exercise created successfully!");
     } catch (error) {
-      console.error(error);
-      console.log("Failed to create exercise");
+      console.error("Error creating exercise:", error);
     }
   };
 
   return (
-    <>
-      <h2>Create Exercise</h2>
-      <form onSubmit={handleSubmit} method="POST">
+    <div className="content">
+      <h2 className={stylesLayout.pageTitle}>Create Exercise</h2>
+      <form onSubmit={handleSubmit} method="POST" className="form">
         <div>
           <input
+            className="input"
             type="text"
             id="title"
             value={formState.title}
@@ -81,6 +80,7 @@ export default function CreateExercise() {
         </div>
         <div>
           <input
+            className="input"
             type="text"
             id="description"
             value={formState.description}
@@ -90,9 +90,19 @@ export default function CreateExercise() {
             required
           />
         </div>
-        <button type="submit">Submit</button>
-        <Link to="../">Cancel</Link>
+        <div className="button-container">
+          <button className="button" type="submit">
+            Erstellen
+          </button>
+          <button
+            className="button"
+            type="button"
+            onClick={() => navigate("/exercises")}
+          >
+            Zurück
+          </button>
+        </div>
       </form>
-    </>
+    </div>
   );
 }
