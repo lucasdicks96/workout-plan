@@ -1,0 +1,206 @@
+:root {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  /* Dark Theme (Default) */
+  --color-background-dark: #111827;
+  --color-surface-dark: #1f2937;
+  --color-primary-dark: #34d399;
+  --color-primary-hover-dark: #6ee7b7;
+  --color-text-primary-dark: #f9fafb;
+  --color-text-secondary-dark: #9ca3af;
+  --color-border-dark: #374151;
+  --color-danger-dark: #f87171;
+
+  /* Light Theme */
+  --color-background-light: #f3f4f6;
+  --color-surface-light: #ffffff;
+  --color-primary-light: #10b981;
+  --color-primary-hover-light: #059669;
+  --color-text-primary-light: #1f2937;
+  --color-text-secondary-light: #4b5563;
+  --color-border-light: #d1d5db;
+  --color-danger-light: #ef4444;
+}
+
+body {
+  font-family: var(--font-sans);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.app-container {
+  background-color: var(--c-bg);
+  color: var(--c-text-primary);
+  transition: background-color 0.3s, color 0.3s;
+  min-height: 100vh;
+}
+
+.app-container.dark {
+  --c-bg: var(--color-background-dark);
+  --c-surface: var(--color-surface-dark);
+  --c-primary: var(--color-primary-dark);
+  --c-primary-hover: var(--color-primary-hover-dark);
+  --c-text-primary: var(--color-text-primary-dark);
+  --c-text-secondary: var(--color-text-secondary-dark);
+  --c-border: var(--color-border-dark);
+  --c-danger: var(--color-danger-dark);
+  --c-primary-text-on: #064e3b;
+}
+
+.app-container.light {
+  --c-bg: var(--color-background-light);
+  --c-surface: var(--color-surface-light);
+  --c-primary: var(--color-primary-light);
+  --c-primary-hover: var(--color-primary-hover-light);
+  --c-text-primary: var(--color-text-primary-light);
+  --c-text-secondary: var(--color-text-secondary-light);
+  --c-border: var(--color-border-light);
+  --c-danger: var(--color-danger-light);
+  --c-primary-text-on: #ffffff;
+}
+
+/* General utility classes */
+.button {
+  font-size: medium;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  margin: 0.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  background-color: var(--c-primary);
+  color: var(--c-primary-text-on);
+  width: 10rem;
+}
+.button:hover {
+  background-color: var(--c-primary-hover);
+}
+.button-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1rem;
+}
+.input {
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  background-color: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: 0.5rem;
+  color: var(--c-text-primary);
+  font-weight: 600;
+  box-sizing: border-box;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 2px var(--c-primary-hover);
+}
+.card {
+  box-sizing: border-box;
+  background-color: var(--c-surface);
+  padding: 1.5rem;
+  margin: 0.5rem;
+  border-radius: 0.75rem;
+  width: 20%;
+  min-width: 200px;
+  height: 8rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+.card > span {
+  color: green;
+  padding: 0px 0px 0px;
+  margin: -15px 0px 0px 0px;
+  float: right;
+}
+
+h1 {
+  align-items: center;
+  justify-self: center;
+}
+
+h3 {
+  margin: 0rem 0rem 0.25rem;
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 80vh;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  height: 50vh;
+  place-content: center;
+  gap: 1rem;
+  /* width: 100%; */
+}
+
+@media (max-width: 400px) {
+  .card {
+    height: 7.5rem;
+    width: 100%;
+    padding: 0.2rem 0.5rem;
+    margin: 0.25rem 0.25rem;
+  }
+  .button-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  h3 {
+    margin: 0.25rem 0rem;
+  }
+  .card > span {
+    margin-top: 5px;
+  }
+}
+
+@media (min-width: 401px) and (max-width: 480px) {
+  .card {
+    width: 100%;
+    height: 6rem;
+    padding: 1rem 1rem;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 982px) {
+  .card {
+    height: 10rem;
+    width: 12.5rem;
+    margin: 0.5rem;
+    padding: 1.5rem;
+  }
+}
+@media (min-width: 983px) {
+  .card {
+    width: 20%;
+    height: 10rem;
+    padding: 1.5rem;
+    margin: 0.5rem;
+  }
+}
+@media (min-width: 1200px) {
+  .card {
+    height: 10rem;
+    width: 12.5%;
+  }
+}
+
+@media (min-width: 1800px) {
+  .card {
+    height: 9rem;
+    width: 15%;
+  }
+}
