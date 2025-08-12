@@ -1,12 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { apiService } from "../../services/apiService";
-import stylesDashboard from "../../styles/Dashboard.module.css"; // Import dashboard styles
-import "../../styles/global.css"; // Import global styles
+import stylesDashboard from "../../styles/Dashboard.module.css";
 import stylesLayout from "../../styles/Layout.module.css";
 import { CombinedExercise } from "../../types/exercises";
-import { ExerciseList } from "./ExercisesList";
+import { ExerciseList } from "./Exercises";
 
 export default function EditExercise() {
   const [userExercisesList, setUserExercisesList] = useState<
@@ -17,41 +16,42 @@ export default function EditExercise() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    async function fetchUserExercises() {
-      try {
-        if (!user || user.id === undefined || user.id === null) {
-          console.error("User is not logged in or does not have an ID.");
-          return;
-        }
-        uid.current = user.id;
-
-        const exerciseList = await apiService.getUserExercises(user.id);
-        if (exerciseList.status === 200) {
-          setUserExercisesList(exerciseList.data.exercise);
-          // console.log(
-          //   "User exercises fetched successfully:",
-          //   exerciseList.data.exercise
-          // );
-        } else {
-          console.error("Failed to fetch user exercises");
-        }
-      } catch (error) {
-        console.error("Error fetching user exercises:", error);
-      } finally {
-        setIsLoading(false);
+  const fetchUserExercises = useCallback(async () => {
+    try {
+      if (!user || user.id === undefined || user.id === null) {
+        console.error("User is not logged in or does not have an ID.");
+        return;
       }
+      uid.current = user.id;
+
+      const response = await apiService.getUserExercises(user.id);
+
+      if (response.status === 200) {
+        setUserExercisesList(response.data.exercise);
+      } else {
+        setUserExercisesList([]);
+        console.log("Else Block user exercises", setUserExercisesList([]));
+      }
+    } catch (error) {
+      console.error("Error fetching user exercises:", error);
+      setUserExercisesList([]);
+    } finally {
+      setIsLoading(false);
     }
-    fetchUserExercises();
   }, [user]);
 
+  useEffect(() => {
+    fetchUserExercises();
+  }, [fetchUserExercises]);
+
   return (
-    <div className={stylesDashboard.content}>
+    <div className={stylesDashboard.dashboardContent}>
       <h2 className={stylesLayout.pageTitle}>Übungen bearbeiten</h2>
       <ExerciseList
         exerciseList={userExercisesList}
         isLoading={isLoading}
         userId={uid.current}
+        onUpdateSuccess={fetchUserExercises}
       />
       <div className="button-container">
         <button
