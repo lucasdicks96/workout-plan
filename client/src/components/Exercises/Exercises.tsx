@@ -1,147 +1,144 @@
-import { useState } from "react";
-import { IExercise, IExerciseForWorkout } from "../../types/exercises";
-import styles from "./Exercise.module.css";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { apiService } from "../../services/apiService";
+import styles from "../../styles/Exercises.module.css";
+import stylesLayout from "../../styles/Layout.module.css";
+import { CombinedExercise } from "../../types/exercises";
+import Modal from "./Modal";
 
-type ExerciseProps = {
-  exercise: IExercise & {
-    repetitions?: number;
-    sets?: number;
-    weight?: number;
-  };
-  onSave: (exerciseData: IExerciseForWorkout) => void;
-  onClose: () => void;
-};
+export default function Exercises() {
+  const [exerciseList, setExerciseList] = useState<CombinedExercise[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
-export default function Exercise({ exercise, onSave, onClose }: ExerciseProps) {
-  const [sets, setSets] = useState<number>(exercise.sets || 1);
-  const [repetitions, setRepetitions] = useState<number>(
-    exercise.repetitions || 0
-  );
-  const [weight, setWeight] = useState<number>(exercise.weight || 0);
+  const { user } = useAuth();
+  const id = useRef<number>(0);
 
-  const [error, setError] = useState<string>("");
-
-  // Eine generische Funktion, um Werte zu ändern. Verhindert negative Zahlen.
-  const handleValueChange = (
-    setter: React.Dispatch<React.SetStateAction<number>>,
-    amount: number
-  ) => {
-    setter((currentValue) => Math.max(0, currentValue + amount));
-  };
-
-  const handleSave = () => {
-    if (sets <= 0) {
-      setError("Die Anzahl an Sets muss mindestens 1 sein.");
-      return;
+  const fetchAllExercises = useCallback(async () => {
+    try {
+      if (!user || user.id === undefined || user.id === null) {
+        console.error("Benutzer ist nicht angemeldet oder hat keine ID.");
+        return;
+      }
+      id.current = user.id;
+      const response = await apiService.getAllExercises(id.current);
+      setExerciseList(response.data.exercises);
+    } catch (error) {
+      console.error("Fehler beim Abrufen der Übungen:", error);
+    } finally {
+      setIsLoading(false);
     }
-    setError(""); // Fehler zurücksetzen, wenn alles in Ordnung ist
+  }, [user]);
 
-    const exerciseData: IExerciseForWorkout = {
-      id: exercise.id,
-      title: exercise.title,
-      sets,
-      repetitions,
-      weight,
-    };
-    onSave(exerciseData);
-    onClose();
-  };
+  useEffect(() => {
+    fetchAllExercises();
+  }, [fetchAllExercises]);
 
   return (
     <>
-      <h2>{exercise.title}</h2>
-
-      <div className={styles.container}>
-        <div className={styles.inputGroup}>
-          <label htmlFor="sets">Sets</label>
-          <div className={styles.controls}>
-            <button
-              className={styles.controlButton}
-              onClick={() => handleValueChange(setSets, -1)}
-              aria-label="Sets verringern"
-            >
-              -
-            </button>
-            <input
-              id="sets"
-              type="number"
-              className={styles.numberInput}
-              value={sets}
-              onChange={(e) => setSets(Math.max(0, Number(e.target.value)))}
-            />
-            <button
-              className={styles.controlButton}
-              onClick={() => handleValueChange(setSets, 1)}
-              aria-label="Sets erhöhen"
-            >
-              +
-            </button>
-          </div>
+      <div className="content">
+        <h2 className={stylesLayout.pageTitle}>Übungen</h2>
+        <ExerciseList
+          exerciseList={exerciseList}
+          isLoading={isLoading}
+          userId={id.current}
+          onUpdateSuccess={fetchAllExercises}
+        />
+        <div className="button-container">
+          <button className="button" onClick={() => navigate("edit-exercises")}>
+            Bearbeiten
+          </button>
+          <button
+            className="button"
+            onClick={() => navigate("create-exercises")}
+          >
+            Erstellen
+          </button>
         </div>
-
-        <div className={styles.inputGroup}>
-          <label htmlFor="repetitions">Repetitions</label>
-          <div className={styles.controls}>
-            <button
-              className={styles.controlButton}
-              onClick={() => handleValueChange(setRepetitions, -1)}
-              aria-label="Wiederholungen verringern"
-            >
-              -
-            </button>
-            <input
-              id="repetitions"
-              type="number"
-              className={styles.numberInput}
-              value={repetitions}
-              onChange={(e) =>
-                setRepetitions(Math.max(0, Number(e.target.value)))
-              }
-            />
-            <button
-              className={styles.controlButton}
-              onClick={() => handleValueChange(setRepetitions, 1)}
-              aria-label="Wiederholungen erhöhen"
-            >
-              +
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.inputGroup}>
-          <label htmlFor="weight">Weight (kg)</label>
-          <div className={styles.controls}>
-            <button
-              className={styles.controlButton}
-              onClick={() => handleValueChange(setWeight, -1)}
-              aria-label="Gewicht verringern"
-            >
-              -
-            </button>
-            <input
-              id="weight"
-              type="number"
-              className={styles.numberInput}
-              value={weight}
-              onChange={(e) => setWeight(Math.max(0, Number(e.target.value)))}
-            />
-            <button
-              className={styles.controlButton}
-              onClick={() => handleValueChange(setWeight, 1)}
-              aria-label="Gewicht erhöhen"
-            >
-              +
-            </button>
-          </div>
-        </div>
-      </div>
-      {error && <p className={styles.error}>{error}</p>}
-      <div className={styles.buttonContainer}>
-        <button onClick={handleSave}>Speichern</button>
-        <button onClick={onClose} style={{ marginLeft: "10px" }}>
-          Abbrechen
-        </button>
       </div>
     </>
   );
 }
+
+type ExerciseProps = {
+  isLoading: boolean;
+  exerciseList: CombinedExercise[];
+  userId: number;
+  onUpdateSuccess: () => void;
+};
+export function ExerciseList({
+  isLoading,
+  exerciseList,
+  userId,
+  onUpdateSuccess,
+}: ExerciseProps) {
+  const [selectedExercise, setSelectedExercise] =
+    useState<CombinedExercise | null>(null);
+  // let exerciseList: CombinedExercise[] = exerciseList;
+
+  const location = window.location.pathname;
+  const isEditPage = location.includes("edit-exercises");
+
+  const handleCardClick = (exercise: CombinedExercise) => {
+    if (exercise.isUserCreated && isEditPage) {
+      setSelectedExercise(exercise);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setSelectedExercise(null);
+  };
+
+  if (isLoading) {
+    return <p>Lade Übungen...</p>;
+  }
+
+  if (exerciseList.length === 0) {
+    return <p>Keine Übungen verfügbar.</p>;
+  }
+  return (
+    <>
+      <div className={styles.exerciseList}>
+        {exerciseList.map((item) => (
+          <ExerciseCard
+            key={item.compositeKey}
+            title={item.title}
+            description={item.description}
+            isUserCreated={item.isUserCreated}
+            compositeKey={item.compositeKey}
+            originalId={item.originalId}
+            onClick={() => handleCardClick(item)}
+          />
+        ))}
+      </div>
+      {selectedExercise && (
+        <Modal
+          isOpen={!!selectedExercise}
+          onClose={handleCloseModal}
+          exerciseData={selectedExercise}
+          userId={userId}
+          onUpdateSuccess={onUpdateSuccess}
+        />
+      )}
+    </>
+  );
+}
+
+type ExerciseCardProps = CombinedExercise & {
+  onClick: () => void;
+};
+
+const ExerciseCard = memo(
+  ({ title, description, isUserCreated, onClick }: ExerciseCardProps) => {
+    return (
+      <div className="card" onClick={onClick}>
+        {isUserCreated && (
+          <span style={{ position: "relative" }}>Eigene Übung</span>
+        )}
+        <h3>{title}</h3>
+        <div className={styles.exerciseCardDescription}>{description}</div>
+      </div>
+    );
+  }
+);
