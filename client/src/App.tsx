@@ -1,15 +1,19 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import DashboardLayout from "./components/Layout/DashboardLayout";
+import styles from "./styles/Layout.module.css";
 import AuthPage from "./components/LandingPage/AuthPage";
-import Exercise from "./components/Exercises/ExercisesList";
-import "./styles/global.css";
+import Exercise from "./components/Exercises/Exercises";
 import CreateExercise from "./components/Exercises/CreateExercises";
 import EditExercise from "./components/Exercises/EditExercises";
+import Workout from "./components/Workouts/Workouts";
+import EditWorkouts from "./components/Workouts/EditWorkouts";
+import CreateWorkouts from "./components/Workouts/CreateWorkouts";
+import WorkoutInProgress from "./components/Workouts/WorkoutInProgress";
 
 const Dashboard = () => (
   <div>
-    <h1 className="pageTitle">Dashboard</h1>
+    <h1 className={styles.pageTitle}>Dashboard</h1>
   </div>
 );
 // const ExercisesList = () => (
@@ -17,14 +21,14 @@ const Dashboard = () => (
 //     <h1 className="pageTitle">Übungen</h1>
 //   </div>
 // );
-const Workouts = () => (
-  <div>
-    <h1 className="pageTitle">Workouts</h1>
-  </div>
-);
+// const Workouts = () => (
+//   <div>
+//     <h1 className="pageTitle">Workouts</h1>
+//   </div>
+// );
 const History = () => (
   <div>
-    <h1 className="pageTitle">Verlauf</h1>
+    <h1 className={styles.pageTitle}>Verlauf</h1>
   </div>
 );
 const NotFound = () => (
@@ -58,7 +62,16 @@ function App() {
                 path="exercises/create-exercises"
                 element={<CreateExercise />}
               />
-              <Route path="workouts" element={<Workouts />} />
+              <Route path="workouts" element={<Workout />} />
+              <Route path="workouts/edit-workouts" element={<EditWorkouts />} />
+              <Route
+                path="workouts/create-workouts"
+                element={<CreateWorkouts />}
+              />
+              <Route
+                path="workouts/start-workouts"
+                element={<WorkoutInProgress />}
+              />
               <Route path="history" element={<History />} />
             </Route>
           ) : (
