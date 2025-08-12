@@ -1,16 +1,27 @@
-import { IExerciseForWorkout } from "./exercises";
+import { CombinedExercise, ExerciseForWorkout } from "./exercises";
 
-export interface IWorkout {
+export interface Workout {
   id: number;
   uid: number;
   title: string;
-  description: string;
-  exercises: IExerciseForWorkout[];
+  exercises: ExerciseForWorkout[];
 }
 
-export interface IFinishedWorkout extends IWorkout {
+export interface FinishedWorkout extends Workout {
   date: string;
   duration: number; // in minutes
   startTime: string; // ISO format
   endTime: string; // ISO format
+}
+
+export interface WorkoutExercises extends CombinedExercise {
+  workoutId: number;
+  userId: number;
+  sets: WorkoutExerciseSets[];
+}
+
+export interface WorkoutExerciseSets {
+  setNumber: number;
+  weight: number;
+  repetitions: number;
 }
