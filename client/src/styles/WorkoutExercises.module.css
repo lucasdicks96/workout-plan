@@ -1,0 +1,49 @@
+.cardContentContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.cardContentItem {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.input {
+  box-sizing: border-box;
+  width: 3rem;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  border-radius: 0.5rem;
+  background-color: var(--c-bg);
+  color: var(--c-text-primary);
+  border: none;
+  font-weight: 600;
+  justify-items: center;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 2px var(--c-primary-hover);
+}
+
+.card {
+  box-sizing: border-box;
+  position: relative;
+  background-color: var(--c-surface);
+  padding: 1.5rem;
+  margin: 0.5rem;
+  border-radius: 0.75rem;
+  width: 20%;
+  min-width: 12.5rem;
+  height: 8rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+.input[type="number"]::-webkit-outer-spin-button,
+.input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
