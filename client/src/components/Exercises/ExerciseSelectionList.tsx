@@ -1,47 +1,56 @@
-import { IExercisesList } from "../../types/exercises";
-import Button from "../Button";
-import styles from "../Exercises/ExercisesList.module.css";
+import { memo } from "react";
+import styles from "../../styles/Exercises.module.css";
+import stylesModal from "../../styles/Modal.module.css";
+import { CombinedExercise } from "../../types/exercises";
+import { WorkoutExercises } from "../../types/workouts";
 
 type ExerciseSelectionListProps = {
-  exerciseList: IExercisesList[];
-  existingExerciseIds: Set<number>;
-  handleSelectNewExercise: (exercise: IExercisesList) => void;
-  setShowExerciseSelection: (show: boolean) => void;
+  allExercises: CombinedExercise[];
+  workoutList: WorkoutExercises[];
+  onSelectExercise: (exercise: CombinedExercise) => void;
+  onBack: () => void;
 };
 
-export default function ExerciseSelectionList({
-  exerciseList,
-  existingExerciseIds,
-  handleSelectNewExercise,
-  setShowExerciseSelection,
+function ExerciseSelectionList({
+  allExercises,
+  workoutList,
+  onSelectExercise,
+  onBack,
 }: ExerciseSelectionListProps) {
-  // ...
+  const exercisesInWorkout = new Set(workoutList.map((ex) => ex.compositeKey));
   return (
-    <>
-      <h2>Wähle eine Übung aus</h2>
+    <div className="content">
+      <h2 style={{ marginBottom: "1rem" }}>Wähle eine Übung aus</h2>
       <div className={styles.exerciseList}>
-        {exerciseList.map((item) => {
-          const isAdded = existingExerciseIds.has(item.id);
+        {allExercises.map((exercise) => {
+          const isAdded = exercisesInWorkout.has(exercise.compositeKey);
           return (
             <div
-              key={item.id}
-              // Füge eine 'disabled' Klasse hinzu und ändere den Cursor
-              className={`${styles.exerciseCardContainer} ${
-                isAdded ? styles.disabled : ""
-              }`}
-              onClick={() => handleSelectNewExercise(item)}
+              key={exercise.compositeKey}
+              className={`card ${isAdded ? styles.disabled : ""}`}
+              onClick={() => !isAdded && onSelectExercise(exercise)}
             >
-              {/* ... img, title etc. ... */}
-              <h3>{item.title}</h3>
-              {isAdded && <div className={styles.addedLabel}>Hinzugefügt</div>}
+              {isAdded && (
+                <div
+                  className={stylesModal.closeButton}
+                  style={{ position: "absolute" }}
+                >
+                  +
+                </div>
+              )}
+              <h3>{exercise.title}</h3>
+              <div className={styles.exerciseCardDescription}>
+                {exercise.description}
+              </div>
             </div>
           );
         })}
       </div>
-      <Button
-        name="Zurück zum Plan"
-        onClick={() => setShowExerciseSelection(false)}
-      />
-    </>
+      <button className="button" onClick={onBack} style={{ marginTop: "1rem" }}>
+        Zurück
+      </button>
+    </div>
   );
 }
+
+export default memo(ExerciseSelectionList);
