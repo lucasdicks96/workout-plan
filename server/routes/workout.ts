@@ -1,38 +1,94 @@
 import { Request, Response, Router } from "express";
-import { IWorkout, IFinishedWorkout } from "../types/workouts";
-import { exerciseForWorkout } from "./exercise";
+import { FinishedWorkout, Workout } from "../types/workouts";
+import { ExerciseForWorkout } from "../types/exercises";
+import { getTransformedCombinedExercise } from "./exercise";
 
 const router = Router();
 
-router.get("/all-workouts", (req: Request, res: Response) => {
-  res.json({ workouts }).status(200);
+router.get("/all-workouts", async (req: Request, res: Response) => {
+  res.json({ workouts: workouts }).status(200);
 });
 
-router.get("/workout/:id", (req: Request, res: Response) => {});
+router.get(
+  "/workout-exercises/:workoutId/:userId",
+  async (req: Request, res: Response) => {
+    console.log(req.params);
+    const workoutId = parseInt(req.params.workoutId);
+    const userId = parseInt(req.params.userId);
+    if (isNaN(workoutId) || isNaN(userId)) {
+      return res.status(400).json({ message: "Falsche WorkoutId oder UserId" });
+    }
+    try {
+      const workoutData: Workout[] = await getWorkoutExercises(
+        workoutId,
+        userId
+      );
+      const exercises: ExerciseForWorkout[] = workoutData[0].exercises;
+      const title: string = workoutData[0].title;
+      res
+        .status(200)
+        .json({ message: "Success", exercises: exercises, title: title });
+    } catch (error) {
+      console.error("Error fetching Workout exercises", error);
+    }
+
+    console.log("clicked");
+  }
+);
+
+router.get(
+  "/workout/:workoutId/:userId",
+  async (req: Request, res: Response) => {
+    console.log(req.params);
+    const workoutId = parseInt(req.params.workoutId);
+    const userId = parseInt(req.params.userId);
+    if (isNaN(workoutId) || isNaN(userId)) {
+      return res.status(400).json({ message: "Falsche WorkoutId oder UserId" });
+    }
+    try {
+    } catch (error) {}
+  }
+);
 
 router.post("/create-workout", async (req: Request, res: Response) => {
-  console.log(req.body);
-  // Here you would typically save the workout to a database
   workouts.push({
     id: workouts.length + 1,
-    uid: req.body.uid, // Assuming uid is passed in the request body
+    uid: parseInt(req.body.userId), // Assuming uid is passed in the request body
     title: req.body.title,
-    description: req.body.description,
-    exercises: req.body.exercises.map((exercise: IWorkout) => ({
+    exercises: req.body.exercises.map((exercise: Workout) => ({
       ...exercise,
     })),
   });
   res.status(201).json({
     message: "Workout created successfully",
-    workout: req.body,
+    workout: workouts[workouts.length - 1],
   });
 });
+
+router.delete(
+  "/delete-workout/:userId/:workoutId",
+  async (req: Request, res: Response) => {
+    console.log(req.params);
+    const userId = parseInt(req.params.userId);
+    const workoutId = parseInt(req.params.workoutId);
+    const index = workouts.findIndex(
+      (workout) => workout.id === workoutId && workout.uid === userId
+    );
+    if (index !== -1) {
+      workouts.splice(index, 1);
+      res.status(200).json({ message: "Löschen des Plan war erfolgreich" });
+    } else {
+      return res.status(404).json({ message: "Löschen nicht erfolgreich" });
+    }
+  }
+);
+
 router.post("/finish-workout", async (req: Request, res: Response) => {
   console.log(req.body);
   // Here you would typically save the finished workout to a database
   const duration: number =
     parseInt(req.body.endTime) - parseInt(req.body.startTime); // Calculate duration in milliseconds
-  const finishedWorkout: IFinishedWorkout = {
+  const finishedWorkout: FinishedWorkout = {
     ...req.body,
     date: req.body.date,
     duration: duration, // Assuming duration is passed in the request body
@@ -48,41 +104,67 @@ router.post("/finish-workout", async (req: Request, res: Response) => {
 
 export default router;
 
-const workouts: IWorkout[] = [
-  {
-    id: 1,
-    uid: 1,
-    title: "Full Body Workout",
-    description: "A complete workout for all muscle groups.",
-    exercises: [
-      exerciseForWorkout[0], // Pushup
-      exerciseForWorkout[1], // Squat
-      exerciseForWorkout[2], // Plank
-      exerciseForWorkout[3], // Lunge
-    ],
-  },
-  {
-    id: 2,
-    uid: 2,
-    title: "Cardio Blast",
-    description: "High-intensity cardio workout.",
-    exercises: [
-      exerciseForWorkout[4], // Running
-      exerciseForWorkout[5], // Cycling
-      exerciseForWorkout[6], // Jump Rope
-    ],
-  },
-  {
-    id: 3,
-    uid: 1,
-    title: "Strength Training",
-    description: "Focus on building muscle strength.",
-    exercises: [
-      exerciseForWorkout[7], // Deadlift
-      exerciseForWorkout[8], // Bench Press
-      exerciseForWorkout[9], // Pull-up
-    ],
-  },
-];
+// export const workouts: Workout[] = [
+//   {
+//     id: 1,
+//     uid: 1,
+//     title: "Full Body Workout",
+//     exercises: [
+//       exerciseForWorkout[0], // Pushup
+//       exerciseForWorkout[1], // Squat
+//       exerciseForWorkout[2], // Plank
+//       exerciseForWorkout[3], // Lunge
+//     ],
+//   },
+//   {
+//     id: 2,
+//     uid: 2,
+//     title: "Cardio Blast",
+//     exercises: [
+//       exerciseForWorkout[4], // Running
+//       exerciseForWorkout[5], // Cycling
+//       exerciseForWorkout[6], // Jump Rope
+//     ],
+//   },
+//   {
+//     id: 3,
+//     uid: 1,
+//     title: "Strength Training",
+//     exercises: [
+//       exerciseForWorkout[7], // Deadlift
+//       exerciseForWorkout[8], // Bench Press
+//       exerciseForWorkout[9], // Pull-up
+//     ],
+//   },
+// ];
 
-const finishedWorkouts: IFinishedWorkout[] = [];
+async function getWorkoutExercises(
+  workoutId: number,
+  userId: number
+): Promise<Workout[]> {
+  try {
+    // const workout: number = workoutId;
+    if (isNaN(workoutId) || isNaN(userId)) {
+      console.error("workoutId | userId isNaN or is missing");
+      throw new Error("Invalid workoutId or userId");
+    }
+    const workout: Workout | undefined = workouts.find(
+      (workout) => workout.id === workoutId && workout.uid === userId
+    );
+
+    if (!workout) {
+      throw new Error("Workout not found");
+    }
+
+    return [workout];
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Error fetching Workout exercises", error);
+    }
+    throw error;
+  }
+}
+
+const workouts: Workout[] = [];
+
+const finishedWorkouts: FinishedWorkout[] = [];
