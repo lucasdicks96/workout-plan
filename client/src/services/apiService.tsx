@@ -1,4 +1,5 @@
 import axios from "axios";
+import { WorkoutExercises } from "../types/workouts";
 
 const apiClient = axios.create({
   baseURL: "http://localhost:5000", // Passe dies an deine Backend-URL an
@@ -10,7 +11,9 @@ const apiClient = axios.create({
 
 // Interceptor, um Fehler zentral zu behandeln
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   (error) => {
     const message =
       error.response?.data?.message ||
@@ -32,7 +35,7 @@ export const apiService = {
     apiClient.post("/exercise/create-exercise", {
       title,
       description,
-      userId: userId,
+      userId,
     }),
   editExercise: (
     id: number,
@@ -46,11 +49,30 @@ export const apiService = {
       description,
       userId,
     }),
-  deleteExercise: (id: number, userId: number) =>
-    apiClient.delete(`/exercise/delete-exercise/${id}/${userId}`),
+  deleteExercise: (exerciseId: number, userId: number) =>
+    apiClient.delete(`/exercise/exercise/${exerciseId}/${userId}`),
   getAllExercises: (userId: number) =>
     apiClient.get(`/exercise/all-exercises/${userId}`),
   getUserExercises: (userId: number) =>
     apiClient.get(`/exercise/user-exercises/${userId}`),
   getUserId: () => apiClient.get("/user/id"),
+  getAllWorkouts: () => apiClient.get("/workout/all-workouts"),
+  getWorkoutExercises: (workoutId: number, userId: number) =>
+    apiClient.get(`/workout/workout-exercises/${workoutId}/${userId}`),
+  createWorkout: (
+    title: string,
+    userId: number,
+    exercises: WorkoutExercises[]
+  ) =>
+    apiClient.post("/workout/create-workout", {
+      title,
+      userId,
+      exercises,
+    }),
+  getWorkout: (workoutId: number, userId: number) =>
+    apiClient.get(`/workout/workout/:${workoutId}/:${userId}`),
+  updateWorkout: (title: string, userId: number, workoutId: number) =>
+    apiClient.put("/workout/update", { title, userId, workoutId }),
+  deleteWorkout: (userId: number, workoutId: number) =>
+    apiClient.delete(`/workout/delete-workout/${userId}/${workoutId}`),
 };
