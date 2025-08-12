@@ -7,6 +7,7 @@
 }
 .mainContent {
   flex: 1;
+  display: flex;
   padding: 2rem;
   overflow-y: auto;
 }
@@ -21,6 +22,7 @@
 .pageTitle {
   font-size: 2.5rem;
   font-weight: 700;
+  padding-top: 2rem;
   color: var(--c-text-primary);
 }
 .gridContainer {
