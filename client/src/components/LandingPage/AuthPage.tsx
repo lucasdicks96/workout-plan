@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import styles from "../../styles/AuthPage.module.css";
+import "../../styles/global.css";
 
 function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
   const { login, register } = useAuth();
