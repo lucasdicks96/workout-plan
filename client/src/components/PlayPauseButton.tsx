@@ -4,17 +4,15 @@ import styles from "../styles/PlayPauseButton.module.css";
 type PlayPauseButtonProps = {
   onStart: () => void;
   isPlaying?: boolean;
-  className?: string;
 };
 
 export default function PlayPauseButton({
   onStart,
   isPlaying = false,
-  className,
 }: PlayPauseButtonProps) {
-  const buttonClass = className ? className : styles.playPauseButton;
+  // const buttonClass = className ? className : styles.playPauseButton;
   return (
-    <button onClick={onStart} className={buttonClass}>
+    <button onClick={onStart} className={(styles.playPauseButton, "button")}>
       {isPlaying ? <PauseIcon /> : <PlayIcon />}
     </button>
   );
