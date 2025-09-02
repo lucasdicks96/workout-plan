@@ -71,8 +71,18 @@ export const apiService = {
     }),
   getWorkout: (workoutId: number, userId: number) =>
     apiClient.get(`/workout/workout/:${workoutId}/:${userId}`),
-  updateWorkout: (title: string, userId: number, workoutId: number) =>
-    apiClient.put("/workout/update", { title, userId, workoutId }),
+  updateWorkout: (
+    title: string,
+    userId: number,
+    workoutId: number,
+    exercises: WorkoutExercises[]
+  ) =>
+    apiClient.put("/workout/update-workout", {
+      title,
+      userId,
+      workoutId,
+      exercises,
+    }),
   deleteWorkout: (userId: number, workoutId: number) =>
     apiClient.delete(`/workout/delete-workout/${userId}/${workoutId}`),
 };
