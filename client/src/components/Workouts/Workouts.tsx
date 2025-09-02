@@ -29,7 +29,7 @@ export default function Workout() {
     loadAllWorkouts();
   }, [loadAllWorkouts]);
 
-  const onDelete = async (userId: number, workoutId: number) => {
+  const handleDelete = async (userId: number, workoutId: number) => {
     try {
       const response = await apiService.deleteWorkout(userId, workoutId);
       loadAllWorkouts();
@@ -46,7 +46,7 @@ export default function Workout() {
         <WorkoutList
           isLoading={isLoading}
           workoutList={workoutList}
-          onDelete={onDelete}
+          onDelete={handleDelete}
         />
         <div className="button-container">
           <button className="button" onClick={() => navigate("edit-workouts")}>
@@ -109,6 +109,8 @@ function WorkoutCard({
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const location = window.location.pathname;
+  const isEditPage: boolean = location.includes("edit-workouts");
   let userId: number;
   if (user) {
     userId = user.id;
@@ -127,21 +129,7 @@ function WorkoutCard({
         &times;
       </button>
       <h3>{title}</h3>
-      <PlayPauseButton onStart={onStart} />
+      {!isEditPage && <PlayPauseButton onStart={onStart} />}
     </div>
   );
 }
-
-// const PlayIcon: React.FC = () => {
-//   return (
-//     <svg
-//       xmlns="http://www.w3.org/2000/svg"
-//       width="1.5rem"
-//       height="1.5rem"
-//       viewBox="0 0 24 24"
-//       fill="var(--c-bg)"
-//     >
-//       <path d="M7.22,21.64C6.33,22.2,5,21.5,5,20.47V3.53c0-1.03,1.33-1.73,2.22-1.17l13.43,8.47c0.83,0.53,0.83,1.8,0,2.33L7.22,21.64z" />
-//     </svg>
-//   );
-// };
