@@ -1,117 +1,10 @@
-// import { memo } from "react";
-// import styles from "../../styles/Exercises.module.css";
-// import stylesModal from "../../styles/Modal.module.css";
-// import { ExerciseForWorkout } from "../../types/exercises";
-
-// type WorkoutExercisesProps = {
-//   workoutList: ExerciseForWorkout[];
-//   onUpdate?: (
-//     key: string,
-//     field: keyof ExerciseForWorkout,
-//     value: string
-//   ) => void;
-//   onRemove?: (key: string) => void;
-//   onBack?: () => void;
-// };
-
-// function WorkoutExercises({
-//   workoutList,
-//   onUpdate,
-//   onRemove,
-// }: // onBack,
-// WorkoutExercisesProps) {
-//   // const navigate = useNavigate();
-//   if (workoutList.length === 0) {
-//     return (
-//       <>
-//         <p>Dieses Workout enthält keine Übungen.</p>
-//       </>
-//     );
-//   }
-//   // console.log("workoutexercises ", workoutList);
-
-//   return (
-//     <>
-//       {/* {onBack && (
-//         <button
-//           className="button"
-//           onClick={onBack}
-//           style={{ marginBottom: "1rem" }}
-//         >
-//           Zurück
-//         </button>
-//       )} */}
-//       <div className={styles.exerciseList}>
-//         {workoutList.map((exercise) => (
-//           <div
-//             key={exercise.compositeKey}
-//             className="card"
-//             style={{ minHeight: "fit-content" }}
-//           >
-//             {onRemove && (
-//               <button
-//                 className={stylesModal.closeButton}
-//                 onClick={() => onRemove && onRemove(exercise.compositeKey)}
-//               >
-//                 &times;
-//               </button>
-//             )}
-
-//             <div className="">
-//               <h3>{exercise.title}</h3>
-//             </div>
-//             <div className="">
-//               <label>Sätze</label>
-//               <input
-//                 type="number"
-//                 className="input"
-//                 value={exercise.sets}
-//                 onChange={(e) =>
-//                   onUpdate &&
-//                   onUpdate(exercise.compositeKey, "sets", e.target.value)
-//                 }
-//               />
-//             </div>
-//             <div className="">
-//               <label>Wiederholungen</label>
-//               <input
-//                 type="number"
-//                 className="input"
-//                 value={exercise.repetitions}
-//                 onChange={(e) =>
-//                   onUpdate &&
-//                   onUpdate(exercise.compositeKey, "repetitions", e.target.value)
-//                 }
-//               />
-//             </div>
-//             <div className="">
-//               <label>Gewicht (kg)</label>
-//               <input
-//                 type="number"
-//                 className="input"
-//                 value={exercise.weight}
-//                 onChange={(e) =>
-//                   onUpdate &&
-//                   onUpdate(exercise.compositeKey, "weight", e.target.value)
-//                 }
-//               />
-//             </div>
-//           </div>
-//         ))}
-//       </div>
-//     </>
-//   );
-// }
-
-// export default memo(WorkoutExercises);
-
 import { memo, useState } from "react";
 import styles from "../../styles/Exercises.module.css";
 import stylesModal from "../../styles/Modal.module.css";
 import stylesWorkoutExercises from "../../styles/WorkoutExercises.module.css";
 import {
-  WorkoutExercises as WorkoutExercisesType,
   WorkoutExerciseSets,
+  WorkoutExercises as WorkoutExercisesType,
 } from "../../types/workouts";
 
 type WorkoutExercisesProps = {
@@ -147,11 +40,7 @@ WorkoutExercisesProps) {
 
   // console.log("workoutexercises ", workoutList);
   if (workoutList.length === 0) {
-    return (
-      <>
-        <p>Dieses Workout enthält keine Übungen.</p>
-      </>
-    );
+    return <p>Dieses Workout enthält keine Übungen.</p>;
   }
 
   const handleValueChange = (amount: number) => {
