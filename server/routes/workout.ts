@@ -102,6 +102,33 @@ router.post("/finish-workout", async (req: Request, res: Response) => {
   });
 });
 
+router.put("/update-workout", async (req: Request, res: Response) => {
+  const workoutId = parseInt(req.body.workoutId);
+  const userId = parseInt(req.body.userId);
+  if (isNaN(workoutId) || isNaN(userId)) {
+    return res.status(400).json({ message: "Falsche WorkoutId oder UserId" });
+  }
+  const exercises = req.body.exercises;
+  try {
+    const index = workouts.findIndex((workout) => workout.id === workoutId);
+    if (index !== -1) {
+      const existingWorkout = workouts[index];
+      workouts[index] = {
+        ...existingWorkout,
+        title: req.body.title || existingWorkout.title,
+        exercises: exercises || existingWorkout.exercises,
+      };
+      res
+        .status(200)
+        .json({ message: "Update erfolgreich", workout: workouts[index] });
+    } else {
+      res.status(404).json({ message: "Workout nicht gefunden" });
+    }
+  } catch (error) {
+    console.error("Fehler beim Aktualisieren des Workouts", error);
+  }
+});
+
 export default router;
 
 // export const workouts: Workout[] = [
