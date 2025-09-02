@@ -1,19 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-// import stylesDashboard from "../dashboard/Dashboard.module.css";
+import { useAuth } from "../../context/AuthContext";
 import { apiService } from "../../services/apiService";
 import styles from "../../styles/Exercises.module.css";
 import stylesLayout from "../../styles/Layout.module.css";
 import stylesModal from "../../styles/Modal.module.css";
 import { Workout as IWorkout } from "../../types/workouts";
-import { useAuth } from "../../context/AuthContext";
 import PlayPauseButton from "../PlayPauseButton";
 
 export default function Workout() {
   const [workoutList, setWorkoutList] = useState<IWorkout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  // const workouts: Workout[] = [];
 
   const loadAllWorkouts = useCallback(async () => {
     try {
@@ -76,11 +74,11 @@ export function WorkoutList({
   onDelete?: (workoutId: number, userId: number) => void;
 }) {
   if (isLoading) {
-    return <p>Lade Übungen...</p>; // Ladeanzeige
+    return <p>Lade Übungen...</p>;
   }
 
   if (workoutList.length === 0) {
-    return <p>Keine Übungen verfügbar.</p>; // Kein Inhalt
+    return <p>Keine Übungen verfügbar.</p>;
   }
   return (
     <div className={styles.exerciseList}>
@@ -122,12 +120,14 @@ function WorkoutCard({
 
   return (
     <div className="card" onClick={() => onClick?.(workoutId)}>
-      <button
-        className={stylesModal.closeButton}
-        onClick={() => onDelete?.(userId, workoutId)}
-      >
-        &times;
-      </button>
+      {isEditPage && (
+        <button
+          className={stylesModal.closeButton}
+          onClick={() => onDelete?.(userId, workoutId)}
+        >
+          &times;
+        </button>
+      )}
       <h3>{title}</h3>
       {!isEditPage && <PlayPauseButton onStart={onStart} />}
     </div>
