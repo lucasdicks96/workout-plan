@@ -83,6 +83,24 @@ export const apiService = {
       workoutId,
       exercises,
     }),
+  finishWorkout: (
+    userId: number,
+    workoutId: number,
+    startTime: number,
+    endTime: number,
+    pauseTime: number,
+    elapsedTime: number,
+    exercises: WorkoutExercises[]
+  ) =>
+    apiClient.post("/workout/finish-workout", {
+      userId,
+      workoutId,
+      startTime,
+      endTime,
+      pauseTime,
+      elapsedTime,
+      exercises,
+    }),
   deleteWorkout: (userId: number, workoutId: number) =>
     apiClient.delete(`/workout/delete-workout/${userId}/${workoutId}`),
 };
