@@ -114,7 +114,7 @@ function WorkoutCard({
     userId = user.id;
   }
   const onStart = () => {
-    sessionStorage.setItem("startWorkoutId", JSON.stringify(workoutId));
+    localStorage.setItem("startWorkoutId", JSON.stringify(workoutId));
     navigate("start-workouts");
   };
 
