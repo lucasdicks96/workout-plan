@@ -1,46 +1,54 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
 import stylesLayout from "../../styles/Layout.module.css";
 import { CombinedExercise } from "../../types/exercises";
-import {
-  WorkoutExercises as WorkoutExercisesType,
-  WorkoutExerciseSets,
-} from "../../types/workouts";
 import ExerciseSelectionList from "../Exercises/ExerciseSelectionList";
 import WorkoutExercises from "./WorkoutExercises";
 
 export default function CreateWorkout() {
+  const {
+    updateExerciseInWorkout,
+    handleAddSet,
+    handleRemoveSet,
+    removeExerciseFromWorkout,
+    workoutList,
+    setWorkoutList,
+    isSelecting,
+    setIsSelecting,
+    addExerciseToWorkout,
+  } = useWorkoutManager();
+
   const [allExercises, setAllExercises] = useState<CombinedExercise[]>([]);
-  const [workoutList, setWorkoutList] = useState<WorkoutExercisesType[]>(() => {
-    const savedList = sessionStorage.getItem("createPlan");
-    return savedList ? JSON.parse(savedList) : [];
-  });
-  const [workoutName, setWorkoutName] = useState<string>(() => {
-    const savedName = sessionStorage.getItem("planName");
-    return savedName ? JSON.parse(savedName) : "";
-  });
+
+  const [workoutName, setWorkoutName] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isSelecting, setIsSelecting] = useState<boolean>(false);
   const { user } = useAuth();
   const uid = useRef(0);
   const navigate = useNavigate();
 
-  // Speichere die workoutList bei jeder Änderung im sessionStorage
-  useEffect(() => {
-    sessionStorage.setItem("createPlan", JSON.stringify(workoutList));
-    sessionStorage.setItem("planName", JSON.stringify(workoutName));
-  }, [workoutList, workoutName]);
+  const isInitialMount = useRef(true);
 
-  // Lösche die Daten aus dem sessionStorage, wenn die Komponente verlassen wird
   useEffect(() => {
-    // Diese Funktion wird ausgeführt, wenn die Komponente "unmounted" wird
-    return () => {
-      sessionStorage.removeItem("createPlan");
-      sessionStorage.removeItem("planName");
-    };
-  }, []);
+    const savedList = localStorage.getItem("createPlan");
+    const savedName = localStorage.getItem("planName");
+
+    if (savedList) setWorkoutList(JSON.parse(savedList));
+    if (savedName) setWorkoutName(JSON.parse(savedName));
+  }, [setWorkoutList]);
+
+  // Wenn erster Mount, dann initialMount = false und return
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    // Wird nach dem 2. rendern ausgeführt
+    localStorage.setItem("createPlan", JSON.stringify(workoutList));
+    localStorage.setItem("planName", JSON.stringify(workoutName));
+  }, [workoutList, workoutName]);
 
   const loadAllExercises = useCallback(async () => {
     try {
@@ -61,87 +69,6 @@ export default function CreateWorkout() {
   useEffect(() => {
     loadAllExercises();
   }, [loadAllExercises]);
-
-  const addExerciseToWorkout = (exercise: CombinedExercise) => {
-    const newWorkoutExercise: WorkoutExercisesType = {
-      ...exercise,
-      // workoutId: 0,
-      // userId: uid.current,
-      sets: [
-        {
-          setNumber: 1,
-          repetitions: 10,
-          weight: 10,
-        },
-      ],
-    };
-    setWorkoutList((current) => [...current, newWorkoutExercise]);
-    setIsSelecting(false); // Zurück zur Hauptansicht
-  };
-
-  const updateExerciseInWorkout = (
-    key: string,
-    field: keyof WorkoutExerciseSets,
-    value: number,
-    setIdx: number
-  ) => {
-    setWorkoutList((current) =>
-      current.map((ex) =>
-        ex.compositeKey === key
-          ? {
-              ...ex,
-              sets: (ex.sets || []).map((set, idx) =>
-                idx === setIdx ? { ...set, [field]: value } : set
-              ),
-            }
-          : ex
-      )
-    );
-  };
-
-  const handleAddSet = (key: string) => {
-    const index = workoutList.findIndex((ex) => ex.compositeKey === key);
-    if (index !== -1) {
-      setWorkoutList((current) =>
-        current.map((ex) =>
-          ex.compositeKey === key
-            ? {
-                ...ex,
-                sets: [
-                  ...ex.sets,
-                  {
-                    setNumber: ex.sets.length + 1,
-                    repetitions: 10,
-                    weight: 10,
-                  },
-                ],
-              }
-            : ex
-        )
-      );
-    }
-    // console.log(compositeKey);
-  };
-
-  const handleRemoveSet = (key: string) => {
-    setWorkoutList((current) =>
-      current.map((ex) => {
-        if (ex.compositeKey === key && ex.sets.length > 1) {
-          return {
-            ...ex,
-            sets: ex.sets.slice(0, -1),
-          };
-        }
-        return ex;
-      })
-    );
-  };
-
-  const removeExerciseFromWorkout = (key: string) => {
-    setWorkoutList((current) =>
-      current.filter((ex) => ex.compositeKey !== key)
-    );
-  };
 
   const handleCreateWorkout = async () => {
     if (!workoutName.trim()) {
@@ -168,7 +95,16 @@ export default function CreateWorkout() {
       navigate("/workouts");
     } catch (error) {
       console.error("Fehler beim Erstellen des Plans", error);
+    } finally {
+      localStorage.removeItem("createPlan");
+      localStorage.removeItem("planName");
     }
+  };
+
+  const handleBack = () => {
+    navigate("/workouts");
+    localStorage.removeItem("createPlan");
+    localStorage.removeItem("planName");
   };
 
   if (isLoading) {
@@ -198,15 +134,10 @@ export default function CreateWorkout() {
       />
       <WorkoutExercises
         workoutList={workoutList}
-        onUpdate={(
-          key: string,
-          setIndex: number,
-          field: keyof WorkoutExerciseSets,
-          value: string
-        ) => {
+        onUpdate={(key, setIndex, field, value) => {
           const numericValue = Number(value);
           if (!isNaN(numericValue)) {
-            updateExerciseInWorkout(key, field, numericValue, setIndex);
+            updateExerciseInWorkout(key, setIndex, field, numericValue);
           }
         }}
         onRemove={removeExerciseFromWorkout}
@@ -214,7 +145,7 @@ export default function CreateWorkout() {
         onRemoveSet={handleRemoveSet}
       />
       <div className="button-container">
-        <button className="button" onClick={() => navigate("/workouts")}>
+        <button className="button" onClick={handleBack}>
           Zurück
         </button>
         <button className="button" onClick={() => setIsSelecting(true)}>
