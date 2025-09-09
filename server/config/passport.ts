@@ -3,7 +3,6 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import User from "../types/user";
 import pool from "./db";
-// const LocalStrategy = passport.Strategy;
 
 passport.use(
   "local",
@@ -19,7 +18,6 @@ passport.use(
           "SELECT * FROM users WHERE email = $1",
           [email]
         );
-        // console.log(result.rows);
         const user: User = result.rows[0];
 
         if (!user) {
