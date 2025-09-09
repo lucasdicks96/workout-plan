@@ -1,6 +1,7 @@
+import axios from "axios";
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import styles from "../../styles/AuthPage.module.css";
 import "../../styles/global.css";
 
@@ -20,13 +21,22 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
         await register(email, password);
       } else {
         await login(email, password);
-        navigate("/dashboard", { replace: true });
       }
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        if (err.response && err.response.data && err.response.data.message) {
+          setError(err.response.data.message);
+        } else {
+          setError("Interner Serverfehler.");
+        }
       } else {
-        setError("An unexpected error occurred.");
+        console.error("Ein unerwarteter Fehler ist aufgetreten:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Ein unerwarteter Fehler ist aufgetreten."
+        );
       }
     }
   };
