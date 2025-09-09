@@ -17,8 +17,8 @@ export interface CombinedExercise {
 }
 
 export interface ExerciseForWorkout extends CombinedExercise {
+  set: number;
   repetitions: number;
-  sets: number;
   weight: number;
 }
 
