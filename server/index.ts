@@ -30,7 +30,7 @@ app.use(
       path: "/",
       secure: process.env.NODE_ENV === "production" ? true : false, // Setze auf true in der Produktion
       httpOnly: true,
-      maxAge: 1000 * 60 * 300,
+      maxAge: 1000 * 3600 * 12,
     },
   })
 );
