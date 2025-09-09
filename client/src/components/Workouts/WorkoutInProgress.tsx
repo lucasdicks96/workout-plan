@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
 import stylesLayout from "../../styles/Layout.module.css";
@@ -180,6 +180,7 @@ export default function WorkoutInProgress() {
     // console.log("Abgelaufene Zeit: " + formatTime(elapsedTime));
     try {
       const endTime: number = Date.now();
+      const date = new Date().toLocaleDateString();
       if (!user) {
         console.error("Benutzer ist nicht eingeloggt oder hat keine ID.");
         return;
@@ -197,7 +198,9 @@ export default function WorkoutInProgress() {
         endTime,
         totalPausedDuration,
         elapsedTime,
-        workoutList
+        workoutList,
+        workoutName,
+        date
       );
       console.log(response.data);
     } catch (error) {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import { apiService } from "../../services/apiService";
 import styles from "../../styles/Exercises.module.css";
 import stylesLayout from "../../styles/Layout.module.css";
@@ -74,18 +74,18 @@ export function WorkoutList({
   onDelete?: (workoutId: number, userId: number) => void;
 }) {
   if (isLoading) {
-    return <p>Lade Übungen...</p>;
+    return <p>Lade Workouts...</p>;
   }
 
   if (workoutList.length === 0) {
-    return <p>Keine Übungen verfügbar.</p>;
+    return <p>Keine Workouts verfügbar.</p>;
   }
   return (
     <div className={styles.exerciseList}>
       {workoutList.map((workout) => (
         <WorkoutCard
-          key={workout.id}
-          workoutId={workout.id}
+          key={workout.workoutId}
+          workoutId={workout.workoutId}
           title={workout.title}
           onClick={onClick}
           onDelete={onDelete}

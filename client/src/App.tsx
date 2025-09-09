@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "./context/AuthContext";
+import { useAuth } from "./hooks/useAuth";
 import DashboardLayout from "./components/Layout/DashboardLayout";
 import styles from "./styles/Layout.module.css";
 import AuthPage from "./components/LandingPage/AuthPage";
@@ -10,6 +10,7 @@ import Workout from "./components/Workouts/Workouts";
 import EditWorkouts from "./components/Workouts/EditWorkouts";
 import CreateWorkouts from "./components/Workouts/CreateWorkouts";
 import WorkoutInProgress from "./components/Workouts/WorkoutInProgress";
+import History from "./components/Workouts/History";
 
 const Dashboard = () => (
   <div>
@@ -26,11 +27,11 @@ const Dashboard = () => (
 //     <h1 className="pageTitle">Workouts</h1>
 //   </div>
 // );
-const History = () => (
-  <div>
-    <h1 className={styles.pageTitle}>Verlauf</h1>
-  </div>
-);
+// const History = () => (
+//   <div>
+//     <h1 className={styles.pageTitle}>Verlauf</h1>
+//   </div>
+// );
 const NotFound = () => (
   <div>
     <h1 className="pageTitle">404 - Nicht gefunden</h1>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import { apiService } from "../../services/apiService";
 import stylesDashboard from "../../styles/Dashboard.module.css";
 import stylesLayout from "../../styles/Layout.module.css";
