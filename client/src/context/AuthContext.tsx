@@ -1,10 +1,4 @@
-import {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, ReactNode, useEffect, useState } from "react";
 import { apiService } from "../services/apiService";
 import User from "../types/user";
 
@@ -20,13 +14,7 @@ export interface AuthContextType {
   toggleTheme: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within an AuthProvider");
-  return context;
-};
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -34,36 +22,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    apiService
-      .getStatus()
-      .then((response) => {
-        // console.log("AuthContext useEffect response:", response.data.user);
-        if (response.data.user) {
-          const { id, email } = response.data.user;
-          console.log("AuthContext useEffect response 2:", id, email);
-          setUser(response.data.user);
-        }
-      })
-      .catch(() => {
-        console.log("AuthContext useEffect error: User not authenticated");
+    const checkAuthStatus = async () => {
+      try {
+        const response = await apiService.getStatus();
+        setUser(response.data.user);
+      } catch (error) {
         setUser(null);
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkAuthStatus();
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await apiService.login(email, password);
-    setUser(response.data.user);
-    console.log("AuthContext login ", response.data);
+    try {
+      const response = await apiService.login(email, password);
+      setUser(response.data.user);
+    } catch (error) {
+      console.error("Login fehlgeschlagen", error);
+      throw error;
+    }
   };
   const register = async (email: string, password: string) => {
-    const response = await apiService.register(email, password);
-    setUser(response.data.user);
+    try {
+      const response = await apiService.register(email, password);
+      console.log(response.data.user);
+      setUser(response.data.user);
+    } catch (error) {
+      console.error("Registrierung fehlgeschlagen", error);
+      throw error;
+    }
   };
   const logout = async () => {
-    await apiService.logout();
-    setUser(null);
+    try {
+      await apiService.logout();
+      setUser(null);
+    } catch (error) {
+      console.error("Logout fehlgeschlagen", error);
+      setUser(null);
+      throw error;
+    }
   };
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };

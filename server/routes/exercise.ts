@@ -6,118 +6,135 @@ import {
   UserExercise,
 } from "../types/exercises";
 import { error } from "console";
+import { isAuthenticated } from "../middlewares/auth.middleware";
 
 const router = Router();
 
-router.get("/all-exercises/:id", async (req: Request, res: Response) => {
-  const userId = parseInt(req.params.id);
-  try {
-    const combinedExercise: CombinedExercise[] =
-      await getTransformedCombinedExercise(userId);
-    return res.status(200).json({ exercises: combinedExercise });
-  } catch (error) {
-    console.error("Error fetching exercises:", error);
-    res.status(404);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-router.get("/user-exercises/:id", async (req: Request, res: Response) => {
-  const userId = parseInt(req.params.id);
-  try {
-    const userExercises: CombinedExercise[] = await getTransformedUserExercise(
-      userId
-    );
-    if (userExercises.length === 0) {
-      return res.status(404).json({
-        exercise: userExercises,
-        message: "No exercises found for this user.",
-      });
+router.get(
+  "/all-exercises/:id",
+  isAuthenticated,
+  async (req: Request, res: Response) => {
+    const userId = parseInt(req.params.id);
+    try {
+      const combinedExercise: CombinedExercise[] =
+        await getTransformedCombinedExercise(userId);
+      return res.status(200).json({ exercises: combinedExercise });
+    } catch (error) {
+      console.error("Error fetching exercises:", error);
+      res.status(404);
+      return res.status(500).json({ message: "Internal server error" });
     }
-    res.status(200).json({ exercise: userExercises });
-  } catch (error) {
-    console.error("Error fetching user exercises", error);
-    res.status(404);
   }
-});
+);
 
-router.post("/create-exercise", async (req: Request, res: Response) => {
-  // console.log("Created exercise req.body", req.body);
-  let counter = 4;
-  const userId = parseInt(req.body.userId);
-  let newExercise: UserExercise = {
-    id: counter++,
-    title: req.body.title,
-    description: req.body.description,
-    uid: userId,
-  };
-  userExerciseList.push(newExercise);
+router.get(
+  "/user-exercises/:id",
+  isAuthenticated,
+  async (req: Request, res: Response) => {
+    const userId = parseInt(req.params.id);
+    try {
+      const userExercises: CombinedExercise[] =
+        await getTransformedUserExercise(userId);
+      if (userExercises.length === 0) {
+        return res.status(404).json({
+          exercise: userExercises,
+          message: "No exercises found for this user.",
+        });
+      }
+      res.status(200).json({ exercise: userExercises });
+    } catch (error) {
+      console.error("Error fetching user exercises", error);
+      res.status(404);
+    }
+  }
+);
 
-  // const temp = num.id;
-  // console.log("Pushed to newExercise:", newExercise);
-  res.status(201).json({
-    // exercise: {
-    //   id: 1,
-    //   title: req.body.title,
-    //   description: req.body.description,
-    //   uid: req.body.userId,
-    // },
-    exercise: { newExercise },
-    message: "Exercise created successfullys",
-  });
-});
-
-router.put("/edit-exercise", async (req: Request, res: Response) => {
-  console.log(req.body);
-  try {
-    const { title, description } = req.body;
-    const id = parseInt(req.body.id);
+router.post(
+  "/create-exercise",
+  isAuthenticated,
+  async (req: Request, res: Response) => {
+    // console.log("Created exercise req.body", req.body);
+    let counter = 4;
     const userId = parseInt(req.body.userId);
-    console.log(
-      "Editing exercise with ID:",
-      id,
-      "Title:",
-      title,
-      "Description:",
-      description,
-      "User ID:",
-      userId
-    );
+    let newExercise: UserExercise = {
+      id: counter++,
+      title: req.body.title,
+      description: req.body.description,
+      uid: userId,
+    };
+    userExerciseList.push(newExercise);
 
-    if (isNaN(id) || isNaN(userId)) {
-      return res.status(400).json({ message: "Invalid ID or User ID" });
-    }
-
-    const index = userExerciseList.findIndex(
-      (ex) => ex.id === id && ex.uid === userId
-    );
-
-    if (index !== -1) {
-      const existingExercise: UserExercise = userExerciseList[index];
-
-      userExerciseList[index] = {
-        ...existingExercise,
-        title: title || existingExercise.title,
-        description: description || existingExercise.description,
-      };
-      console.log("existing exercise", existingExercise);
-
-      return res.status(200).json({
-        message: "Exercise updated successfully",
-        exercise: userExerciseList[index],
-      });
-    } else {
-      return res.status(404).json({ message: "Exercise not found" });
-    }
-  } catch (error) {
-    console.error("Error editing exercise:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    // const temp = num.id;
+    // console.log("Pushed to newExercise:", newExercise);
+    res.status(201).json({
+      // exercise: {
+      //   id: 1,
+      //   title: req.body.title,
+      //   description: req.body.description,
+      //   uid: req.body.userId,
+      // },
+      exercise: { newExercise },
+      message: "Exercise created successfullys",
+    });
   }
-});
+);
+
+router.put(
+  "/edit-exercise",
+  isAuthenticated,
+  async (req: Request, res: Response) => {
+    console.log(req.body);
+    try {
+      const { title, description } = req.body;
+      const id = parseInt(req.body.id);
+      const userId = parseInt(req.body.userId);
+      console.log(
+        "Editing exercise with ID:",
+        id,
+        "Title:",
+        title,
+        "Description:",
+        description,
+        "User ID:",
+        userId
+      );
+
+      if (isNaN(id) || isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid ID or User ID" });
+      }
+
+      const index = userExerciseList.findIndex(
+        (ex) => ex.id === id && ex.uid === userId
+      );
+
+      if (index !== -1) {
+        const existingExercise: UserExercise = userExerciseList[index];
+
+        userExerciseList[index] = {
+          ...existingExercise,
+          title: title || existingExercise.title,
+          description: description || existingExercise.description,
+        };
+        console.log("existing exercise", existingExercise);
+
+        return res.status(200).json({
+          message: "Exercise updated successfully",
+          exercise: userExerciseList[index],
+        });
+      } else {
+        return res.status(404).json({ message: "Exercise not found" });
+      }
+    } catch (error) {
+      console.error("Error editing exercise:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }
+);
 
 router.delete(
   "/exercise/:exerciseId/:userId",
-  (req: Request, res: Response) => {
+  isAuthenticated,
+  async (req: Request, res: Response) => {
     const exerciseId = parseInt(req.params.exerciseId);
     const userId = parseInt(req.params.userId);
     const index = userExerciseList.findIndex(
