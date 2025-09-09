@@ -2,24 +2,27 @@ import axios from "axios";
 import { WorkoutExercises } from "../types/workouts";
 
 const apiClient = axios.create({
-  baseURL: "http://localhost:5000", // Passe dies an deine Backend-URL an
-  withCredentials: true, // Wichtig für session-basierte Authentifizierung
+  baseURL: "http://localhost:5000",
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Interceptor, um Fehler zentral zu behandeln
 apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    const message =
-      error.response?.data?.message ||
-      error.message ||
-      "Ein unbekannter Fehler ist aufgetreten.";
-    return Promise.reject(new Error(message));
+    if (error.response && error.response.status === 401) {
+      const originalRequestUrl = error.config.url;
+      const publicUrls = ["/user/login", "/user/register", "/user/status"];
+
+      if (!publicUrls.includes(originalRequestUrl)) {
+        window.location.href = "/";
+      }
+    }
+    return Promise.reject(error);
   }
 );
 
@@ -30,7 +33,6 @@ export const apiService = {
     apiClient.post("/user/register", { email, password }),
   logout: () => apiClient.post("/user/logout"),
   getStatus: () => apiClient.get("/user/status"),
-  // Hier weitere API-Aufrufe für Übungen, Workouts etc. hinzufügen
   createExercise: (title: string, description: string, userId: number) =>
     apiClient.post("/exercise/create-exercise", {
       title,
@@ -70,7 +72,7 @@ export const apiService = {
       exercises,
     }),
   getWorkout: (workoutId: number, userId: number) =>
-    apiClient.get(`/workout/workout/:${workoutId}/:${userId}`),
+    apiClient.get(`/workout/workout/${workoutId}/${userId}`),
   updateWorkout: (
     title: string,
     userId: number,
@@ -90,7 +92,9 @@ export const apiService = {
     endTime: number,
     pauseTime: number,
     elapsedTime: number,
-    exercises: WorkoutExercises[]
+    exercises: WorkoutExercises[],
+    title: string,
+    date: string
   ) =>
     apiClient.post("/workout/finish-workout", {
       userId,
@@ -100,7 +104,11 @@ export const apiService = {
       pauseTime,
       elapsedTime,
       exercises,
+      title,
+      date,
     }),
+  getCompletedWorkouts: (userId: number) =>
+    apiClient.get(`/workout/completed-workouts/${userId}`),
   deleteWorkout: (userId: number, workoutId: number) =>
     apiClient.delete(`/workout/delete-workout/${userId}/${workoutId}`),
 };
