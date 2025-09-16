@@ -10,7 +10,7 @@ export async function findSystemExercises(): Promise<Exercise[]> {
 }
 
 export async function findExercisesByUserId(
-  userId: number
+  userId: string
 ): Promise<Exercise[]> {
   const result = await pool.query(
     "SELECT id, title, description, user_id FROM exercises WHERE user_id = $1 AND deleted_at IS NULL ORDER BY title ASC;",
@@ -23,7 +23,7 @@ export async function findExercisesByUserId(
 export async function createExercise(
   title: string,
   description: string,
-  userId: number
+  userId: string
 ): Promise<Exercise> {
   const result = await pool.query(
     "INSERT INTO exercises (title, description, user_id) VALUES ($1, $2, $3) RETURNING *",
@@ -37,7 +37,7 @@ export async function updateExercise(
   id: number,
   title: string,
   description: string,
-  userId: number
+  userId: string
 ): Promise<Exercise | null> {
   const result = await pool.query(
     "UPDATE exercises SET title = $1, description = $2 WHERE id = $3 AND user_id = $4 AND deleted_at IS NULL RETURNING *",
@@ -48,7 +48,7 @@ export async function updateExercise(
 
 export async function softDeleteExercise(
   id: number,
-  userId: number
+  userId: string
 ): Promise<Exercise | null> {
   const result = await pool.query(
     "UPDATE exercises SET deleted_at = NOW() WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL RETURNING *",
