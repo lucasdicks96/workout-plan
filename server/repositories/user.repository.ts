@@ -1,5 +1,5 @@
 import pool from "../config/db";
-import User, { UserWithoutPassword } from "../types/user.types";
+import { User, UserWithoutPassword } from "../types/user.types";
 
 export async function findUserById(id: string): Promise<User> {
   const result = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
