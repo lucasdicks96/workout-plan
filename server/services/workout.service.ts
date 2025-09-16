@@ -85,8 +85,8 @@ export async function getCompletedWorkouts(userId: string) {
 }
 
 export async function saveCompletedWorkout(
-  userId: string,
   workoutId: number,
+  userId: string,
   startTime: number,
   pauseTime: number,
   duration: number,

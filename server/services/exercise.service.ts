@@ -2,7 +2,7 @@ import * as exerciseRepository from "../repositories/exercise.repository";
 import { CombinedExercise, Exercise } from "../types/exercise.types";
 
 export async function getCombinedExercisesForUser(
-  userId: number
+  userId: string
 ): Promise<CombinedExercise[]> {
   const [systemExercises, userExercises] = await Promise.all([
     exerciseRepository.findSystemExercises(),
@@ -22,7 +22,7 @@ export async function getCombinedExercisesForUser(
 export async function createNewExercise(
   title: string,
   description: string,
-  userId: number
+  userId: string
 ): Promise<Exercise> {
   return await exerciseRepository.createExercise(title, description, userId);
 }
@@ -31,7 +31,7 @@ export async function updateUserExercise(
   id: number,
   title: string,
   description: string,
-  userId: number
+  userId: string
 ): Promise<Exercise> {
   const updatedExercise = await exerciseRepository.updateExercise(
     id,
@@ -47,7 +47,7 @@ export async function updateUserExercise(
 
 export async function deleteUserExercise(
   id: number,
-  userId: number
+  userId: string
 ): Promise<void> {
   const deletedExercise = await exerciseRepository.softDeleteExercise(
     id,
