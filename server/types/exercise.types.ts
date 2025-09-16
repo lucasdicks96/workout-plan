@@ -1,19 +1,17 @@
 export interface Exercise {
   id: number;
+  userId: string | null;
   title: string;
   description: string;
 }
 
-export interface UserExercise extends Exercise {
-  userId: string;
-}
-
 export interface CombinedExercise {
-  // compositeKey: string; // unique key, z.b., "pushup-1"
+  compositeKey?: string;
   id: number;
   userId: string | null;
   title: string;
   description: string;
+  isUserCreated?: boolean;
 }
 
 export interface ExerciseForWorkout extends CombinedExercise {
