@@ -2,9 +2,9 @@ import env from "dotenv";
 import express, { NextFunction, Request, Response } from "express";
 import session from "express-session";
 import passport from "./config/passport";
-import userRoute from "./routes/user";
-import exerciseRoute from "./routes/exercise";
-import workoutRoute from "./routes/workout";
+import userRoute from "./routes/auth.route";
+import exerciseRoute from "./routes/exercise.route";
+import workoutRoute from "./routes/workout.route";
 var cors = require("cors");
 var cookieParser = require("cookie-parser");
 
