@@ -33,7 +33,7 @@ export const apiService = {
     apiClient.post("/user/register", { email, password }),
   logout: () => apiClient.post("/user/logout"),
   getStatus: () => apiClient.get("/user/status"),
-  createExercise: (title: string, description: string, userId: number) =>
+  createExercise: (title: string, description: string, userId: string) =>
     apiClient.post("/exercise/create-exercise", {
       title,
       description,
@@ -43,7 +43,7 @@ export const apiService = {
     id: number,
     title: string,
     description: string,
-    userId: number
+    userId: string
   ) =>
     apiClient.put("/exercise/edit-exercise", {
       id,
@@ -51,20 +51,20 @@ export const apiService = {
       description,
       userId,
     }),
-  deleteExercise: (exerciseId: number, userId: number) =>
+  deleteExercise: (exerciseId: number, userId: string) =>
     apiClient.delete(`/exercise/exercise/${exerciseId}/${userId}`),
-  getAllExercises: (userId: number) =>
+  getAllExercises: (userId: string) =>
     apiClient.get(`/exercise/all-exercises/${userId}`),
-  getUserExercises: (userId: number) =>
+  getUserExercises: (userId: string) =>
     apiClient.get(`/exercise/user-exercises/${userId}`),
   getUserId: () => apiClient.get("/user/id"),
   getAllWorkouts: (userId: string) =>
     apiClient.get(`/workout/all-workouts/${userId}`),
-  getWorkoutExercises: (workoutId: number, userId: number) =>
+  getWorkoutExercises: (workoutId: number, userId: string) =>
     apiClient.get(`/workout/workout-exercises/${workoutId}/${userId}`),
   createWorkout: (
     title: string,
-    userId: number,
+    userId: string,
     exercises: WorkoutExercises[]
   ) =>
     apiClient.post("/workout/create-workout", {
@@ -72,11 +72,11 @@ export const apiService = {
       userId,
       exercises,
     }),
-  getWorkout: (workoutId: number, userId: number) =>
+  getWorkout: (workoutId: number, userId: string) =>
     apiClient.get(`/workout/workout/${workoutId}/${userId}`),
   updateWorkout: (
     title: string,
-    userId: number,
+    userId: string,
     workoutId: number,
     exercises: WorkoutExercises[]
   ) =>
@@ -87,7 +87,7 @@ export const apiService = {
       exercises,
     }),
   finishWorkout: (
-    userId: number,
+    userId: string,
     workoutId: number,
     startTime: number,
     endTime: number,
@@ -108,8 +108,8 @@ export const apiService = {
       title,
       date,
     }),
-  getCompletedWorkouts: (userId: number) =>
+  getCompletedWorkouts: (userId: string) =>
     apiClient.get(`/workout/completed-workouts/${userId}`),
-  deleteWorkout: (userId: number, workoutId: number) =>
+  deleteWorkout: (userId: string, workoutId: number) =>
     apiClient.delete(`/workout/delete-workout/${userId}/${workoutId}`),
 };
