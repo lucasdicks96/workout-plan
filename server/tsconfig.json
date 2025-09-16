@@ -9,7 +9,7 @@
     "outDir": "./dist",
     "jsx": "react"
   },
-  //   "include": ["src/**/*.ts"],
-  "include": ["*.ts"],
+  "include": ["./**/*"],
+  // "include": ["*.ts"],
   "exclude": ["node_modules"]
 }
