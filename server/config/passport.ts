@@ -1,8 +1,7 @@
-import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import User from "../types/user";
-import pool from "./db";
+import { findUserById } from "../repositories/user.repository";
+import * as authService from "../services/auth.service";
 
 passport.use(
   "local",
@@ -12,27 +11,16 @@ passport.use(
       passwordField: "password",
     },
     async (email: string, password: string, done: any) => {
-      const client = await pool.connect();
       try {
-        const result = await client.query(
-          "SELECT * FROM users WHERE email = $1",
-          [email]
-        );
-        const user: User = result.rows[0];
+        const user = await authService.verifyUserCredentials(email, password);
 
         if (!user) {
-          return done(null, false, { message: "User not found" });
+          return done(null, false);
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-          return done(null, false, { message: "Wrong password" });
-        }
         return done(null, user);
       } catch (err) {
         return done(err);
-      } finally {
-        client.release();
       }
     }
   )
@@ -42,22 +30,16 @@ passport.serializeUser(function (user: any, done: any) {
   return done(null, user.id);
 });
 
-passport.deserializeUser(async function (id: number, done: any) {
-  const client = await pool.connect();
+passport.deserializeUser(async function (id: string, done: any) {
   try {
-    const result = await client.query("SELECT * FROM users WHERE id = $1", [
-      id,
-    ]);
-    if (result.rows.length > 0) {
-      const user: User = result.rows[0];
+    const user = await findUserById(id);
+    if (user) {
       done(null, user);
     } else {
-      done(new Error("User not found"), null);
+      done(null);
     }
   } catch (err) {
     done(err);
-  } finally {
-    client.release();
   }
 });
 
