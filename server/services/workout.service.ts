@@ -5,14 +5,22 @@ import {
   WorkoutExercises,
 } from "../types/workout.types";
 
-export async function createWorkoutPlan(workout: Workout) {
+export async function createWorkoutPlan(
+  title: string,
+  userId: string,
+  exercises: WorkoutExercises[]
+) {
   try {
-    if (!workout) throw new Error("Workout Daten fehlen");
-    if (!workout.userId) throw new Error("Benutzer ID fehlt");
-    if (!workout.title) throw new Error("Workout Titel fehlt");
-    if (!workout.exercises || workout.exercises.length === 0)
+    if (!exercises) throw new Error("Workout Daten fehlen");
+    if (!userId) throw new Error("Benutzer ID fehlt");
+    if (!title) throw new Error("Workout Titel fehlt");
+    if (!exercises || exercises.length === 0)
       throw new Error("Workout Übungen fehlen");
-    const newWorkout = await workoutRepository.createWorkoutPlan(workout);
+    const newWorkout = await workoutRepository.createWorkoutPlan(
+      title,
+      userId,
+      exercises
+    );
     if (!newWorkout) throw new Error("Fehler beim Erstellen des Workouts");
     return newWorkout;
   } catch (error) {
@@ -22,9 +30,6 @@ export async function createWorkoutPlan(workout: Workout) {
 
 export async function getAllWorkouts(userId: string) {
   try {
-    if (!userId) {
-      throw new Error("Benutzer ID fehlt");
-    }
     const workouts = await workoutRepository.findAllWorkouts(userId);
     if (!workouts) {
       throw new Error("Keine Workouts gefunden");
@@ -35,34 +40,32 @@ export async function getAllWorkouts(userId: string) {
   }
 }
 
-export async function getWorkoutById(userId: string, workoutId: number) {
+export async function getWorkoutById(
+  workoutId: number,
+  userId: string
+): Promise<Workout> {
   try {
-    if (!userId || !workoutId) {
-      throw new Error("Benutzer ID oder Workout ID fehlt");
-    }
-    const workout = await workoutRepository.findWorkoutById(userId, workoutId);
+    const workout = await workoutRepository.findWorkoutById(workoutId, userId);
     if (!workout) {
       throw new Error("Workout nicht gefunden");
     }
+    return workout;
   } catch (error) {
     throw error;
   }
 }
 
-export async function getWorkoutExercises(userId: string, workoutId: number) {
+export async function getWorkoutExercises(workoutId: number, userId: string) {
   try {
-    if (!userId || !workoutId) {
-      throw new Error("Benutzer ID oder Workout ID fehlt");
-    }
-    const workout = await workoutRepository.findWorkoutById(userId, workoutId);
+    const workout = await workoutRepository.findWorkoutById(workoutId, userId);
     if (!workout) {
       throw new Error("Workout nicht gefunden");
     }
-    let exercises: WorkoutExercises[] = [];
-    for (const exercise of workout.exercises) {
-      exercises.push(exercise);
-    }
-    return exercises;
+    // let exercises: WorkoutExercises[] = [];
+    // for (const exercise of workout.exercises) {
+    //   exercises.push(exercise);
+    // }
+    return { exercises: workout.exercises, title: workout.title };
   } catch (error) {
     throw error;
   }
@@ -70,7 +73,6 @@ export async function getWorkoutExercises(userId: string, workoutId: number) {
 
 export async function getCompletedWorkouts(userId: string) {
   try {
-    if (!userId) throw new Error("Benutzer ID fehlt");
     const completedWorkouts = await workoutRepository.findCompletedWorkouts(
       userId
     );
@@ -82,26 +84,26 @@ export async function getCompletedWorkouts(userId: string) {
   }
 }
 
-export async function saveCompletedWorkout(completedWorkout: CompletedWorkout) {
+export async function saveCompletedWorkout(
+  userId: string,
+  workoutId: number,
+  startTime: number,
+  pauseTime: number,
+  duration: number,
+  exercises: WorkoutExercises[],
+  title: string
+) {
   try {
-    if (!completedWorkout) throw new Error("Abgeschlossenes Workout fehlt");
-    if (!completedWorkout.userId) throw new Error("Benutzer ID fehlt");
-    if (!completedWorkout.workoutId) throw new Error("Workout ID fehlt");
-    if (!completedWorkout.title) throw new Error("Workout Titel fehlt");
-    if (!completedWorkout.exercises || completedWorkout.exercises.length === 0)
-      throw new Error("Übungen fehlen");
-    if (!completedWorkout.duration) throw new Error("Dauer des Workouts fehlt");
-    if (!completedWorkout.startTime)
-      throw new Error("Startzeit des Workouts fehlt");
-    if (!completedWorkout.endTime)
-      throw new Error("Endzeit des Workouts fehlt");
-    if (
-      completedWorkout.pauseTime === undefined ||
-      completedWorkout.pauseTime === null
-    )
-      throw new Error("Pausenzeit des Workouts fehlt");
+    const endTime = Date.now();
     const result = await workoutRepository.saveCompletedWorkout(
-      completedWorkout
+      userId,
+      workoutId,
+      title,
+      startTime,
+      endTime,
+      duration,
+      pauseTime,
+      exercises
     );
     if (!result)
       throw new Error("Fehler beim Speichern des abgeschlossenen Workouts");
@@ -111,9 +113,13 @@ export async function saveCompletedWorkout(completedWorkout: CompletedWorkout) {
   }
 }
 
-export async function deleteWorkout(userId: string, workoutId: number) {
+export async function deleteWorkout(workoutId: number, userId: string) {
   try {
-    if (!workoutId || !userId) throw new Error("Workout ID oder User ID fehlt");
+    const workout = await workoutRepository.findWorkoutById(workoutId, userId);
+    if (workout.userId !== userId)
+      throw new Error(
+        "Benutzer hat nicht die Rechte, dieses Workout zu bearbeiten."
+      );
     const deletedAt = Date.now();
     const result = await workoutRepository.deleteWorkout(
       workoutId,
@@ -127,13 +133,19 @@ export async function deleteWorkout(userId: string, workoutId: number) {
   }
 }
 
-export async function updateWorkout(workoutData: Workout) {
+export async function updateWorkout(
+  workoutId: number,
+  userId: string,
+  title: string,
+  exercises: WorkoutExercises[]
+) {
   try {
-    if (!workoutData) throw new Error("Workout Daten fehlen");
-    if (!workoutData.id || !workoutData.userId)
-      throw new Error("Workout ID oder User ID fehlt");
-
-    const result = await workoutRepository.updateWorkout(workoutData);
+    const result = await workoutRepository.updateWorkout(
+      workoutId,
+      userId,
+      title,
+      exercises
+    );
 
     if (!result) throw new Error("Fehler beim Aktualisieren des Workouts");
     return result;

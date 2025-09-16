@@ -1,67 +1,59 @@
 import pool from "../config/db";
 import {
   CompletedWorkout,
-  Workout
+  Workout,
+  WorkoutExercises,
 } from "../types/workout.types";
 
 export async function findAllWorkouts(userId: string): Promise<Workout[]> {
-  try {
-    const result = await pool.query(
-      "SELECT * FROM workouts WHERE user_id = $1",
-      [userId]
-    );
-    const workouts: Workout[] = result.rows;
-    return workouts;
-  } catch (dbError) {
-    console.error("Fehler beim Abrufen aller Workouts:", dbError);
-    throw dbError;
-  }
+  const result = await pool.query("SELECT * FROM workouts WHERE user_id = $1", [
+    userId,
+  ]);
+  const workouts: Workout[] = result.rows;
+  return workouts;
 }
 
 export async function findWorkoutById(
-  userId: string,
-  workoutId: number
+  workoutId: number,
+  userId: string
 ): Promise<Workout> {
-  try {
-    const result = await pool.query(
-      "SELECT * FROM workouts WHERE workout_id = $1 AND user_id = $2",
-      [workoutId, userId]
-    );
-    const workout: Workout = result.rows[0];
-    return workout;
-  } catch (dbError) {
-    console.error("Fehler beim Abrufen des einzelnen Workouts:", dbError);
-    throw dbError;
-  }
+  const result = await pool.query(
+    "SELECT * FROM workouts WHERE workout_id = $1 AND user_id = $2",
+    [workoutId, userId]
+  );
+  const workout: Workout = result.rows[0];
+  return workout;
 }
 
 export async function createWorkoutPlan(
-  workout: Workout
+  title: string,
+  userId: string,
+  exercises: WorkoutExercises[]
 ): Promise<{ message: string }> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const planResult = await client.query(
       "INSERT INTO workout_plans (user_id, title) VALUES ($1, $2) RETURNING id",
-      [workout.userId, workout.title]
+      [userId, title]
     );
     const planId = planResult.rows[0].id;
 
-    for (let i = 0; i < workout.exercises.length; i++) {
+    for (let i = 0; i < exercises.length; i++) {
       const exerciseResult = await client.query(
         "INSERT INTO plan_exercises (workout_plan_id, exercise_id, display_order) VALUES ($1, $2, $3) RETURNING id",
-        [planId, workout.exercises[i].id, i]
+        [planId, exercises[i].id, i]
       );
       const planExerciseId = exerciseResult.rows[0].id;
 
-      for (let j = 0; j < workout.exercises[i].sets.length; j++) {
+      for (let j = 0; j < exercises[i].sets.length; j++) {
         await client.query(
           "INSERT INTO exercise_sets (plan_exercise_id, set_number, target_weight, target_repetitions) VALUES ($1, $2, $3, $4)",
           [
             planExerciseId,
-            workout.exercises[i].sets[j].setNumber,
-            workout.exercises[i].sets[j].weight,
-            workout.exercises[i].sets[j].repetitions,
+            exercises[i].sets[j].setNumber,
+            exercises[i].sets[j].weight,
+            exercises[i].sets[j].repetitions,
           ]
         );
       }
@@ -83,39 +75,33 @@ export async function createWorkoutPlan(
 export async function findCompletedWorkouts(
   userId: string
 ): Promise<CompletedWorkout> {
-  // const client = await pool.connect();
-  try {
-    const result = await pool.query(
-      "SELECT * FROM completed_workouts WHERE user_id = $1",
-      [userId]
-    );
-    const completedWorkouts: CompletedWorkout = result.rows[0];
-    return completedWorkouts;
-  } catch (dbError) {
-    throw dbError;
-  }
+  const result = await pool.query(
+    "SELECT * FROM completed_workouts WHERE user_id = $1",
+    [userId]
+  );
+  const completedWorkouts: CompletedWorkout = result.rows[0];
+  return completedWorkouts;
 }
 
 export async function saveCompletedWorkout(
-  completedWorkout: CompletedWorkout
+  userId: string,
+  workoutId: number,
+  title: string,
+  startTime: number,
+  endTime: number,
+  duration: number,
+  pauseTime: number,
+  exercises: WorkoutExercises[]
 ): Promise<{ message: string }> {
   const client = await pool.connect();
   try {
     await pool.query("BEGIN");
     const completedPlanResults = await client.query(
       "INSERT INTO completed_workouts (user_id, workout_plan_id, title, start_time, end_time, duration_seconds, pause_seconds) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
-      [
-        completedWorkout.userId,
-        completedWorkout.workoutId,
-        completedWorkout.title,
-        completedWorkout.startTime,
-        completedWorkout.endTime,
-        completedWorkout.duration,
-        completedWorkout.pauseTime,
-      ]
+      [userId, workoutId, title, startTime, endTime, duration, pauseTime]
     );
     const completedPlanId = completedPlanResults.rows[0].id;
-    for (const exercise of completedWorkout.exercises) {
+    for (const exercise of exercises) {
       for (const set of exercise.sets) {
         await client.query(
           "INSERT INTO completed_sets (completed_workout_id, exercise_id, set_number, performed_repetitions, performed_weight) VALUES ($1, $2, $3, $4, $5)",
@@ -149,29 +135,31 @@ export async function deleteWorkout(
   userId: string,
   deletedAt: number
 ): Promise<{ message: string }> {
-  try {
-    await pool.query(
-      "INSER INTO workout_plans (deleted_at) VALUES ($1) WHERE id = $2 AND user_id = $3",
-      [deletedAt, workoutId, userId]
-    );
-    return { message: "Workout erfolgreich gelöscht " };
-  } catch (dbError) {
-    throw dbError;
-  }
+  await pool.query(
+    "INSER INTO workout_plans (deleted_at) VALUES ($1) WHERE id = $2 AND user_id = $3",
+    [deletedAt, workoutId, userId]
+  );
+
+  return { message: "Workout erfolgreich gelöscht " };
 }
 
-export async function updateWorkout(workoutData: Workout) {
+export async function updateWorkout(
+  workoutId: number,
+  userId: string,
+  title: string,
+  exercises: WorkoutExercises[]
+) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
     const ownerCheck = await client.query(
       "SELECT user_id FROM workout_plans WHERE id = $1",
-      [workoutData.id]
+      [workoutId]
     );
     if (
       ownerCheck.rows.length === 0 ||
-      ownerCheck.rows[0].user_id !== workoutData.id
+      ownerCheck.rows[0].user_id !== workoutId
     ) {
       throw new Error(
         "Workout nicht gefunden oder Benutzer ist nicht autorisiert."
@@ -180,17 +168,17 @@ export async function updateWorkout(workoutData: Workout) {
 
     await client.query(
       "UPDATE workout_plan SET title = $1 WHERE id = $2 AND user_id = $3",
-      [workoutData.title, workoutData.id, workoutData.userId]
+      [title, workoutId, userId]
     );
     await client.query(
       "DELETE FROM plan_exercises WHERE workout_plan_id = $1",
-      [workoutData.id]
+      [workoutId]
     );
 
-    for (const exercise of workoutData.exercises) {
+    for (const exercise of exercises) {
       const exerciseResults = await client.query(
         "INSERT INTO plan_exercises (workout_plan_id, exercise_id, display_order) VALUES ($1, $2, $3) RETURNING id",
-        [workoutData.id, exercise.id, exercise.displayOrder]
+        [workoutId, exercise.id, exercise.displayOrder]
       );
       const planExerciseId = exerciseResults.rows[0].id;
       for (const set of exercise.sets) {
