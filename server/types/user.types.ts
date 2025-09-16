@@ -1,4 +1,4 @@
-export default interface User extends UserWithoutPassword {
+export interface User extends UserWithoutPassword {
   password: string;
 }
 
