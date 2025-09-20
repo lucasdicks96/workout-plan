@@ -1,4 +1,4 @@
-import { UserWithoutPassword as CustomUser } from "../user.types";
+import { User as CustomUser } from "../user.types";
 
 // Erweitere die globalen Typen von Express
 declare global {
@@ -15,3 +15,5 @@ declare global {
     }
   }
 }
+
+export {};

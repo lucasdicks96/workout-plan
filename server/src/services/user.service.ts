@@ -1,4 +1,4 @@
-import { hashPassword } from "../services/auth.service";
+import { hashPassword } from "./auth.service";
 // import { createNewUser } from "../repositories/user.repository";
 import * as userRepository from "../repositories/user.repository";
 

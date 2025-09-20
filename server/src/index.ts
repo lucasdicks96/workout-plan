@@ -47,15 +47,15 @@ app.use(
   })
 );
 
-app.use("/user", userRoute);
-app.use("/exercise", exerciseRoute);
-app.use("/workout", workoutRoute);
-
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ message: "Something went wrong" });
   next();
 });
+
+app.use("/user", userRoute);
+app.use("/exercise", exerciseRoute);
+app.use("/workout", workoutRoute);
 
 app.listen(port, () => {
   console.log(`Server is listening on port ${port}`);

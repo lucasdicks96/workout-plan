@@ -58,7 +58,6 @@ export async function deleteUserExercise(
   }
 }
 
-// Hilfsfunktion, um Datenbank-Objekte in das Frontend-Format umzuwandeln
 function transformToCombined(
   exercise: Exercise,
   isUserCreated: boolean

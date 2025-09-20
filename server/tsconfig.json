@@ -7,9 +7,9 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "jsx": "react"
+    "jsx": "react",
+    "typeRoots": ["./node_modules/@types", "./src/types/express/"]
   },
-  "include": ["./**/*"],
-  // "include": ["*.ts"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules"]
 }
