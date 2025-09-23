@@ -22,7 +22,7 @@ export async function verifyUserCredentials(
   const isMatch = await bcrypt.compare(plainTextPassword, user.password);
 
   if (!isMatch) {
-    throw new Error("Passwörter stimmen nicht überein");
+    throw new BadRequestError("Passwörter stimmen nicht überein");
   }
   const { password, ...userWithoutPassword } = user;
   return userWithoutPassword;
