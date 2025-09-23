@@ -1,39 +1,18 @@
-import { MutableRefObject, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiService } from "../../services/apiService";
-import { useAuth } from "../../hooks/useAuth";
 import "../../styles/global.css"; // Import global styles
 import stylesLayout from "../../styles/Layout.module.css"; // Import layout styles
 
 type FormState = {
   title: string;
   description: string;
-  uid: MutableRefObject<number>;
 };
 
 export default function CreateExercise() {
-  const uid = useRef(0);
-  const { user } = useAuth();
-
-  useEffect(() => {
-    async function fetchId() {
-      try {
-        if (!user || user.id === undefined || user.id === null) {
-          console.error("User is not logged in or does not have an ID.");
-          return;
-        }
-        uid.current = user.id;
-      } catch (error) {
-        console.error("Error fetching user ID:", error);
-      }
-    }
-    fetchId();
-  }, [user]);
-
   const [formState, setFormState] = useState<FormState>({
     title: "",
     description: "",
-    uid: uid,
   });
 
   const navigate = useNavigate();
@@ -50,11 +29,7 @@ export default function CreateExercise() {
     e.preventDefault();
 
     try {
-      await apiService.createExercise(
-        formState.title,
-        formState.description,
-        formState.uid.current
-      );
+      await apiService.createExercise(formState.title, formState.description);
       navigate("/exercises", { replace: true });
       console.log("Exercise created successfully!");
     } catch (error) {

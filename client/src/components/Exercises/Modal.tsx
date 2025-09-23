@@ -7,11 +7,11 @@ type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
   exerciseData: CombinedExercise;
-  userId: number;
   onUpdateSuccess: () => void;
 };
 type FormState = {
   title: string;
+  id: number;
   description: string;
 };
 
@@ -29,7 +29,8 @@ function Popup({ message, status }: { message: string; status: number }) {
     transform: "translate(-50%, -50%)",
     padding: "1.25rem",
     borderRadius: "0.5rem",
-    backgroundColor: status === 200 ? "var(--c-primary)" : "var(--c-danger)",
+    backgroundColor:
+      status === 200 || status === 204 ? "var(--c-primary)" : "var(--c-danger)",
     color: "var(--c-text-primary)",
     zIndex: 100,
     textAlign: "center",
@@ -42,12 +43,12 @@ export default function Modal({
   isOpen,
   exerciseData,
   onClose,
-  userId,
   onUpdateSuccess,
 }: ModalProps) {
   const [formState, setFormState] = useState<FormState>({
     title: "",
     description: "",
+    id: 0,
   });
 
   const [popupState, setPopupState] = useState<PopupState>({
@@ -60,6 +61,7 @@ export default function Modal({
     if (isOpen) {
       setFormState({
         title: exerciseData.title,
+        id: exerciseData.id,
         description: exerciseData.description,
       });
       setPopupState({ message: "", isOpen: false, status: 0 });
@@ -82,19 +84,16 @@ export default function Modal({
   }
 
   const onDelete = async () => {
-    console.log(`Deleting exercise: ${exerciseData.originalId}`);
+    console.log(`Deleting exercise: ${formState.id}`);
     try {
-      const response = await apiService.deleteExercise(
-        exerciseData.originalId,
-        userId
-      );
+      const response = await apiService.deleteExercise(formState.id);
 
       setPopupState({
         message: response.data.message,
         isOpen: true,
-        status: 200,
+        status: response.status,
       });
-      // console.log(response);
+      console.log(response.data);
     } catch (error: unknown) {
       if (error instanceof Error) {
         setPopupState({
@@ -116,11 +115,18 @@ export default function Modal({
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
+      console.log("ON SUBMIT ORIGINALID", exerciseData.id);
+      console.log("ON SUBMIT TITLE", exerciseData.title);
+      if (!formState.title.trim())
+        return setPopupState({
+          message: "Title erforderlich",
+          isOpen: true,
+          status: 400,
+        });
       const response = await apiService.editExercise(
-        exerciseData.originalId,
+        formState.id,
         formState.title,
-        formState.description,
-        userId
+        formState.description
       );
       setPopupState({
         message: response.data.message,

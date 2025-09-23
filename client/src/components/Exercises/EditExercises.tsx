@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
 import { apiService } from "../../services/apiService";
 import stylesDashboard from "../../styles/Dashboard.module.css";
 import stylesLayout from "../../styles/Layout.module.css";
@@ -11,23 +10,16 @@ export default function EditExercise() {
   const [userExercisesList, setUserExercisesList] = useState<
     CombinedExercise[]
   >([]);
-  const uid = useRef<number>(0);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   const fetchUserExercises = useCallback(async () => {
     try {
-      if (!user || user.id === undefined || user.id === null) {
-        console.error("User is not logged in or does not have an ID.");
-        return;
-      }
-      uid.current = user.id;
-
-      const response = await apiService.getUserExercises(user.id);
+      const response = await apiService.getUserExercises();
+      console.log(response.data.exercises);
 
       if (response.status === 200) {
-        setUserExercisesList(response.data.exercise);
+        setUserExercisesList(response.data.exercises);
       } else {
         setUserExercisesList([]);
         console.log("Else Block user exercises", setUserExercisesList([]));
@@ -38,7 +30,7 @@ export default function EditExercise() {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     fetchUserExercises();
@@ -50,7 +42,6 @@ export default function EditExercise() {
       <ExerciseList
         exerciseList={userExercisesList}
         isLoading={isLoading}
-        userId={uid.current}
         onUpdateSuccess={fetchUserExercises}
       />
       <div className="button-container">

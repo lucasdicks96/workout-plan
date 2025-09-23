@@ -43,7 +43,7 @@ export default function History() {
       ) : (
         <>
           {workouts.map((workout) => (
-            <HistoryItem key={workout.workoutId} workout={workout} />
+            <HistoryItem key={workout.id} workout={workout} />
           ))}
         </>
       )}
