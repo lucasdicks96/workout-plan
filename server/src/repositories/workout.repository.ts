@@ -1,4 +1,5 @@
 import pool from "../config/db";
+import { InternalServerError, UnauthorizedError } from "../types/errors.types";
 import {
   CompletedWorkout,
   Workout,
@@ -6,9 +7,10 @@ import {
 } from "../types/workout.types";
 
 export async function findAllWorkouts(userId: string): Promise<Workout[]> {
-  const result = await pool.query("SELECT * FROM workouts WHERE user_id = $1", [
-    userId,
-  ]);
+  const result = await pool.query(
+    "SELECT * FROM workout_plans WHERE user_id = $1",
+    [userId]
+  );
   const workouts: Workout[] = result.rows;
   return workouts;
 }
@@ -18,7 +20,7 @@ export async function findWorkoutById(
   userId: string
 ): Promise<Workout> {
   const result = await pool.query(
-    "SELECT * FROM workouts WHERE workout_id = $1 AND user_id = $2",
+    "SELECT * FROM workout_plans WHERE workout_id = $1 AND user_id = $2",
     [workoutId, userId]
   );
   const workout: Workout = result.rows[0];
@@ -42,13 +44,13 @@ export async function createWorkoutPlan(
     for (let i = 0; i < exercises.length; i++) {
       const exerciseResult = await client.query(
         "INSERT INTO plan_exercises (workout_plan_id, exercise_id, display_order) VALUES ($1, $2, $3) RETURNING id",
-        [planId, exercises[i].id, i]
+        [planId, exercises[i].id, exercises[i].displayOrder]
       );
       const planExerciseId = exerciseResult.rows[0].id;
 
       for (let j = 0; j < exercises[i].sets.length; j++) {
         await client.query(
-          "INSERT INTO exercise_sets (plan_exercise_id, set_number, target_weight, target_repetitions) VALUES ($1, $2, $3, $4)",
+          "INSERT INTO plan_sets (plan_exercise_id, set_number, target_weight, target_repetitions) VALUES ($1, $2, $3, $4)",
           [
             planExerciseId,
             exercises[i].sets[j].setNumber,
@@ -62,11 +64,10 @@ export async function createWorkoutPlan(
     return { message: "Workout Plan erfolgreich erstellt" };
   } catch (dbError) {
     await client.query("ROLLBACK");
-    console.error(
-      "Fehler bei der Erstellung des Workout-Plans, Transaktion zurückgerollt:",
-      dbError
+    console.error(dbError);
+    throw new InternalServerError(
+      "Fehler bei der Erstellung des Workout-Plans."
     );
-    throw dbError;
   } finally {
     client.release();
   }
@@ -74,12 +75,12 @@ export async function createWorkoutPlan(
 
 export async function findCompletedWorkouts(
   userId: string
-): Promise<CompletedWorkout> {
+): Promise<CompletedWorkout[]> {
   const result = await pool.query(
     "SELECT * FROM completed_workouts WHERE user_id = $1",
     [userId]
   );
-  const completedWorkouts: CompletedWorkout = result.rows[0];
+  const completedWorkouts: CompletedWorkout[] = result.rows;
   return completedWorkouts;
 }
 
@@ -119,11 +120,9 @@ export async function saveCompletedWorkout(
     return { message: "Abgeschlossenes Workout erfolgreich gespeichert" };
   } catch (dbError) {
     await client.query("ROLLBACK");
-    console.error(
-      "Fehler beim Speichern des abgeschlossonen Workouts:",
-      dbError
+    throw new InternalServerError(
+      "Fehler beim Speichern des abgeschlossonen Workouts."
     );
-    throw dbError;
   } finally {
     client.release();
   }
@@ -132,12 +131,11 @@ export async function saveCompletedWorkout(
 
 export async function deleteWorkout(
   workoutId: number,
-  userId: string,
-  deletedAt: number
+  userId: string
 ): Promise<{ message: string }> {
   await pool.query(
-    "INSER INTO workout_plans (deleted_at) VALUES ($1) WHERE id = $2 AND user_id = $3",
-    [deletedAt, workoutId, userId]
+    "UPDATE workout_plans SET deleted_at = NOW() WHERE id = $1 AND user_id = $2",
+    [workoutId, userId]
   );
 
   return { message: "Workout erfolgreich gelöscht " };
@@ -161,13 +159,13 @@ export async function updateWorkout(
       ownerCheck.rows.length === 0 ||
       ownerCheck.rows[0].user_id !== workoutId
     ) {
-      throw new Error(
+      throw new UnauthorizedError(
         "Workout nicht gefunden oder Benutzer ist nicht autorisiert."
       );
     }
 
     await client.query(
-      "UPDATE workout_plan SET title = $1 WHERE id = $2 AND user_id = $3",
+      "UPDATE workout_plans SET title = $1 WHERE id = $2 AND user_id = $3",
       [title, workoutId, userId]
     );
     await client.query(
@@ -183,7 +181,7 @@ export async function updateWorkout(
       const planExerciseId = exerciseResults.rows[0].id;
       for (const set of exercise.sets) {
         await client.query(
-          "INSERT INTO plan_sets(plan_exercise_id, set_number, target_repetition, target_weight VALUES ($1, $2, $3, $4)",
+          "INSERT INTO plan_sets(plan_exercise_id, set_number, target_repetition, target_weight) VALUES ($1, $2, $3, $4)",
           [planExerciseId, set.setNumber, set.repetitions, set.weight]
         );
       }
@@ -192,8 +190,9 @@ export async function updateWorkout(
     return { message: "Workout erfolgreich Aktualisiert" };
   } catch (dbError) {
     await client.query("ROLLBACK");
-    console.error("Fehler beim Aktualisieren des Workout-Plans", dbError);
-    throw dbError;
+    throw new InternalServerError(
+      "Fehler beim Aktualisieren des Workout-Plans"
+    );
   } finally {
     client.release();
   }
