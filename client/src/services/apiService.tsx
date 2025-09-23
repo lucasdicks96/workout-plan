@@ -33,61 +33,47 @@ export const apiService = {
     apiClient.post("/user/register", { email, password }),
   logout: () => apiClient.post("/user/logout"),
   getStatus: () => apiClient.get("/user/status"),
-  createExercise: (title: string, description: string, userId: string) =>
+  createExercise: (title: string, description: string) =>
     apiClient.post("/exercise/create-exercise", {
       title,
       description,
-      userId,
     }),
-  editExercise: (
-    id: number,
-    title: string,
-    description: string,
-    userId: string
-  ) =>
+  editExercise: (id: number, title: string, description: string) =>
     apiClient.put("/exercise/edit-exercise", {
       id,
       title,
       description,
-      userId,
     }),
-  deleteExercise: (exerciseId: number, userId: string) =>
-    apiClient.delete(`/exercise/exercise/${exerciseId}/${userId}`),
-  getAllExercises: (userId: string) =>
-    apiClient.get(`/exercise/all-exercises/${userId}`),
-  getUserExercises: (userId: string) =>
-    apiClient.get(`/exercise/user-exercises/${userId}`),
+  deleteExercise: (id: number) =>
+    apiClient.delete(`/exercise/delete-exercise/${id}`),
+  // getAllExercises: (userId: string) =>
+  //   apiClient.get(`/exercise/all-exercises/${userId}`),
+  getAllExercises: () => apiClient.get(`/exercise/all-exercises`),
+  getUserExercises: () => apiClient.get(`/exercise/user-exercises`),
   getUserId: () => apiClient.get("/user/id"),
-  getAllWorkouts: (userId: string) =>
-    apiClient.get(`/workout/all-workouts/${userId}`),
-  getWorkoutExercises: (workoutId: number, userId: string) =>
-    apiClient.get(`/workout/workout-exercises/${workoutId}/${userId}`),
-  createWorkout: (
-    title: string,
-    userId: string,
-    exercises: WorkoutExercises[]
-  ) =>
+  // getAllWorkouts: (userId: string) =>
+  //   apiClient.get(`/workout/all-workouts/${userId}`),
+  getAllWorkouts: () => apiClient.get(`/workout/all-workouts`),
+  getWorkoutExercises: (workoutId: number) =>
+    apiClient.get(`/workout/workout-exercises/${workoutId}`),
+  createWorkout: (title: string, exercises: WorkoutExercises[]) =>
     apiClient.post("/workout/create-workout", {
       title,
-      userId,
       exercises,
     }),
-  getWorkout: (workoutId: number, userId: string) =>
-    apiClient.get(`/workout/workout/${workoutId}/${userId}`),
+  getWorkout: (workoutId: number) =>
+    apiClient.get(`/workout/workout/${workoutId}`),
   updateWorkout: (
     title: string,
-    userId: string,
     workoutId: number,
     exercises: WorkoutExercises[]
   ) =>
     apiClient.put("/workout/update-workout", {
       title,
-      userId,
       workoutId,
       exercises,
     }),
   saveCompletedWorkout: (
-    userId: string,
     workoutId: number,
     startTime: number,
     pauseTime: number,
@@ -96,7 +82,6 @@ export const apiService = {
     title: string
   ) =>
     apiClient.post("/workout/save-completed-workout", {
-      userId,
       workoutId,
       startTime,
       pauseTime,
@@ -104,8 +89,7 @@ export const apiService = {
       exercises,
       title,
     }),
-  getCompletedWorkouts: (userId: string) =>
-    apiClient.get(`/workout/completed-workouts/${userId}`),
-  deleteWorkout: (userId: string, workoutId: number) =>
-    apiClient.delete(`/workout/delete-workout/${userId}/${workoutId}`),
+  getCompletedWorkouts: () => apiClient.get(`/workout/completed-workouts`),
+  deleteWorkout: (workoutId: number) =>
+    apiClient.delete(`/workout/delete-workout/${workoutId}`),
 };
