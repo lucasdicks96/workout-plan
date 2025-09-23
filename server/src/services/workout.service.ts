@@ -1,87 +1,72 @@
 import * as workoutRepository from "../repositories/workout.repository";
 import {
-  CompletedWorkout,
-  Workout,
-  WorkoutExercises,
-} from "../types/workout.types";
+  BadRequestError,
+  InternalServerError,
+  NotFoundError,
+  UnauthorizedError,
+} from "../types/errors.types";
+import { Workout, WorkoutExercises } from "../types/workout.types";
 
 export async function createWorkoutPlan(
   title: string,
   userId: string,
   exercises: WorkoutExercises[]
 ) {
-  try {
-    if (!exercises) throw new Error("Workout Daten fehlen");
-    if (!userId) throw new Error("Benutzer ID fehlt");
-    if (!title) throw new Error("Workout Titel fehlt");
-    if (!exercises || exercises.length === 0)
-      throw new Error("Workout Übungen fehlen");
-    const newWorkout = await workoutRepository.createWorkoutPlan(
-      title,
-      userId,
-      exercises
-    );
-    if (!newWorkout) throw new Error("Fehler beim Erstellen des Workouts");
-    return newWorkout;
-  } catch (error) {
-    throw error;
-  }
+  if (!exercises || exercises.length === 0)
+    throw new BadRequestError("Workout Daten fehlen");
+  if (!userId) throw new UnauthorizedError("Benutzer ID fehlt");
+  if (!title) throw new BadRequestError("Workout Titel fehlt");
+
+  const databaseFormat = transformWorkoutExercisesToDatabaseFormat(
+    exercises,
+    userId
+  );
+
+  const newWorkout = await workoutRepository.createWorkoutPlan(
+    title,
+    userId,
+    databaseFormat
+  );
+  return newWorkout;
 }
 
 export async function getAllWorkouts(userId: string) {
-  try {
-    const workouts = await workoutRepository.findAllWorkouts(userId);
-    if (!workouts) {
-      throw new Error("Keine Workouts gefunden");
-    }
-    return workouts;
-  } catch (error) {
-    throw error;
-  }
+  const workouts = await workoutRepository.findAllWorkouts(userId);
+  return workouts;
 }
 
 export async function getWorkoutById(
   workoutId: number,
   userId: string
 ): Promise<Workout> {
-  try {
-    const workout = await workoutRepository.findWorkoutById(workoutId, userId);
-    if (!workout) {
-      throw new Error("Workout nicht gefunden");
-    }
-    return workout;
-  } catch (error) {
-    throw error;
+  if (!workoutId) throw new BadRequestError("Workout ID fehlt.");
+
+  const workout = await workoutRepository.findWorkoutById(workoutId, userId);
+
+  if (!workout) {
+    throw new NotFoundError("Workout nicht gefunden");
   }
+  return workout;
 }
 
 export async function getWorkoutExercises(workoutId: number, userId: string) {
-  try {
-    const workout = await workoutRepository.findWorkoutById(workoutId, userId);
-    if (!workout) {
-      throw new Error("Workout nicht gefunden");
-    }
-    // let exercises: WorkoutExercises[] = [];
-    // for (const exercise of workout.exercises) {
-    //   exercises.push(exercise);
-    // }
-    return { exercises: workout.exercises, title: workout.title };
-  } catch (error) {
-    throw error;
+  const workout = await workoutRepository.findWorkoutById(workoutId, userId);
+  if (!workout) {
+    throw new NotFoundError("Workout nicht gefunden");
   }
+  // let exercises: WorkoutExercises[] = [];
+  // for (const exercise of workout.exercises) {
+  //   exercises.push(exercise);
+  // }
+  return { exercises: workout.exercises, title: workout.title };
 }
 
 export async function getCompletedWorkouts(userId: string) {
-  try {
-    const completedWorkouts = await workoutRepository.findCompletedWorkouts(
-      userId
-    );
-    if (!completedWorkouts)
-      throw new Error("Keine abgeschlossenen Workouts gefunden");
-    return completedWorkouts;
-  } catch (error) {
-    throw error;
-  }
+  const completedWorkouts = await workoutRepository.findCompletedWorkouts(
+    userId
+  );
+
+  return completedWorkouts;
 }
 
 export async function saveCompletedWorkout(
@@ -93,44 +78,35 @@ export async function saveCompletedWorkout(
   exercises: WorkoutExercises[],
   title: string
 ) {
-  try {
-    const endTime = Date.now();
-    const result = await workoutRepository.saveCompletedWorkout(
-      userId,
-      workoutId,
-      title,
-      startTime,
-      endTime,
-      duration,
-      pauseTime,
-      exercises
+  const endTime = Date.now();
+  const result = await workoutRepository.saveCompletedWorkout(
+    userId,
+    workoutId,
+    title,
+    startTime,
+    endTime,
+    duration,
+    pauseTime,
+    exercises
+  );
+  if (!result)
+    throw new InternalServerError(
+      "Fehler beim Speichern des abgeschlossenen Workouts"
     );
-    if (!result)
-      throw new Error("Fehler beim Speichern des abgeschlossenen Workouts");
-    return result;
-  } catch (error) {
-    throw error;
-  }
+  return result;
 }
 
 export async function deleteWorkout(workoutId: number, userId: string) {
-  try {
-    const workout = await workoutRepository.findWorkoutById(workoutId, userId);
-    if (workout.userId !== userId)
-      throw new Error(
-        "Benutzer hat nicht die Rechte, dieses Workout zu bearbeiten."
-      );
-    const deletedAt = Date.now();
-    const result = await workoutRepository.deleteWorkout(
-      workoutId,
-      userId,
-      deletedAt
+  const workout = await workoutRepository.findWorkoutById(workoutId, userId);
+  if (workout.userId !== userId)
+    throw new Error(
+      "Benutzer hat nicht die Rechte, dieses Workout zu bearbeiten."
     );
-    if (!result) throw new Error("Fehler beim Löschen des Workouts");
-    return result;
-  } catch (error) {
-    throw error;
-  }
+  // const deletedAt = Date.now();
+  const result = await workoutRepository.deleteWorkout(workoutId, userId);
+  if (!result)
+    throw new InternalServerError("Fehler beim Löschen des Workouts");
+  return result;
 }
 
 export async function updateWorkout(
@@ -139,17 +115,43 @@ export async function updateWorkout(
   title: string,
   exercises: WorkoutExercises[]
 ) {
-  try {
-    const result = await workoutRepository.updateWorkout(
-      workoutId,
-      userId,
-      title,
-      exercises
-    );
+  const result = await workoutRepository.updateWorkout(
+    workoutId,
+    userId,
+    title,
+    exercises
+  );
 
-    if (!result) throw new Error("Fehler beim Aktualisieren des Workouts");
-    return result;
-  } catch (error) {
-    throw error;
+  if (!result)
+    throw new InternalServerError("Fehler beim Aktualisieren des Workouts");
+  return result;
+}
+
+function transformWorkoutExercisesToDatabaseFormat(
+  exercises: WorkoutExercises[],
+  userId: string
+): WorkoutExercises[] {
+  let transformed: WorkoutExercises[] = [];
+  let index = 0;
+
+  for (const ex of exercises) {
+    for (const s of ex.sets) {
+      transformed.push({
+        id: ex.id,
+        userId: userId ? userId : null,
+        title: ex.title,
+        description: ex.description,
+        displayOrder: index++,
+        sets: [
+          {
+            setNumber: s.setNumber,
+            repetitions: s.repetitions,
+            weight: s.weight,
+          },
+        ],
+      });
+    }
   }
+
+  return transformed;
 }

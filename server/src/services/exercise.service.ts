@@ -15,8 +15,20 @@ export async function getCombinedExercisesForUser(
   const transformedUserExercises = userExercises.map((ex) =>
     transformToCombined(ex, true)
   );
-
   return [...transformedSystemExercises, ...transformedUserExercises];
+}
+
+export async function getExercisesForUser(
+  userId: string
+): Promise<CombinedExercise[]> {
+  const userExercises = await exerciseRepository.findExercisesByUserId(userId);
+  if (!userExercises) {
+    throw new Error("Fehler beim Laden der Übungen.");
+  }
+  const transformedUserExercises = userExercises.map((ex) =>
+    transformToCombined(ex, true)
+  );
+  return transformedUserExercises;
 }
 
 export async function createNewExercise(
@@ -32,7 +44,7 @@ export async function updateUserExercise(
   title: string,
   description: string,
   userId: string
-): Promise<Exercise> {
+): Promise<{ message: string }> {
   const updatedExercise = await exerciseRepository.updateExercise(
     id,
     title,
@@ -40,22 +52,23 @@ export async function updateUserExercise(
     userId
   );
   if (!updatedExercise) {
-    throw new Error("Exercise not found or user not authorized.");
+    throw new Error("Übung nicht gefunden oder fehlende Berechtigung.");
   }
-  return updatedExercise;
+  return { message: "Übung erfolgreich aktualisiert" };
 }
 
 export async function deleteUserExercise(
   id: number,
   userId: string
-): Promise<void> {
+): Promise<{ message: string }> {
   const deletedExercise = await exerciseRepository.softDeleteExercise(
     id,
     userId
   );
   if (!deletedExercise) {
-    throw new Error("Exercise not found or user not authorized.");
+    throw new Error("Übung nicht gefunden oder fehlende Berechtigung.");
   }
+  return { message: "Löschen erfolgreich" };
 }
 
 function transformToCombined(
