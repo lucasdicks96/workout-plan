@@ -5,12 +5,12 @@ export interface Exercise {
 }
 
 export interface UserExercise extends Exercise {
-  uid: number;
+  userId: string;
 }
 
 export interface CombinedExercise {
   compositeKey: string; // unique key, z.b., "pushup-1"
-  originalId: number;
+  id: number;
   title: string;
   description: string;
   isUserCreated: boolean;
