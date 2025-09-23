@@ -5,6 +5,7 @@ import { isAuthenticated } from "../middlewares/isAuthenticated";
 import * as userService from "../services/user.service";
 import {
   BadRequestError,
+  ConflictError,
   InternalServerError,
   UnauthorizedError,
 } from "../types/errors.types";
@@ -15,24 +16,28 @@ env.config();
 router.post(
   "/register",
   async (req: Request, res: Response, next: NextFunction) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      throw new BadRequestError("Email und Passwort sind erforderlich");
-    }
-    const newUser = await userService.createUser(email, password);
-    if (!newUser) {
-      throw new InternalServerError("Fehler beim Erstellen des Benutzers");
-    }
-
-    req.logIn(newUser, (err) => {
-      if (err) {
-        return next(err);
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        throw new BadRequestError("Email und Passwort sind erforderlich");
       }
+      const newUser = await userService.createUser(email, password);
 
-      res.status(201).json({
-        message: "Benutzer erstellt und eingeloggt",
+      req.logIn(newUser, (err) => {
+        if (err) {
+          return next(err);
+        }
+
+        res.status(201).json({
+          message: "Benutzer erstellt und eingeloggt",
+        });
       });
-    });
+    } catch (error) {
+      if (error instanceof ConflictError) {
+        return res.status(409).json({ message: error.message });
+      }
+      next(error);
+    }
   }
 );
 router.post("/login", (req: Request, res: Response, next: NextFunction) => {
@@ -41,7 +46,9 @@ router.post("/login", (req: Request, res: Response, next: NextFunction) => {
       return next(err);
     }
     if (!user) {
-      throw new UnauthorizedError("Ungültige Anmeldedaten.");
+      return res
+        .status(401)
+        .json({ message: info?.message || "Ungültige Anmeldedaten." });
     }
 
     req.logIn(user, (err) => {
