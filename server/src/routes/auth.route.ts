@@ -3,7 +3,11 @@ import { NextFunction, Request, Response, Router } from "express";
 import passport from "passport";
 import { isAuthenticated } from "../middlewares/isAuthenticated";
 import * as userService from "../services/user.service";
-import { UserWithoutPassword } from "../types/user.types";
+import {
+  BadRequestError,
+  InternalServerError,
+  UnauthorizedError,
+} from "../types/errors.types";
 
 const router = Router();
 env.config();
@@ -11,54 +15,33 @@ env.config();
 router.post(
   "/register",
   async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { email, password } = req.body;
-      if (!email || !password) {
-        throw new Error("Email und Passwort sind erforderlich");
-      }
-      const newUser = await userService.createUser(email, password);
-      if (!newUser) {
-        throw new Error("Fehler beim Erstellen des Benutzers");
-      }
-
-      req.logIn(newUser, (err) => {
-        console.log("login route 2", req.body);
-        if (err) {
-          return next(err);
-        }
-
-        res.cookie("userId", newUser.id, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          maxAge: 1000 * 60 * 120,
-          sameSite: "strict",
-        });
-
-        res.status(201).json({
-          message: "Benutzer erstellt und eingeloggt",
-          user: { id: newUser.id, email: newUser.email },
-        });
-      });
-    } catch (err: any) {
-      if (err.code === "23505") {
-        return res
-          .status(409)
-          .json({ message: "Benutzer existiert bereits", error: err });
-      } else {
-        console.error(err);
-        res.status(500).json({ message: "Interner Serverfehler", error: err });
-      }
+    const { email, password } = req.body;
+    if (!email || !password) {
+      throw new BadRequestError("Email und Passwort sind erforderlich");
     }
+    const newUser = await userService.createUser(email, password);
+    if (!newUser) {
+      throw new InternalServerError("Fehler beim Erstellen des Benutzers");
+    }
+
+    req.logIn(newUser, (err) => {
+      if (err) {
+        return next(err);
+      }
+
+      res.status(201).json({
+        message: "Benutzer erstellt und eingeloggt",
+      });
+    });
   }
 );
 router.post("/login", (req: Request, res: Response, next: NextFunction) => {
-  console.log("login route ", req.body);
   passport.authenticate("local", (err: any, user: any, info: any) => {
     if (err) {
       return next(err);
     }
     if (!user) {
-      return res.status(401).json({ message: "Ungültige Zugangsdaten" });
+      throw new UnauthorizedError("Ungültige Anmeldedaten.");
     }
 
     req.logIn(user, (err) => {
@@ -66,42 +49,37 @@ router.post("/login", (req: Request, res: Response, next: NextFunction) => {
         return next(err);
       }
 
-      res.cookie("userId", user.id, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 1000 * 60 * 60 * 12,
-        sameSite: "strict",
-      });
-
       return res.status(200).json({
         message: "Login erfolgreich",
-        user: { id: user.id, email: user.email },
+        user: req.user,
       });
     });
   })(req, res, next);
 });
 
-router.get("/status", isAuthenticated, async (req: Request, res: Response) => {
-  const { ...userWithoutPassword } = req.user as UserWithoutPassword;
+router.get("/status", isAuthenticated, (req: Request, res: Response) => {
+  const userWithoutPassword = req.user;
+  if (!req.user) {
+    throw new UnauthorizedError("Nicht authorisiert.");
+  }
   return res.status(200).json({ user: userWithoutPassword });
 });
 
 router.post("/logout", (req: Request, res: Response, next: NextFunction) => {
   req.logout((err) => {
     if (err) {
-      console.error("Fehler bei req.session.destroy:", err);
       return next(err);
     }
-    req.session.destroy((err) => {
-      if (err) {
-        return res
-          .status(500)
-          .json({ message: "Logout fehlgeschlagen", error: err });
-      }
+    req.session.regenerate((err) => {
+      if (err) return next(err);
 
-      res.clearCookie("userId", { path: "/" });
-      res.clearCookie("connect.sid", { path: "/" });
-      return res.status(200).json({ message: "logged out" });
+      req.session.destroy((err) => {
+        if (err) {
+          throw new InternalServerError("Logout fehlgeschlagen");
+        }
+        res.clearCookie("connect.sid", { path: "/" });
+        return res.status(200).json({ message: "Logout erfolgreich" });
+      });
     });
   });
 });
