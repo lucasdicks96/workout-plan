@@ -24,6 +24,6 @@ export async function createUser(
     "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email, role",
     [email, hashedPassword]
   );
-  const newUser: UserWithoutPassword = result.rows[0];
-  return newUser;
+  const user: UserWithoutPassword = result.rows[0];
+  return user;
 }
