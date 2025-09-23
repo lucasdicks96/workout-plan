@@ -1,5 +1,5 @@
 import env from "dotenv";
-import express, { NextFunction, Request, Response } from "express";
+import express from "express";
 import session from "express-session";
 import passport from "./config/passport";
 import userRoute from "./routes/auth.route";
@@ -7,12 +7,8 @@ import exerciseRoute from "./routes/exercise.route";
 import workoutRoute from "./routes/workout.route";
 var cors = require("cors");
 var cookieParser = require("cookie-parser");
+import errorHandler from "./middlewares/error";
 
-// declare module "express-session" {
-//   export interface SessionData {
-//     sessionUser: { id: number; email: string }; // Beispiel: spezifischere Typen
-//   }
-// }
 const port = parseInt(process.env.PORT || "5000");
 
 const app = express();
@@ -47,15 +43,11 @@ app.use(
   })
 );
 
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ message: "Something went wrong" });
-  next();
-});
-
 app.use("/user", userRoute);
 app.use("/exercise", exerciseRoute);
 app.use("/workout", workoutRoute);
+
+app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`Server is listening on port ${port}`);
