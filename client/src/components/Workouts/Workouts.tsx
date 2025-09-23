@@ -9,25 +9,33 @@ import { Workout as IWorkout } from "../../types/workouts";
 import PlayPauseButton from "../PlayPauseButton";
 
 export default function Workout() {
-  const [workoutList, setWorkoutList] = useState<IWorkout[]>([]);
+  const [workoutList, setWorkoutList] = useState<IWorkout[] | []>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  // const id = useRef<string>("");
 
   const loadAllWorkouts = useCallback(async () => {
     try {
+      if (!user || user.id === undefined || user.id === null) {
+        console.error("Benutzer ist nicht angemeldet oder hat keine ID.");
+        return;
+      }
       const response = await apiService.getAllWorkouts();
+      // if (Array.isArray(response.data.workouts)) setWorkoutList(response.data.workouts);
       setWorkoutList(response.data.workouts);
     } catch (error) {
+      setWorkoutList([]);
       console.error("Fehler beim Abrufen der Workouts:", error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
   useEffect(() => {
     loadAllWorkouts();
   }, [loadAllWorkouts]);
 
-  const handleDelete = async (userId: number, workoutId: number) => {
+  const handleDelete = async (workoutId: number, userId: string) => {
     try {
       const response = await apiService.deleteWorkout(userId, workoutId);
       loadAllWorkouts();
@@ -71,7 +79,7 @@ export function WorkoutList({
   isLoading: boolean;
   workoutList: IWorkout[];
   onClick?: (workoutId: number) => void;
-  onDelete?: (workoutId: number, userId: number) => void;
+  onDelete?: (workoutId: number, userId: string) => void;
 }) {
   if (isLoading) {
     return <p>Lade Workouts...</p>;
@@ -84,8 +92,8 @@ export function WorkoutList({
     <div className={styles.exerciseList}>
       {workoutList.map((workout) => (
         <WorkoutCard
-          key={workout.workoutId}
-          workoutId={workout.workoutId}
+          key={workout.id}
+          workoutId={workout.id}
           title={workout.title}
           onClick={onClick}
           onDelete={onDelete}
@@ -103,13 +111,13 @@ function WorkoutCard({
   title: string;
   workoutId: number;
   onClick?: (workoudId: number) => void;
-  onDelete?: (workoutId: number, userId: number) => void;
+  onDelete?: (workoutId: number, userId: string) => void;
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const location = window.location.pathname;
   const isEditPage: boolean = location.includes("edit-workouts");
-  let userId: number;
+  let userId: string;
   if (user) {
     userId = user.id;
   }
@@ -123,7 +131,7 @@ function WorkoutCard({
       {isEditPage && (
         <button
           className={stylesModal.closeButton}
-          onClick={() => onDelete?.(userId, workoutId)}
+          onClick={() => onDelete?.(workoutId, userId)}
         >
           &times;
         </button>
