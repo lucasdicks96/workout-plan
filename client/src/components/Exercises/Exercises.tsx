@@ -1,8 +1,8 @@
 import { memo, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
 import styles from "../../styles/Exercises.module.css";
-import stylesLayout from "../../styles/Layout.module.css";
 import { CombinedExercise } from "../../types/exercises";
 import Modal from "./Modal";
 
@@ -10,6 +10,7 @@ export default function Exercises() {
   const [exerciseList, setExerciseList] = useState<CombinedExercise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  useSetTitle("Übungen");
 
   const fetchAllExercises = useCallback(async () => {
     try {
@@ -29,25 +30,21 @@ export default function Exercises() {
 
   return (
     <>
-      <div className="content">
-        <h2 className={stylesLayout.pageTitle}>Übungen</h2>
-        <ExerciseList
-          exerciseList={exerciseList}
-          isLoading={isLoading}
-          onUpdateSuccess={fetchAllExercises}
-        />
-        <div className="button-container">
-          <button className="button" onClick={() => navigate("edit-exercises")}>
-            Bearbeiten
-          </button>
-          <button
-            className="button"
-            onClick={() => navigate("create-exercises")}
-          >
-            Erstellen
-          </button>
-        </div>
+      {/* <div className=""> */}
+      <ExerciseList
+        exerciseList={exerciseList}
+        isLoading={isLoading}
+        onUpdateSuccess={fetchAllExercises}
+      />
+      <div className="button-container">
+        <button className="button" onClick={() => navigate("edit-exercises")}>
+          Bearbeiten
+        </button>
+        <button className="button" onClick={() => navigate("create-exercises")}>
+          Erstellen
+        </button>
       </div>
+      {/* </div> */}
     </>
   );
 }
@@ -71,7 +68,7 @@ export function ExerciseList({
 
   const handleCardClick = useCallback(
     (exercise: CombinedExercise) => {
-      if (exercise.isUserCreated && isEditPage) {
+      if (exercise.userId && isEditPage) {
         console.log(exercise);
         setSelectedExercise(exercise);
         setIsOpen(true);
@@ -95,7 +92,7 @@ export function ExerciseList({
   return (
     <>
       {isOpen ? (
-        <>
+        <div className={styles.exerciseList}>
           {selectedExercise && (
             <Modal
               isOpen={isOpen}
@@ -104,7 +101,7 @@ export function ExerciseList({
               onUpdateSuccess={onUpdateSuccess}
             />
           )}
-        </>
+        </div>
       ) : (
         <>
           <div className={styles.exerciseList}>
@@ -112,8 +109,8 @@ export function ExerciseList({
               <ExerciseCard
                 key={item.compositeKey}
                 title={item.title}
+                userId={item.userId}
                 description={item.description}
-                isUserCreated={item.isUserCreated}
                 compositeKey={item.compositeKey}
                 id={item.id}
                 onClick={() => handleCardClick(item)}
@@ -131,12 +128,10 @@ type ExerciseCardProps = CombinedExercise & {
 };
 
 const ExerciseCard = memo(
-  ({ title, description, isUserCreated, onClick }: ExerciseCardProps) => {
+  ({ title, description, userId, onClick }: ExerciseCardProps) => {
     return (
-      <div className="card" onClick={onClick}>
-        {isUserCreated && (
-          <span style={{ position: "relative" }}>Eigene Übung</span>
-        )}
+      <div className={styles.card} onClick={onClick}>
+        {userId && <span style={{ position: "relative" }}>Eigene Übung</span>}
         <h3>{title}</h3>
         <div className={styles.exerciseCardDescription}>{description}</div>
       </div>
