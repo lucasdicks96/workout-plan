@@ -1,3 +1,4 @@
+import axios from "axios";
 import { createContext, ReactNode, useEffect, useState } from "react";
 import { apiService } from "../services/apiService";
 import User from "../types/user";
@@ -27,6 +28,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await apiService.getStatus();
         setUser(response.data.user);
       } catch (error) {
+        if (axios.isAxiosError(error)) {
+          if (error.response?.status === 401) {
+            setUser(null);
+          } else {
+            console.error("Fehler beim Auth Check", error.stack);
+            setUser(null);
+          }
+        } else console.error("Fehler beim Auth Check", error);
         setUser(null);
       } finally {
         setLoading(false);
@@ -40,20 +49,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiService.login(email, password);
       setUser(response.data.user);
     } catch (error) {
-      console.error("Login fehlgeschlagen", error);
-      throw error;
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data.message || error.stack;
+        console.error("Login fehlgeschlagen", message);
+        throw error;
+      }
     }
   };
+
   const register = async (email: string, password: string) => {
     try {
       const response = await apiService.register(email, password);
       console.log(response.data.user);
       setUser(response.data.user);
     } catch (error) {
-      console.error("Registrierung fehlgeschlagen", error);
-      throw error;
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data.message || error.stack;
+        console.error("Registrierung fehlgeschlagen", message);
+        throw error;
+      }
     }
   };
+
   const logout = async () => {
     try {
       await apiService.logout();
