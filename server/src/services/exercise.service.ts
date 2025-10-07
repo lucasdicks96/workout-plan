@@ -71,7 +71,7 @@ export async function deleteUserExercise(
   return { message: "Löschen erfolgreich" };
 }
 
-function transformToCombined(
+export function transformToCombined(
   exercise: Exercise,
   isUserCreated: boolean
 ): CombinedExercise {
@@ -81,6 +81,5 @@ function transformToCombined(
     userId: exercise.userId,
     title: exercise.title,
     description: exercise.description,
-    isUserCreated: isUserCreated,
   };
 }
