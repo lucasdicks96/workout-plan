@@ -3,6 +3,7 @@ import styles from "../../styles/Exercises.module.css";
 import stylesModal from "../../styles/Modal.module.css";
 import { CombinedExercise } from "../../types/exercises";
 import { WorkoutExercises } from "../../types/workouts";
+import { useSetTitle } from "../../hooks/useSetTitle";
 
 type ExerciseSelectionListProps = {
   allExercises: CombinedExercise[];
@@ -18,16 +19,17 @@ function ExerciseSelectionList({
   onBack,
 }: ExerciseSelectionListProps) {
   const exercisesInWorkout = new Set(workoutList.map((ex) => ex.compositeKey));
+  useSetTitle("Wähle eine Übung aus");
   return (
-    <div className="content">
-      <h2 style={{ marginBottom: "1rem" }}>Wähle eine Übung aus</h2>
+    // <div className="content">
+    <>
       <div className={styles.exerciseList}>
         {allExercises.map((exercise) => {
           const isAdded = exercisesInWorkout.has(exercise.compositeKey);
           return (
             <div
               key={exercise.compositeKey}
-              className={`card ${isAdded ? styles.disabled : ""}`}
+              className={`${styles.card} ${isAdded ? styles.disabled : ""}`}
               onClick={() => !isAdded && onSelectExercise(exercise)}
             >
               {isAdded && (
@@ -49,7 +51,8 @@ function ExerciseSelectionList({
       <button className="button" onClick={onBack} style={{ marginTop: "1rem" }}>
         Zurück
       </button>
-    </div>
+      {/* </div> */}
+    </>
   );
 }
 

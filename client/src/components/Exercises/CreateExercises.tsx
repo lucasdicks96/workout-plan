@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiService } from "../../services/apiService";
 import "../../styles/global.css"; // Import global styles
-import stylesLayout from "../../styles/Layout.module.css"; // Import layout styles
+import { useSetTitle } from "../../hooks/useSetTitle";
 
 type FormState = {
   title: string;
@@ -14,6 +14,8 @@ export default function CreateExercise() {
     title: "",
     description: "",
   });
+
+  useSetTitle("Übung erstellen");
 
   const navigate = useNavigate();
 
@@ -39,7 +41,6 @@ export default function CreateExercise() {
 
   return (
     <div className="content">
-      <h2 className={stylesLayout.pageTitle}>Create Exercise</h2>
       <form onSubmit={handleSubmit} method="POST" className="form">
         <div>
           <input
@@ -66,15 +67,15 @@ export default function CreateExercise() {
           />
         </div>
         <div className="button-container">
-          <button className="button" type="submit">
-            Erstellen
-          </button>
           <button
             className="button"
             type="button"
             onClick={() => navigate("/exercises")}
           >
             Zurück
+          </button>
+          <button className="button" type="submit">
+            Erstellen
           </button>
         </div>
       </form>

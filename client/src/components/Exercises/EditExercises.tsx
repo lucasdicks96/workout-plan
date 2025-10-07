@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
-import stylesDashboard from "../../styles/Dashboard.module.css";
-import stylesLayout from "../../styles/Layout.module.css";
 import { CombinedExercise } from "../../types/exercises";
 import { ExerciseList } from "./Exercises";
 
@@ -12,6 +11,8 @@ export default function EditExercise() {
   >([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+
+  useSetTitle("Übung bearbeiten");
 
   const fetchUserExercises = useCallback(async () => {
     try {
@@ -37,8 +38,8 @@ export default function EditExercise() {
   }, [fetchUserExercises]);
 
   return (
-    <div className={stylesDashboard.dashboardContent}>
-      <h2 className={stylesLayout.pageTitle}>Übungen bearbeiten</h2>
+    // <div className={stylesDashboard.dashboardContent}>
+    <>
       <ExerciseList
         exerciseList={userExercisesList}
         isLoading={isLoading}
@@ -53,6 +54,7 @@ export default function EditExercise() {
           Zurück
         </button>
       </div>
-    </div>
+    </>
+    // </div>
   );
 }

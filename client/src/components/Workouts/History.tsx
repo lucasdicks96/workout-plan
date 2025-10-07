@@ -1,18 +1,20 @@
-import { useEffect, useState, useCallback } from "react";
+import { isAxiosError } from "axios";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
+import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
 import { FinishedWorkout } from "../../types/workouts";
-import stylesLayout from "../../styles/Layout.module.css";
-import { isAxiosError } from "axios";
 
 export default function History() {
   const [workouts, setWorkouts] = useState<FinishedWorkout[] | null>([]);
   const { user } = useAuth();
 
+  useSetTitle("Verlauf");
+
   const loadWorkout = useCallback(async () => {
     try {
       if (!user) return;
-      const response = await apiService.getCompletedWorkouts(user.id);
+      const response = await apiService.getCompletedWorkouts();
       console.log("Response Data History ", response.data);
       setWorkouts(response.data.exercises);
     } catch (error) {
@@ -36,8 +38,8 @@ export default function History() {
   }, [loadWorkout]);
 
   return (
-    <div className="content">
-      <h2 className={stylesLayout.pageTitle}>History</h2>
+    // <div className="content">
+    <>
       {!workouts || workouts.length === 0 ? (
         <div>Bisher wurden keine Workouts absolviert</div>
       ) : (
@@ -47,7 +49,8 @@ export default function History() {
           ))}
         </>
       )}
-    </div>
+    </>
+    // </div>
   );
 }
 
