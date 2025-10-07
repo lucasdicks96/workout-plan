@@ -1,4 +1,4 @@
-import { Request, Response, Router } from "express";
+import { Response, Router } from "express";
 import { isAuthenticated } from "../middlewares/isAuthenticated";
 import * as workoutService from "../services/workout.service";
 import { BadRequestError } from "../types/errors.types";
@@ -20,10 +20,10 @@ router.get(
   "/workout-exercises/:workoutId",
   isAuthenticated,
   authenticatedHandler(async (req, res: Response) => {
-    const workoutId = parseInt(req.params.id);
+    const workoutId = parseInt(req.params.workoutId);
     const userId = req.user.id;
     if (!workoutId || isNaN(workoutId)) {
-      throw new BadRequestError("Falsche WorkoutId");
+      throw new BadRequestError("Falsche Workout ID");
     }
 
     const workoutData = await workoutService.getWorkoutById(workoutId, userId);
@@ -34,18 +34,18 @@ router.get(
   })
 );
 
-router.get(
-  "/workout/:workoutId",
-  isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    console.log(req.params);
-    const workoutId = parseInt(req.params.workoutId);
-    const userId = req.user.id;
-    // if (isNaN(workoutId) || isNaN(userId)) {
-    //   return res.status(400).json({ message: "Falsche WorkoutId oder UserId" });
-    // }
-  })
-);
+// router.get(
+//   "/workout/:workoutId",
+//   isAuthenticated,
+//   authenticatedHandler(async (req, res: Response) => {
+//     console.log(req.params);
+//     const workoutId = parseInt(req.params.workoutId);
+//     const userId = req.user.id;
+//     // if (isNaN(workoutId) || isNaN(userId)) {
+//     //   return res.status(400).json({ message: "Falsche WorkoutId oder UserId" });
+//     // }
+//   })
+// );
 
 router.post(
   "/create-workout",
@@ -56,6 +56,7 @@ router.post(
       throw new BadRequestError("Fehlerhafte Daten gesendet.");
     }
     const userId = req.user.id;
+
     const result = await workoutService.createWorkoutPlan(
       title,
       userId,
@@ -111,8 +112,6 @@ router.get(
   "/completed-workouts",
   isAuthenticated,
   authenticatedHandler(async (req, res: Response) => {
-    console.log("Completed Workouts req.params ", req.params);
-
     const completedWorkouts = await workoutService.getCompletedWorkouts(
       req.user.id
     );
