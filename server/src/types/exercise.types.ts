@@ -10,8 +10,7 @@ export interface CombinedExercise {
   id: number;
   userId: string | null;
   title: string;
-  description: string;
-  isUserCreated?: boolean;
+  description?: string;
 }
 
 export interface ExerciseForWorkout extends CombinedExercise {
