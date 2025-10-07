@@ -2,8 +2,7 @@ import * as workoutRepository from "../repositories/workout.repository";
 import {
   BadRequestError,
   InternalServerError,
-  NotFoundError,
-  UnauthorizedError,
+  UnauthorizedError
 } from "../types/errors.types";
 import { Workout, WorkoutExercises } from "../types/workout.types";
 
@@ -19,7 +18,8 @@ export async function createWorkoutPlan(
 
   const databaseFormat = transformWorkoutExercisesToDatabaseFormat(
     exercises,
-    userId
+    userId,
+    true
   );
 
   const newWorkout = await workoutRepository.createWorkoutPlan(
@@ -41,25 +41,67 @@ export async function getWorkoutById(
 ): Promise<Workout> {
   if (!workoutId) throw new BadRequestError("Workout ID fehlt.");
 
-  const workout = await workoutRepository.findWorkoutById(workoutId, userId);
+  const owner = await workoutRepository.ownerCheck(workoutId, userId);
 
-  if (!workout) {
-    throw new NotFoundError("Workout nicht gefunden");
+  if (!owner) throw new UnauthorizedError("Nicht berechtigt das zu tun.");
+
+  const workoutData = await workoutRepository.findWorkoutById(workoutId);
+
+  if (!Array.isArray(workoutData) || workoutData.length === 0) {
+    throw new BadRequestError("Keine Workout-Daten gefunden.");
   }
-  return workout;
+
+  const { plan_title, plan_user_id } = workoutData[0];
+
+  const newWorkout: Workout = {
+    id: workoutId,
+    title: plan_title,
+    userId: plan_user_id,
+    exercises: [],
+  };
+
+  const exerciseMap = new Map<number, WorkoutExercises>();
+  workoutData.forEach((item) => {
+    const exerciseId = item.exercise_id;
+    let exercise = exerciseMap.get(exerciseId);
+
+    if (!exercise) {
+      exercise = {
+        id: exerciseId,
+        userId: item.user_Id,
+        compositeKey: `${item.user_id ? "user" : "system"}-${exerciseId}`,
+        title: item.title,
+        displayOrder: item.display_order,
+        sets: [],
+      };
+      exerciseMap.set(exerciseId, exercise);
+    }
+
+    exercise.sets.push({
+      setNumber: item.set_number,
+      repetitions: item.target_repetitions,
+      weight: item.target_weight,
+    });
+  });
+
+  newWorkout.exercises = Array.from(exerciseMap.values()).sort(
+    (a, b) => a.displayOrder - b.displayOrder
+  );
+
+  return newWorkout;
 }
 
-export async function getWorkoutExercises(workoutId: number, userId: string) {
-  const workout = await workoutRepository.findWorkoutById(workoutId, userId);
-  if (!workout) {
-    throw new NotFoundError("Workout nicht gefunden");
-  }
-  // let exercises: WorkoutExercises[] = [];
-  // for (const exercise of workout.exercises) {
-  //   exercises.push(exercise);
-  // }
-  return { exercises: workout.exercises, title: workout.title };
-}
+// export async function getWorkoutExercises(workoutId: number) {
+//   const workout = await workoutRepository.findWorkoutById(workoutId);
+//   if (!workout) {
+//     throw new NotFoundError("Workout nicht gefunden");
+//   }
+//   // let exercises: WorkoutExercises[] = [];
+//   // for (const exercise of workout.exercises) {
+//   //   exercises.push(exercise);
+//   // }
+//   return { exercises: workout.exercises, title: workout.title };
+// }
 
 export async function getCompletedWorkouts(userId: string) {
   const completedWorkouts = await workoutRepository.findCompletedWorkouts(
@@ -97,8 +139,8 @@ export async function saveCompletedWorkout(
 }
 
 export async function deleteWorkout(workoutId: number, userId: string) {
-  const workout = await workoutRepository.findWorkoutById(workoutId, userId);
-  if (workout.userId !== userId)
+  const owner = await workoutRepository.ownerCheck(workoutId, userId);
+  if (!owner)
     throw new Error(
       "Benutzer hat nicht die Rechte, dieses Workout zu bearbeiten."
     );
@@ -115,11 +157,17 @@ export async function updateWorkout(
   title: string,
   exercises: WorkoutExercises[]
 ) {
+  const transformed = transformWorkoutExercisesToDatabaseFormat(
+    exercises,
+    userId,
+    false
+  );
+
   const result = await workoutRepository.updateWorkout(
     workoutId,
     userId,
     title,
-    exercises
+    transformed
   );
 
   if (!result)
@@ -129,27 +177,47 @@ export async function updateWorkout(
 
 function transformWorkoutExercisesToDatabaseFormat(
   exercises: WorkoutExercises[],
-  userId: string
+  userId: string,
+  description: boolean
 ): WorkoutExercises[] {
   let transformed: WorkoutExercises[] = [];
-  let index = 0;
 
-  for (const ex of exercises) {
-    for (const s of ex.sets) {
-      transformed.push({
-        id: ex.id,
-        userId: userId ? userId : null,
-        title: ex.title,
-        description: ex.description,
-        displayOrder: index++,
-        sets: [
-          {
-            setNumber: s.setNumber,
-            repetitions: s.repetitions,
-            weight: s.weight,
-          },
-        ],
-      });
+  if (description) {
+    for (const ex of exercises) {
+      for (const s of ex.sets) {
+        transformed.push({
+          id: ex.id,
+          userId: userId ? userId : null,
+          title: ex.title,
+          description: ex.description,
+          displayOrder: ex.displayOrder,
+          sets: [
+            {
+              setNumber: s.setNumber,
+              repetitions: s.repetitions,
+              weight: s.weight,
+            },
+          ],
+        });
+      }
+    }
+  } else {
+    for (const ex of exercises) {
+      for (const s of ex.sets) {
+        transformed.push({
+          id: ex.id,
+          userId: userId ? userId : null,
+          title: ex.title,
+          displayOrder: ex.displayOrder,
+          sets: [
+            {
+              setNumber: s.setNumber,
+              repetitions: s.repetitions,
+              weight: s.weight,
+            },
+          ],
+        });
+      }
     }
   }
 

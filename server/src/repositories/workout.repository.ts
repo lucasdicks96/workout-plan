@@ -3,8 +3,20 @@ import { InternalServerError, UnauthorizedError } from "../types/errors.types";
 import {
   CompletedWorkout,
   Workout,
-  WorkoutExercises,
+  WorkoutExercises
 } from "../types/workout.types";
+
+export async function ownerCheck(
+  workoutId: number,
+  userId: string
+): Promise<boolean> {
+  const result = await pool.query(
+    "SELECT user_id FROM workout_plans WHERE id = $1 AND user_id = $2",
+    [workoutId, userId]
+  );
+  const owner = result.rows[0].userId === userId ? true : false;
+  return owner;
+}
 
 export async function findAllWorkouts(userId: string): Promise<Workout[]> {
   const result = await pool.query(
@@ -15,16 +27,27 @@ export async function findAllWorkouts(userId: string): Promise<Workout[]> {
   return workouts;
 }
 
-export async function findWorkoutById(
-  workoutId: number,
-  userId: string
-): Promise<Workout> {
-  const result = await pool.query(
-    "SELECT * FROM workout_plans WHERE workout_id = $1 AND user_id = $2",
-    [workoutId, userId]
-  );
-  const workout: Workout = result.rows[0];
-  return workout;
+export async function findWorkoutById(workoutId: number): Promise<any> {
+  const client = await pool.connect();
+  try {
+    client.query("BEGIN ");
+
+    const exerciseResult = await pool.query(
+      `SELECT workout_plans.title as plan_title, workout_plans.user_id as plan_user_id, exercises.title, exercises.user_id, plan_exercises.exercise_id, plan_exercises.display_order, plan_sets.set_number, plan_sets.target_repetitions, plan_sets.target_weight 
+      FROM plan_exercises 
+      JOIN exercises 
+      ON plan_exercises.exercise_id = exercises.id 
+      JOIN plan_sets 
+      ON plan_exercises.id = plan_sets.plan_exercise_id 
+	  JOIN workout_plans 
+      ON plan_exercises.workout_plan_id = workout_plans.id 
+      WHERE plan_exercises.workout_plan_id = $1
+      ORDER BY plan_exercises.display_order, plan_sets.set_number ASC`,
+      [workoutId]
+    );
+
+    return exerciseResult.rows;
+  } catch (error) {}
 }
 
 export async function createWorkoutPlan(
@@ -155,19 +178,17 @@ export async function updateWorkout(
       "SELECT user_id FROM workout_plans WHERE id = $1",
       [workoutId]
     );
-    if (
-      ownerCheck.rows.length === 0 ||
-      ownerCheck.rows[0].user_id !== workoutId
-    ) {
+    if (ownerCheck.rows.length === 0 || ownerCheck.rows[0].user_id !== userId) {
       throw new UnauthorizedError(
         "Workout nicht gefunden oder Benutzer ist nicht autorisiert."
       );
     }
 
     await client.query(
-      "UPDATE workout_plans SET title = $1 WHERE id = $2 AND user_id = $3",
+      "UPDATE workout_plans SET title = $1 WHERE id = $2 AND user_id = $3 RETURNING *",
       [title, workoutId, userId]
     );
+
     await client.query(
       "DELETE FROM plan_exercises WHERE workout_plan_id = $1",
       [workoutId]
@@ -181,7 +202,7 @@ export async function updateWorkout(
       const planExerciseId = exerciseResults.rows[0].id;
       for (const set of exercise.sets) {
         await client.query(
-          "INSERT INTO plan_sets(plan_exercise_id, set_number, target_repetition, target_weight) VALUES ($1, $2, $3, $4)",
+          "INSERT INTO plan_sets(plan_exercise_id, set_number, target_repetitions, target_weight) VALUES ($1, $2, $3, $4)",
           [planExerciseId, set.setNumber, set.repetitions, set.weight]
         );
       }
