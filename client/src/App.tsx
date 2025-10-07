@@ -1,37 +1,19 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "./hooks/useAuth";
-import DashboardLayout from "./components/Layout/DashboardLayout";
-import styles from "./styles/Layout.module.css";
-import AuthPage from "./components/LandingPage/AuthPage";
-import Exercise from "./components/Exercises/Exercises";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import Dashboard from "./components/Dashboard/Dashboard";
 import CreateExercise from "./components/Exercises/CreateExercises";
 import EditExercise from "./components/Exercises/EditExercises";
-import Workout from "./components/Workouts/Workouts";
-import EditWorkouts from "./components/Workouts/EditWorkouts";
+import Exercise from "./components/Exercises/Exercises";
+import AuthPage from "./components/LandingPage/AuthPage";
+import Layout from "./components/Layout/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
+import PublicRoute from "./components/PublicRoute";
 import CreateWorkouts from "./components/Workouts/CreateWorkouts";
-import WorkoutInProgress from "./components/Workouts/WorkoutInProgress";
+import EditWorkouts from "./components/Workouts/EditWorkouts";
 import History from "./components/Workouts/History";
+import WorkoutInProgress from "./components/Workouts/WorkoutInProgress";
+import Workout from "./components/Workouts/Workouts";
+import { useAuth } from "./hooks/useAuth";
 
-const Dashboard = () => (
-  <div>
-    <h1 className={styles.pageTitle}>Dashboard</h1>
-  </div>
-);
-// const ExercisesList = () => (
-//   <div>
-//     <h1 className="pageTitle">Übungen</h1>
-//   </div>
-// );
-// const Workouts = () => (
-//   <div>
-//     <h1 className="pageTitle">Workouts</h1>
-//   </div>
-// );
-// const History = () => (
-//   <div>
-//     <h1 className={styles.pageTitle}>Verlauf</h1>
-//   </div>
-// );
 const NotFound = () => (
   <div>
     <h1 className="pageTitle">404 - Nicht gefunden</h1>
@@ -40,7 +22,6 @@ const NotFound = () => (
 
 function App() {
   const { user, loading, theme } = useAuth();
-  // console.log("App.tsx user:", user);
 
   if (loading) {
     return <div className={`app-container ${theme} authPage`}>Lade...</div>;
@@ -50,9 +31,9 @@ function App() {
     <div className={`app-container ${theme}`}>
       <BrowserRouter>
         <Routes>
-          {user ? (
-            <Route path="/" element={<DashboardLayout />}>
-              <Route index element={<Navigate to="/dashboard" />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="exercises" element={<Exercise />} />
               <Route
@@ -75,14 +56,15 @@ function App() {
               />
               <Route path="history" element={<History />} />
             </Route>
-          ) : (
-            <>
-              <Route path="/login" element={<AuthPage />} />
-              <Route path="/register" element={<AuthPage isRegister />} />
-              <Route path="*" element={<Navigate to="/login" />} />
-            </>
-          )}
-          <Route path="*" element={<NotFound />} />
+          </Route>
+          <Route element={<PublicRoute />}>
+            <Route path="/login" element={<AuthPage />} />
+            <Route path="/register" element={<AuthPage isRegister />} />
+          </Route>
+          <Route
+            path="*"
+            element={user ? <NotFound /> : <Navigate to="/login" />}
+          />
         </Routes>
       </BrowserRouter>
     </div>
