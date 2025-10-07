@@ -67,23 +67,35 @@ export function useWorkoutManager(
   };
 
   const removeExerciseFromWorkout = (key: string) => {
-    setWorkoutList((current) =>
-      current.filter((ex) => ex.compositeKey !== key)
-    );
+    setWorkoutList((current) => {
+      const newList = current.filter((ex) => ex.compositeKey !== key);
+      return updateDisplayOrder(newList);
+    });
+  };
+
+  function updateDisplayOrder(workoutExercises: WorkoutExercisesType[]) {
+    return workoutExercises.map((ex, idx) => ({
+      ...ex,
+      displayOrder: idx,
+    }));
+  }
+
+  const reorderWorkoutList = (newList: WorkoutExercisesType[]) => {
+    setWorkoutList(updateDisplayOrder(newList));
   };
 
   const addExerciseToWorkout = (exercise: CombinedExercise) => {
-    const newWorkoutExercise: WorkoutExercisesType = {
-      ...exercise,
-      sets: [
+    setWorkoutList((current) => {
+      const newList = [
+        ...current,
         {
-          setNumber: 1,
-          repetitions: 10,
-          weight: 10,
+          ...exercise,
+          displayOrder: current.length,
+          sets: [{ setNumber: 1, repetitions: 10, weight: 10 }],
         },
-      ],
-    };
-    setWorkoutList((current) => [...current, newWorkoutExercise]);
+      ];
+      return updateDisplayOrder(newList);
+    });
     setIsSelecting(false);
   };
 
@@ -97,5 +109,7 @@ export function useWorkoutManager(
     handleRemoveSet,
     removeExerciseFromWorkout,
     addExerciseToWorkout,
+    updateDisplayOrder,
+    reorderWorkoutList,
   };
 }
