@@ -1,8 +1,8 @@
-import { Request, Response, Router } from "express";
+import { Response, Router } from "express";
 import { isAuthenticated } from "../middlewares/isAuthenticated";
 import * as exerciseService from "../services/exercise.service";
-import { authenticatedHandler } from "../utils/auth.utils";
 import { BadRequestError } from "../types/errors.types";
+import { authenticatedHandler } from "../utils/auth.utils";
 
 const router = Router();
 
