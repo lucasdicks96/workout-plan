@@ -15,10 +15,11 @@ type WorkoutExercisesProps = {
     field: keyof WorkoutExerciseSets,
     value: string
   ) => void;
-  onAddSet: (key: string) => void;
-  onRemoveSet: (key: string) => void;
+  onAddSet?: (key: string) => void;
+  onRemoveSet?: (key: string) => void;
   onRemove?: (key: string) => void;
   onBack?: () => void;
+  onReorderWorkoutList?: (workoutList: WorkoutExercisesType[]) => void;
 };
 
 type ActiveInput = {
@@ -33,13 +34,42 @@ function WorkoutExercises({
   onRemove,
   onAddSet,
   onRemoveSet,
+  onReorderWorkoutList,
 }: // onBack,
 WorkoutExercisesProps) {
   // const navigate = useNavigate();
   const [activeInput, setActiveInput] = useState<ActiveInput | null>(null);
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
-  // console.log("workoutexercises ", workoutList);
-  if (workoutList.length === 0) {
+  const onDragStart =
+    (index: number) => (event: React.DragEvent<HTMLDivElement>) => {
+      setDraggedIdx(index);
+      event.dataTransfer.effectAllowed = "move";
+    };
+
+  const onDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  };
+
+  const onDrop =
+    (index: number) => (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      if (draggedIdx === null || draggedIdx === index) return;
+
+      const newList = [...workoutList];
+      const draggedItem = newList[draggedIdx];
+
+      newList.splice(draggedIdx, 1);
+      newList.splice(index, 0, draggedItem);
+
+      // setWorkoutList(newList);
+      onReorderWorkoutList && onReorderWorkoutList(newList);
+
+      setDraggedIdx(null);
+    };
+
+  if (!workoutList || workoutList.length === 0) {
     return <p>Dieses Workout enthält keine Übungen.</p>;
   }
 
@@ -72,11 +102,22 @@ WorkoutExercisesProps) {
         </button>
       )} */}
       <div className={styles.exerciseList}>
-        {workoutList.map((exercise) => (
+        {workoutList.map((exercise, idx) => (
           <div
             key={exercise.compositeKey}
+            draggable
+            onDragStart={onDragStart(idx)}
+            onDragOver={onDragOver}
+            onDrop={onDrop(idx)}
             className={stylesWorkoutExercises.card}
-            style={{ minHeight: "fit-content" }}
+            style={{
+              minHeight: "fit-content",
+              boxShadow:
+                draggedIdx === idx ? "0 4px 12px rgba(0, 0, 0, 0.3)" : "none",
+              border: draggedIdx === idx ? "2px solid #2196f3" : undefined,
+              opacity: draggedIdx === idx ? 0.8 : 1,
+              transition: "box-shadow 0.2s, border 0.2s, opacity 0.2s",
+            }}
           >
             {onRemove && (
               <button
@@ -87,28 +128,37 @@ WorkoutExercisesProps) {
               </button>
             )}
 
-            <div className="">
+            <>
               <h3>{exercise.title}</h3>
 
-              <div className="">
+              <div
+                style={{
+                  maxWidth: "100%",
+                  display: "inline-flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
                 <span>Sätze</span>
                 <span className={stylesWorkoutExercises.input}>
                   {exercise.sets.length}
                 </span>
                 <button
                   className="button sm rounded"
-                  onClick={() => onRemoveSet(exercise.compositeKey)}
+                  onClick={() =>
+                    onRemoveSet && onRemoveSet(exercise.compositeKey)
+                  }
                 >
                   -
                 </button>
                 <button
                   className="button sm rounded"
-                  onClick={() => onAddSet(exercise.compositeKey)}
+                  onClick={() => onAddSet && onAddSet(exercise.compositeKey)}
                 >
                   +
                 </button>
               </div>
-            </div>
+            </>
             {exercise.sets.map((set, setIdx) => (
               <div
                 key={setIdx}
@@ -121,7 +171,6 @@ WorkoutExercisesProps) {
                     className={stylesWorkoutExercises.input}
                     value={set.repetitions}
                     onChange={(e) =>
-                      onUpdate &&
                       onUpdate &&
                       onUpdate(
                         exercise.compositeKey,
