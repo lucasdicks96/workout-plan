@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { apiService } from "../../services/apiService";
 import styles from "../../styles/Modal.module.css";
+import stylesExercises from "../../styles/Exercise.module.css";
 import { CombinedExercise } from "../../types/exercises";
 
 type ModalProps = {
@@ -145,7 +146,7 @@ export default function Modal({
   };
 
   return (
-    <>
+    <div className={stylesExercises.exerciseList}>
       <div className={styles.backdrop} onClick={onClose} />
       {popupState.isOpen ? (
         <Popup message={popupState.message} status={popupState.status} />
@@ -186,6 +187,6 @@ export default function Modal({
           </div>
         </form>
       )}
-    </>
+    </div>
   );
 }
