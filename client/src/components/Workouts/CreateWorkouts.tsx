@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
+import { useSetTitle } from "../../hooks/useSetTitle";
 import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
-import stylesLayout from "../../styles/Layout.module.css";
 import { CombinedExercise } from "../../types/exercises";
 import ExerciseSelectionList from "../Exercises/ExerciseSelectionList";
 import WorkoutExercises from "./WorkoutExercises";
@@ -19,15 +18,16 @@ export default function CreateWorkout() {
     isSelecting,
     setIsSelecting,
     addExerciseToWorkout,
+    reorderWorkoutList,
   } = useWorkoutManager();
 
   const [allExercises, setAllExercises] = useState<CombinedExercise[]>([]);
 
   const [workoutName, setWorkoutName] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { user } = useAuth();
-  const uid = useRef(0);
   const navigate = useNavigate();
+
+  useSetTitle("Plan erstellen");
 
   const isInitialMount = useRef(true);
 
@@ -52,19 +52,14 @@ export default function CreateWorkout() {
 
   const loadAllExercises = useCallback(async () => {
     try {
-      if (!user || user.id === undefined || user.id === null) {
-        console.error("User is not logged in or does not have an ID.");
-        return;
-      }
-      const response = await apiService.getAllExercises(user.id);
-      uid.current = user.id;
+      const response = await apiService.getAllExercises();
       setAllExercises(response.data.exercises);
     } catch (error) {
       console.error("Fehler beim Abrufen der Übungen:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     loadAllExercises();
@@ -81,16 +76,11 @@ export default function CreateWorkout() {
     }
     console.log("Plan wird erstellt:", {
       name: workoutName,
-      userId: uid.current,
       exercises: workoutList,
     });
 
     try {
-      const response = await apiService.createWorkout(
-        workoutName,
-        uid.current,
-        workoutList
-      );
+      const response = await apiService.createWorkout(workoutName, workoutList);
       console.log(response);
       navigate("/workouts");
     } catch (error) {
@@ -122,8 +112,7 @@ export default function CreateWorkout() {
     );
   }
   return (
-    <div className="content">
-      <h2 className={stylesLayout.pageTitle}>Trainingsplan erstellen</h2>
+    <>
       <input
         className="input"
         style={{ maxWidth: "20rem" }}
@@ -140,6 +129,7 @@ export default function CreateWorkout() {
             updateExerciseInWorkout(key, setIndex, field, numericValue);
           }
         }}
+        onReorderWorkoutList={reorderWorkoutList}
         onRemove={removeExerciseFromWorkout}
         onAddSet={handleAddSet}
         onRemoveSet={handleRemoveSet}
@@ -155,6 +145,6 @@ export default function CreateWorkout() {
           Erstellen
         </button>
       </div>
-    </div>
+    </>
   );
 }
