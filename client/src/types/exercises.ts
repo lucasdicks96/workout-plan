@@ -9,7 +9,7 @@ export interface UserExercise extends Exercise {
 }
 
 export interface CombinedExercise {
-  compositeKey: string; // unique key, z.b., "pushup-1"
+  compositeKey: string;
   id: number;
   userId: string | null;
   title: string;
