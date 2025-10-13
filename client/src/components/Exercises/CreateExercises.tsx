@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { apiService } from "../../services/apiService";
 import "../../styles/global.css"; // Import global styles
 import { useSetTitle } from "../../hooks/useSetTitle";
+import ConfirmButton from "../ConfirmButton";
+import ReturnButton from "../ReturnButton";
 
 type FormState = {
   title: string;
@@ -67,16 +69,8 @@ export default function CreateExercise() {
           />
         </div>
         <div className="button-container">
-          <button
-            className="button"
-            type="button"
-            onClick={() => navigate("/exercises")}
-          >
-            Zurück
-          </button>
-          <button className="button" type="submit">
-            Erstellen
-          </button>
+          <ReturnButton onBack={() => navigate("/exercises")} />
+          <ConfirmButton btnType="submit" />
         </div>
       </form>
     </div>
