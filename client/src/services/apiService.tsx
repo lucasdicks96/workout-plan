@@ -76,6 +76,7 @@ export const apiService = {
   saveCompletedWorkout: (
     workoutId: number,
     startTime: number,
+    endTime: number,
     pauseTime: number,
     duration: number,
     exercises: WorkoutExercises[],
@@ -84,6 +85,7 @@ export const apiService = {
     apiClient.post("/workout/save-completed-workout", {
       workoutId,
       startTime,
+      endTime,
       pauseTime,
       duration,
       exercises,

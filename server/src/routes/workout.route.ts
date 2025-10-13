@@ -83,9 +83,17 @@ router.post(
   "/save-completed-workout",
   isAuthenticated,
   authenticatedHandler(async (req, res: Response) => {
-    const { workoutId, startTime, pauseTime, duration, exercises, title } =
-      req.body;
-    if (!workoutId) throw new BadRequestError("Workout ID fehlt");
+    const {
+      workoutId,
+      startTime,
+      endTime,
+      pauseTime,
+      duration,
+      exercises,
+      title,
+    } = req.body;
+    if (!workoutId || isNaN(workoutId))
+      throw new BadRequestError("Workout ID fehlt");
     if (!title) throw new BadRequestError("Workout Titel fehlt");
     if (!exercises || exercises.length === 0)
       throw new BadRequestError("Übungen fehlen");
@@ -95,11 +103,14 @@ router.post(
     if (pauseTime === undefined || pauseTime === null)
       throw new BadRequestError("Pausenzeit des Workouts fehlt");
 
+    if (!endTime) throw new BadRequestError("Endzeit des Workouts fehlt");
+
     const result = await workoutService.saveCompletedWorkout(
       workoutId,
       req.user.id,
       startTime,
       pauseTime,
+      endTime,
       duration,
       exercises,
       title
