@@ -6,6 +6,8 @@ import styles from "../../styles/Exercises.module.css";
 import stylesModal from "../../styles/Modal.module.css";
 import { Workout as IWorkout } from "../../types/workouts";
 import PlayPauseButton from "../PlayPauseButton";
+import EditButton from "../EditButton";
+import AddButton from "../AddButton";
 
 export default function Workout() {
   const [workoutList, setWorkoutList] = useState<IWorkout[] | []>([]);
@@ -29,33 +31,15 @@ export default function Workout() {
     loadAllWorkouts();
   }, [loadAllWorkouts]);
 
-  const handleDelete = async (workoutId: number) => {
-    try {
-      const response = await apiService.deleteWorkout(workoutId);
-      loadAllWorkouts();
-      console.log(response.data);
-    } catch (error) {
-      console.error("Fehler beim Löschen des Plans", error);
-    }
-  };
-
   return (
     <>
-      {/* <div className="content"> */}
-      <WorkoutList
-        isLoading={isLoading}
-        workoutList={workoutList}
-        onDelete={handleDelete}
-      />
-      <div className="button-container">
-        <button className="button" onClick={() => navigate("edit-workouts")}>
-          Bearbeiten
-        </button>
-        <button className="button" onClick={() => navigate("create-workouts")}>
-          Erstellen
-        </button>
+      <div className={styles.exerciseList}>
+        <WorkoutList isLoading={isLoading} workoutList={workoutList} />
       </div>
-      {/* </div> */}
+      <div className="button-container">
+        <EditButton onEdit={() => navigate("edit-workouts")} />
+        <AddButton onAdd={() => navigate("create-workouts")} />
+      </div>
     </>
   );
 }
@@ -106,10 +90,41 @@ function WorkoutCard({
   const navigate = useNavigate();
   const location = window.location.pathname;
   const isEditPage: boolean = location.includes("edit-workouts");
+  const isInProgress = localStorage.getItem("workoutInProgressState");
+  const startedWorkoutId = localStorage.getItem("startWorkoutId");
+  const startedId = parseInt(JSON.parse(startedWorkoutId || "null"));
 
   const onStart = () => {
-    localStorage.setItem("startWorkoutId", JSON.stringify(workoutId));
-    navigate("start-workouts");
+    if (!startedWorkoutId) {
+      localStorage.setItem("startWorkoutId", JSON.stringify(workoutId));
+      navigate("start-workouts");
+    } else if (startedWorkoutId && !isInProgress) {
+      localStorage.setItem("startWorkoutId", JSON.stringify(workoutId));
+      navigate("start-workouts");
+    }
+
+    if (isInProgress) {
+      const progressState = JSON.parse(isInProgress);
+      const progressId = parseInt(progressState.startedWorkoutId);
+
+      if (progressId != workoutId) {
+        const confirmNew = window.confirm(
+          "Es ist bereits ein Workout im Gange. Wenn du ein neues startest, gehen die Daten des aktuellen Workouts verloren. Möchtest du wirklich ein neues Workout starten?"
+        );
+        if (!confirmNew) {
+          return;
+        } else {
+          localStorage.removeItem("workoutInProgressState");
+          localStorage.setItem("startWorkoutId", JSON.stringify(workoutId));
+          navigate("start-workouts");
+        }
+      }
+
+      if (progressId === startedId) {
+        navigate("start-workouts");
+        return;
+      }
+    }
   };
 
   return (
@@ -123,6 +138,9 @@ function WorkoutCard({
         </button>
       )}
       <h3>{title}</h3>
+      {!isEditPage && isInProgress && workoutId == startedId && (
+        <span>In Arbeit</span>
+      )}
       {!isEditPage && <PlayPauseButton onStart={onStart} />}
     </div>
   );
