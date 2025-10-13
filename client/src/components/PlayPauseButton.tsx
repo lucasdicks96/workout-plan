@@ -12,7 +12,11 @@ export default function PlayPauseButton({
 }: PlayPauseButtonProps) {
   // const buttonClass = className ? className : styles.playPauseButton;
   return (
-    <button onClick={onStart} className={(styles.playPauseButton, "button")}>
+    <button
+      onClick={onStart}
+      className={(styles.playPauseButton, "button")}
+      type="button"
+    >
       {isPlaying ? <PauseIcon /> : <PlayIcon />}
     </button>
   );
