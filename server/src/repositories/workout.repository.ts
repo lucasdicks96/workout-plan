@@ -3,7 +3,7 @@ import { InternalServerError, UnauthorizedError } from "../types/errors.types";
 import {
   CompletedWorkout,
   Workout,
-  WorkoutExercises
+  WorkoutExercises,
 } from "../types/workout.types";
 
 export async function ownerCheck(
@@ -14,13 +14,13 @@ export async function ownerCheck(
     "SELECT user_id FROM workout_plans WHERE id = $1 AND user_id = $2",
     [workoutId, userId]
   );
-  const owner = result.rows[0].userId === userId ? true : false;
+  const owner = result.rows[0].user_id === userId ? true : false;
   return owner;
 }
 
 export async function findAllWorkouts(userId: string): Promise<Workout[]> {
   const result = await pool.query(
-    "SELECT * FROM workout_plans WHERE user_id = $1",
+    "SELECT * FROM workout_plans WHERE user_id = $1 AND deleted_at IS NULL ORDER BY title ASC",
     [userId]
   );
   const workouts: Workout[] = result.rows;
@@ -47,7 +47,13 @@ export async function findWorkoutById(workoutId: number): Promise<any> {
     );
 
     return exerciseResult.rows;
-  } catch (error) {}
+  } catch (error) {
+    await client.query("ROLLBACK");
+    // console.error(error);
+    throw new InternalServerError("Fehler beim Abrufen der Workout-Daten.");
+  } finally {
+    client.release();
+  }
 }
 
 export async function createWorkoutPlan(
@@ -85,9 +91,9 @@ export async function createWorkoutPlan(
     }
     await client.query("COMMIT");
     return { message: "Workout Plan erfolgreich erstellt" };
-  } catch (dbError) {
+  } catch (error) {
     await client.query("ROLLBACK");
-    console.error(dbError);
+    // console.error(error);
     throw new InternalServerError(
       "Fehler bei der Erstellung des Workout-Plans."
     );
@@ -111,12 +117,29 @@ export async function saveCompletedWorkout(
   userId: string,
   workoutId: number,
   title: string,
-  startTime: number,
-  endTime: number,
+  startTime: string,
+  endTime: string,
   duration: number,
   pauseTime: number,
   exercises: WorkoutExercises[]
 ): Promise<{ message: string }> {
+  console.log(
+    "USERID: ",
+    userId,
+    "WORKOUTID: ",
+    workoutId,
+    "TITLE: ",
+    title,
+    "STARTTIME: ",
+    startTime,
+    "ENDTIME: ",
+    endTime,
+    "DURATION: ",
+    duration,
+    "PAUSETIME: ",
+    pauseTime
+    // exercises
+  );
   const client = await pool.connect();
   try {
     await pool.query("BEGIN");
@@ -125,8 +148,11 @@ export async function saveCompletedWorkout(
       [userId, workoutId, title, startTime, endTime, duration, pauseTime]
     );
     const completedPlanId = completedPlanResults.rows[0].id;
+    console.log("COMPLETED PLAN ID:", completedPlanId);
     for (const exercise of exercises) {
+      console.log(exercise);
       for (const set of exercise.sets) {
+        console.log(set);
         await client.query(
           "INSERT INTO completed_sets (completed_workout_id, exercise_id, set_number, performed_repetitions, performed_weight) VALUES ($1, $2, $3, $4, $5)",
           [
@@ -141,15 +167,15 @@ export async function saveCompletedWorkout(
     }
     await client.query("COMMIT");
     return { message: "Abgeschlossenes Workout erfolgreich gespeichert" };
-  } catch (dbError) {
+  } catch (error) {
     await client.query("ROLLBACK");
+    console.error(error);
     throw new InternalServerError(
-      "Fehler beim Speichern des abgeschlossonen Workouts."
+      "Fehler beim Speichern des abgeschlossenen Workouts."
     );
   } finally {
     client.release();
   }
-  4;
 }
 
 export async function deleteWorkout(
@@ -161,7 +187,7 @@ export async function deleteWorkout(
     [workoutId, userId]
   );
 
-  return { message: "Workout erfolgreich gelöscht " };
+  return { message: `Workout erfolgreich gelöscht ${workoutId}` };
 }
 
 export async function updateWorkout(
@@ -209,7 +235,7 @@ export async function updateWorkout(
     }
     await client.query("COMMIT");
     return { message: "Workout erfolgreich Aktualisiert" };
-  } catch (dbError) {
+  } catch (error) {
     await client.query("ROLLBACK");
     throw new InternalServerError(
       "Fehler beim Aktualisieren des Workout-Plans"
@@ -219,4 +245,4 @@ export async function updateWorkout(
   }
 }
 
-export async function filterCompletedWorkouts() {}
+// export async function filterCompletedWorkouts()
