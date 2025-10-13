@@ -1,24 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAuth } from "../../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
 import stylesLayout from "../../styles/Layout.module.css";
 import PlayPauseButton from "../PlayPauseButton";
+import ReturnButton from "../ReturnButton";
 import StopCompleteButton from "../StopCompleteButton";
 import WorkoutExercises from "./WorkoutExercises";
-import { useNavigate } from "react-router-dom";
 
 const WORKOUT_IN_PROGRESS_KEY = "workoutInProgressState";
 export default function WorkoutInProgress() {
   const [workoutName, setWorkoutName] = useState<string>("");
   const [isFinished, setIsFinished] = useState<boolean>(false);
-  const savedWorkoutId = localStorage.getItem("startWorkoutId");
-  let workoutId: number | null = null;
-  if (savedWorkoutId) {
-    const temp = JSON.parse(savedWorkoutId);
-    workoutId = parseInt(temp);
-  }
-  const { user } = useAuth();
+  const [workoutId, setWorkoutId] = useState<number | null>(null);
+  // const savedWorkoutId = localStorage.getItem("startWorkoutId");
+  // let workoutId: number | null = null;
+  // if (savedWorkoutId) {
+  //   const temp = JSON.parse(savedWorkoutId);
+  //   workoutId = parseInt(temp);
+  // }
+  const startedWorkoutId = useRef<number | null>(null);
 
   const navigate = useNavigate();
 
@@ -37,12 +38,76 @@ export default function WorkoutInProgress() {
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    const savedWorkoutId = localStorage.getItem("startWorkoutId");
+    if (savedWorkoutId && startedWorkoutId.current === null) {
+      // Nur setzen, wenn Ref noch leer
+      try {
+        const temp = JSON.parse(savedWorkoutId);
+        const parsedId = typeof temp === "number" ? temp : parseInt(temp, 10);
+        if (!isNaN(parsedId) && parsedId > 0) {
+          startedWorkoutId.current = parsedId;
+          setWorkoutId(parsedId);
+          console.log(
+            "Workout ID einmalig aus localStorage gesetzt:",
+            parsedId
+          );
+        } else {
+          console.error("Ungültige Workout ID aus localStorage:", temp);
+        }
+      } catch (error) {
+        console.error("Fehler beim Parsen von startWorkoutId:", error);
+      }
+    } else if (!savedWorkoutId) {
+      console.warn(
+        "Keine startWorkoutId in localStorage gefunden – ID wird erst beim Start gesetzt"
+      );
+    }
+  }, []);
+
+  const loadWorkout = useCallback(async () => {
+    try {
+      if (!workoutId || !startedWorkoutId.current) {
+        return console.error("Keine Workout ID gefunden");
+      }
+      const response = await apiService.getWorkoutExercises(workoutId);
+      console.log(response.data);
+      if (
+        !response.data ||
+        !response.data.workout.exercises ||
+        !response.data.workout.title
+      ) {
+        return console.error("Keine Übungen im Trainingsplan gefunden.");
+      }
+      console.log("WORKOUTDATA: ", response.data);
+      setWorkoutList(response.data.workout.exercises);
+      setWorkoutName(response.data.workout.title);
+    } catch (error) {
+      setWorkoutList([]);
+      console.error("Fehler beim Laden des Trainingsplans", error);
+    }
+  }, [setWorkoutList, workoutId]);
+
   // Lade Workout aus State, sonst API Call
   useEffect(() => {
     try {
       const savedStateJSON = localStorage.getItem(WORKOUT_IN_PROGRESS_KEY);
       if (savedStateJSON) {
         const savedState = JSON.parse(savedStateJSON);
+        if (startedWorkoutId.current === null) {
+          const savedId = savedState.startedWorkoutId;
+          const parsedSavedId =
+            typeof savedId === "number" && !isNaN(savedId) ? savedId : null;
+          if (parsedSavedId) {
+            startedWorkoutId.current = parsedSavedId;
+            setWorkoutId(parsedSavedId);
+            console.log(
+              "Workout ID einmalig aus savedState gesetzt:",
+              parsedSavedId
+            );
+          }
+        }
+
         setWorkoutList(savedState.workoutList || []);
         setWorkoutName(savedState.workoutName || "");
         setStartTime(savedState.startTime || null);
@@ -57,12 +122,13 @@ export default function WorkoutInProgress() {
       console.error("Fehler beim Laden des Zustands aus localStorage:", error);
       loadWorkout();
     }
-  }, []);
+  }, [loadWorkout, setWorkoutList, workoutId]);
 
   useEffect(() => {
     // Nur speichern, wenn bereits gestartet wurde
-    if (startTime) {
+    if (startTime && startedWorkoutId.current !== null) {
       const stateToSave = {
+        startedWorkoutId: startedWorkoutId.current,
         workoutList,
         workoutName,
         startTime,
@@ -107,28 +173,6 @@ export default function WorkoutInProgress() {
     };
   }, [isRunning, startTime, pauseTime, totalPausedDuration]);
 
-  const loadWorkout = useCallback(async () => {
-    try {
-      if (!user) {
-        console.error("Benutzer ist nicht eingeloggt oder hat keine ID.");
-        return;
-      }
-      if (!workoutId || workoutId === null) {
-        console.error("Keine Workout ID gefunden");
-        return;
-      }
-      const response = await apiService.getWorkoutExercises(workoutId, user.id);
-      console.log(response.data);
-      if (!response.data || !response.data.exercises || !response.data.title) {
-        return console.error("Keine Übungen im Trainingsplan gefunden.");
-      }
-      setWorkoutList(response.data.exercises);
-      setWorkoutName(response.data.title);
-    } catch (error) {
-      console.error("Fehler beim Laden des Trainingsplans", error);
-    }
-  }, [user, setWorkoutList, workoutId]);
-
   const handleTogglePlayPause = () => {
     const now = Date.now();
     // Workout wurde gestoppt, soll aber fortgesetzt werden
@@ -144,6 +188,22 @@ export default function WorkoutInProgress() {
     }
     // Workout wird zum ersten Mal gestartet
     if (!startTime) {
+      if (startedWorkoutId.current === null) {
+        if (!workoutId) {
+          console.error("Keine Workout ID zum Starten verfügbar");
+          return;
+        }
+        startedWorkoutId.current = workoutId;
+        console.log(
+          "Workout ID einmalig beim ersten Start gesetzt:",
+          startedWorkoutId.current
+        );
+      } else {
+        console.log(
+          "Workout ID bereits gesetzt, überspringe Setzen:",
+          startedWorkoutId.current
+        );
+      }
       setStartTime(now);
       setIsRunning(true);
       setIsFinished(false);
@@ -176,36 +236,45 @@ export default function WorkoutInProgress() {
   };
 
   const handleComplete = async () => {
-    // console.log("Workout-Daten zum Abschicken:", workoutList);
-    // console.log("Abgelaufene Zeit: " + formatTime(elapsedTime));
     try {
       const endTime: number = Date.now();
-      const date = new Date().toLocaleDateString();
-      if (!user) {
-        console.error("Benutzer ist nicht eingeloggt oder hat keine ID.");
-        return;
-      }
-      if (!workoutId || workoutId === null) {
-        console.error("Keine Workout ID gefunden");
-        return;
-      }
+
       if (!startTime || startTime === null) return;
       if (!pauseTime || pauseTime === null) return;
-      const response = await apiService.finishWorkout(
-        user.id,
-        workoutId,
+      if (
+        !startedWorkoutId.current ||
+        startedWorkoutId.current === null ||
+        isNaN(startedWorkoutId.current)
+      ) {
+        console.error(
+          "Keine gültige Workout ID zum Speichern gefunden.",
+          startedWorkoutId.current
+        );
+        return;
+      }
+      const response = await apiService.saveCompletedWorkout(
+        startedWorkoutId.current,
         startTime,
         endTime,
-        totalPausedDuration,
+        pauseTime,
         elapsedTime,
         workoutList,
-        workoutName,
-        date
+        workoutName
       );
       console.log(response.data);
+      localStorage.removeItem(WORKOUT_IN_PROGRESS_KEY);
+      localStorage.removeItem("startWorkoutId");
+      navigate("/workouts");
     } catch (error) {
       console.error("Fehler beim Speichern des Workouts: ", error);
-    } finally {
+    }
+  };
+
+  const handleCancel = () => {
+    const confirm = window.confirm(
+      "Möchten Sie das laufende Workout wirklich abbrechen? Alle Daten gehen verloren."
+    );
+    if (confirm) {
       localStorage.removeItem(WORKOUT_IN_PROGRESS_KEY);
       localStorage.removeItem("startWorkoutId");
       navigate("/workouts");
@@ -248,6 +317,7 @@ export default function WorkoutInProgress() {
         <span>{formatTime(elapsedTime)}</span>
       </div>
       <div className="button-container">
+        <ReturnButton onBack={handleCancel} />
         <PlayPauseButton
           isPlaying={isRunning}
           onStart={handleTogglePlayPause}
