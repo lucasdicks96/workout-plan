@@ -2,7 +2,7 @@ import * as workoutRepository from "../repositories/workout.repository";
 import {
   BadRequestError,
   InternalServerError,
-  UnauthorizedError
+  UnauthorizedError,
 } from "../types/errors.types";
 import { Workout, WorkoutExercises } from "../types/workout.types";
 
@@ -19,6 +19,7 @@ export async function createWorkoutPlan(
   const databaseFormat = transformWorkoutExercisesToDatabaseFormat(
     exercises,
     userId,
+    true,
     true
   );
 
@@ -85,7 +86,7 @@ export async function getWorkoutById(
   });
 
   newWorkout.exercises = Array.from(exerciseMap.values()).sort(
-    (a, b) => a.displayOrder - b.displayOrder
+    (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0)
   );
 
   return newWorkout;
@@ -115,21 +116,35 @@ export async function saveCompletedWorkout(
   workoutId: number,
   userId: string,
   startTime: number,
+  endTime: number,
   pauseTime: number,
   duration: number,
   exercises: WorkoutExercises[],
   title: string
 ) {
-  const endTime = Date.now();
+  // const endTime = Date.now();
+
+  const transformed = transformWorkoutExercisesToDatabaseFormat(
+    exercises,
+    userId,
+    false,
+    false
+  );
+
+  const pgStartTime = convertMsToPgTimestamp(startTime);
+  const pgEndTime = convertMsToPgTimestamp(endTime);
+  const pauseTimeInSeconds = Math.floor(pauseTime / 1000);
+  const durationInSeconds = Math.floor(duration / 1000);
+
   const result = await workoutRepository.saveCompletedWorkout(
     userId,
     workoutId,
     title,
-    startTime,
-    endTime,
-    duration,
-    pauseTime,
-    exercises
+    pgStartTime,
+    pgEndTime,
+    durationInSeconds,
+    pauseTimeInSeconds,
+    transformed
   );
   if (!result)
     throw new InternalServerError(
@@ -160,7 +175,8 @@ export async function updateWorkout(
   const transformed = transformWorkoutExercisesToDatabaseFormat(
     exercises,
     userId,
-    false
+    false,
+    true
   );
 
   const result = await workoutRepository.updateWorkout(
@@ -178,11 +194,12 @@ export async function updateWorkout(
 function transformWorkoutExercisesToDatabaseFormat(
   exercises: WorkoutExercises[],
   userId: string,
-  description: boolean
+  description: boolean,
+  displayOrder: boolean
 ): WorkoutExercises[] {
   let transformed: WorkoutExercises[] = [];
 
-  if (description) {
+  if (description && displayOrder) {
     for (const ex of exercises) {
       for (const s of ex.sets) {
         transformed.push({
@@ -201,7 +218,7 @@ function transformWorkoutExercisesToDatabaseFormat(
         });
       }
     }
-  } else {
+  } else if (!description && displayOrder) {
     for (const ex of exercises) {
       for (const s of ex.sets) {
         transformed.push({
@@ -219,7 +236,54 @@ function transformWorkoutExercisesToDatabaseFormat(
         });
       }
     }
+  } else if (description && !displayOrder) {
+    for (const ex of exercises) {
+      for (const s of ex.sets) {
+        transformed.push({
+          id: ex.id,
+          userId: userId ? userId : null,
+          title: ex.title,
+          description: ex.description,
+          sets: [
+            {
+              setNumber: s.setNumber,
+              repetitions: s.repetitions,
+              weight: s.weight,
+            },
+          ],
+        });
+      }
+    }
+  } else {
+    for (const ex of exercises) {
+      for (const s of ex.sets) {
+        transformed.push({
+          id: ex.id,
+          userId: userId ? userId : null,
+          title: ex.title,
+          sets: [
+            {
+              setNumber: s.setNumber,
+              repetitions: s.repetitions,
+              weight: s.weight,
+            },
+          ],
+        });
+      }
+    }
   }
 
   return transformed;
 }
+
+// Konvertierungs-Hilfsfunktion
+const convertMsToPgTimestamp = (ms: number) => {
+  if (!ms || isNaN(ms)) {
+    throw new BadRequestError("Ungültiger Timestamp (ms): " + ms);
+  }
+  const date = new Date(ms); // Erstellt UTC-Date-Objekt
+  if (isNaN(date.getTime())) {
+    throw new BadRequestError("Ungültiges Date-Objekt aus ms: " + ms);
+  }
+  return date.toISOString(); // 'YYYY-MM-DDTHH:MM:SS.mmmZ' – PostgreSQL-kompatibel
+};
