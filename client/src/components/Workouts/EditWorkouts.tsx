@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
+import { useSetTitle } from "../../hooks/useSetTitle";
 import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
-import stylesLayout from "../../styles/Layout.module.css";
 import { CombinedExercise } from "../../types/exercises";
 import { Workout } from "../../types/workouts";
 import ExerciseSelectionList from "../Exercises/ExerciseSelectionList";
 import WorkoutExercises from "./WorkoutExercises";
 import { WorkoutList as WorkoutPlans } from "./Workouts";
+import ReturnButton from "../ReturnButton";
+import ConfirmButton from "../ConfirmButton";
+import AddButton from "../AddButton";
+import styles from "../../styles/Exercises.module.css";
 
 export default function EditWorkouts() {
   const [workoutPlans, setWorkoutPlans] = useState<Workout[]>([]);
@@ -19,9 +22,8 @@ export default function EditWorkouts() {
   const [workoutName, setWorkoutName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // const [open, setOpen] = useState<boolean>(false);
-  // const workoutId = useRef(selectedWorkoutId);
-  const { user } = useAuth();
+
+  useSetTitle("Trainingspläne bearbeiten");
 
   const {
     workoutList,
@@ -33,6 +35,7 @@ export default function EditWorkouts() {
     handleRemoveSet,
     removeExerciseFromWorkout,
     addExerciseToWorkout,
+    reorderWorkoutList,
   } = useWorkoutManager();
 
   const navigate = useNavigate();
@@ -40,15 +43,14 @@ export default function EditWorkouts() {
   useEffect(() => {
     const fetchAllExercises = async () => {
       try {
-        if (!user || user.id === undefined || user.id === null) return;
-        const response = await apiService.getAllExercises(user.id);
+        const response = await apiService.getAllExercises();
         setAllExercises(response.data.exercises);
       } catch (error) {
         console.error("Fehler beim Abrufen aller Übungen:", error);
       }
     };
     fetchAllExercises();
-  }, [user]);
+  }, []);
 
   const loadAllWorkouts = useCallback(async () => {
     setIsLoading(true);
@@ -67,21 +69,18 @@ export default function EditWorkouts() {
   }, [loadAllWorkouts]);
 
   const loadExercises = useCallback(async () => {
-    if (!user || selectedWorkoutId === null) return;
+    if (selectedWorkoutId === null) return console.error("Workout-ID NULL");
     setIsLoading(true);
     try {
-      const response = await apiService.getWorkoutExercises(
-        selectedWorkoutId,
-        user.id
-      );
-      setWorkoutList(response.data.exercises);
-      setWorkoutName(response.data.title);
+      const response = await apiService.getWorkoutExercises(selectedWorkoutId);
+      setWorkoutList(response.data.workout.exercises);
+      setWorkoutName(response.data.workout.title);
     } catch (error) {
       console.error("Fehler beim Laden der Workout-Übungen:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [selectedWorkoutId, user, setWorkoutList]);
+  }, [selectedWorkoutId, setWorkoutList]);
 
   useEffect(() => {
     if (selectedWorkoutId !== null) {
@@ -94,7 +93,7 @@ export default function EditWorkouts() {
 
   const handleSaveWorkout = async () => {
     try {
-      if (!user || selectedWorkoutId === null) {
+      if (selectedWorkoutId === null) {
         setError("Benutzer ID oder Trainingsplan-ID fehlt.");
         throw new Error();
       }
@@ -115,8 +114,7 @@ export default function EditWorkouts() {
       }
       const response = await apiService.updateWorkout(
         workoutName,
-        user.id,
-        selectedWorkoutId!,
+        selectedWorkoutId,
         workoutList
       );
       if (response.status === 200) navigate("/workouts");
@@ -132,6 +130,15 @@ export default function EditWorkouts() {
   const handleBackToList = () => {
     setSelectedWorkoutId(null);
   };
+  const handleDelete = async (workoutId: number) => {
+    try {
+      await apiService.deleteWorkout(workoutId);
+      setSelectedWorkoutId(null);
+      loadAllWorkouts();
+    } catch (error) {
+      console.error("Fehler beim Löschen des Plans", error);
+    }
+  };
 
   if (isSelecting) {
     return (
@@ -145,9 +152,8 @@ export default function EditWorkouts() {
   }
 
   return (
-    <div className="content">
-      <h2 className={stylesLayout.pageTitle}>Edit Workout</h2>
-      {selectedWorkoutId !== null ? (
+    <>
+      {selectedWorkoutId ? (
         <>
           {error && <p style={{ color: "var(--c-danger)" }}>{error}</p>}
           <input
@@ -158,7 +164,9 @@ export default function EditWorkouts() {
             value={workoutName}
             onChange={(e) => setWorkoutName(e.target.value)}
           />
+
           <WorkoutExercises
+            onReorderWorkoutList={reorderWorkoutList}
             onBack={handleBackToList}
             onRemove={removeExerciseFromWorkout}
             onUpdate={(key, setIndex, field, value) => {
@@ -171,33 +179,26 @@ export default function EditWorkouts() {
             onAddSet={handleAddSet}
             onRemoveSet={handleRemoveSet}
           />
+
           <div className="button-container">
-            <button
-              className="button"
-              onClick={() => setSelectedWorkoutId(null)}
-            >
-              Zurück
-            </button>
-            <button className="button" onClick={() => setIsSelecting(true)}>
-              Hinzufügen
-            </button>
-            <button className="button" onClick={handleSaveWorkout}>
-              Bestätigen
-            </button>
+            <ReturnButton onBack={() => setSelectedWorkoutId(null)} />
+            <AddButton onAdd={() => setIsSelecting(true)} />
+            <ConfirmButton onConfirm={handleSaveWorkout} />
           </div>
         </>
       ) : (
         <>
-          <WorkoutPlans
-            isLoading={isLoading}
-            workoutList={workoutPlans}
-            onClick={handlePlanSelect}
-          />
-          <button className="button" onClick={() => navigate("/workouts")}>
-            Zurück
-          </button>
+          <div className={styles.exerciseList}>
+            <WorkoutPlans
+              isLoading={isLoading}
+              workoutList={workoutPlans}
+              onClick={handlePlanSelect}
+              onDelete={handleDelete}
+            />
+          </div>
+          <ReturnButton onBack={() => navigate("/workouts")} />
         </>
       )}
-    </div>
+    </>
   );
 }

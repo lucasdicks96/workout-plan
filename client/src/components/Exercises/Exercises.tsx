@@ -5,6 +5,8 @@ import { apiService } from "../../services/apiService";
 import styles from "../../styles/Exercises.module.css";
 import { CombinedExercise } from "../../types/exercises";
 import Modal from "./Modal";
+import EditButton from "../EditButton";
+import AddButton from "../AddButton";
 
 export default function Exercises() {
   const [exerciseList, setExerciseList] = useState<CombinedExercise[]>([]);
@@ -30,21 +32,16 @@ export default function Exercises() {
 
   return (
     <>
-      {/* <div className=""> */}
       <ExerciseList
         exerciseList={exerciseList}
         isLoading={isLoading}
         onUpdateSuccess={fetchAllExercises}
       />
       <div className="button-container">
-        <button className="button" onClick={() => navigate("edit-exercises")}>
-          Bearbeiten
-        </button>
-        <button className="button" onClick={() => navigate("create-exercises")}>
-          Erstellen
-        </button>
+        <EditButton onEdit={() => navigate("edit-exercises")} />
+
+        <AddButton onAdd={() => navigate("create-exercises")} />
       </div>
-      {/* </div> */}
     </>
   );
 }
@@ -68,8 +65,7 @@ export function ExerciseList({
 
   const handleCardClick = useCallback(
     (exercise: CombinedExercise) => {
-      if (exercise.userId && isEditPage) {
-        console.log(exercise);
+      if (exercise.compositeKey.includes("user") && isEditPage) {
         setSelectedExercise(exercise);
         setIsOpen(true);
       }

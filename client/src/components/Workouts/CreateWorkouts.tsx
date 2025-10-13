@@ -6,6 +6,9 @@ import { apiService } from "../../services/apiService";
 import { CombinedExercise } from "../../types/exercises";
 import ExerciseSelectionList from "../Exercises/ExerciseSelectionList";
 import WorkoutExercises from "./WorkoutExercises";
+import ReturnButton from "../ReturnButton";
+import AddButton from "../AddButton";
+import ConfirmButton from "../ConfirmButton";
 
 export default function CreateWorkout() {
   const {
@@ -74,14 +77,9 @@ export default function CreateWorkout() {
       alert("Füge mindestens eine Übung zum Plan hinzu.");
       return;
     }
-    console.log("Plan wird erstellt:", {
-      name: workoutName,
-      exercises: workoutList,
-    });
 
     try {
-      const response = await apiService.createWorkout(workoutName, workoutList);
-      console.log(response);
+      await apiService.createWorkout(workoutName, workoutList);
       navigate("/workouts");
     } catch (error) {
       console.error("Fehler beim Erstellen des Plans", error);
@@ -135,15 +133,9 @@ export default function CreateWorkout() {
         onRemoveSet={handleRemoveSet}
       />
       <div className="button-container">
-        <button className="button" onClick={handleBack}>
-          Zurück
-        </button>
-        <button className="button" onClick={() => setIsSelecting(true)}>
-          Hinzufügen
-        </button>
-        <button className="button" onClick={handleCreateWorkout}>
-          Erstellen
-        </button>
+        <ReturnButton onBack={handleBack} />
+        <AddButton onAdd={() => setIsSelecting(true)} />
+        <ConfirmButton onConfirm={handleCreateWorkout} />
       </div>
     </>
   );

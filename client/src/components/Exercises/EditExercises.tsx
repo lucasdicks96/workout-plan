@@ -4,6 +4,7 @@ import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
 import { CombinedExercise } from "../../types/exercises";
 import { ExerciseList } from "./Exercises";
+import ReturnButton from "../ReturnButton";
 
 export default function EditExercise() {
   const [userExercisesList, setUserExercisesList] = useState<
@@ -17,13 +18,12 @@ export default function EditExercise() {
   const fetchUserExercises = useCallback(async () => {
     try {
       const response = await apiService.getUserExercises();
-      console.log(response.data.exercises);
 
       if (response.status === 200) {
         setUserExercisesList(response.data.exercises);
+        console.log(response.data.exercises);
       } else {
         setUserExercisesList([]);
-        console.log("Else Block user exercises", setUserExercisesList([]));
       }
     } catch (error) {
       console.error("Error fetching user exercises:", error);
@@ -38,7 +38,6 @@ export default function EditExercise() {
   }, [fetchUserExercises]);
 
   return (
-    // <div className={stylesDashboard.dashboardContent}>
     <>
       <ExerciseList
         exerciseList={userExercisesList}
@@ -46,15 +45,8 @@ export default function EditExercise() {
         onUpdateSuccess={fetchUserExercises}
       />
       <div className="button-container">
-        <button
-          className="button"
-          onClick={() => navigate("/exercises")}
-          type="button"
-        >
-          Zurück
-        </button>
+        <ReturnButton onBack={() => navigate("/exercises")} />
       </div>
     </>
-    // </div>
   );
 }
