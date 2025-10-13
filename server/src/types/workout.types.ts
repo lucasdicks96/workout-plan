@@ -21,7 +21,7 @@ export interface CompletedWorkout {
 }
 
 export interface WorkoutExercises extends CombinedExercise {
-  displayOrder: number;
+  displayOrder?: number;
   sets: WorkoutExerciseSets[];
 }
 
