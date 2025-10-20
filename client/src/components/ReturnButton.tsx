@@ -1,16 +1,25 @@
-import styles from "../styles/PlayPauseButton.module.css";
+import styles from "../styles/Button.module.css";
 
 type ReturnButtonProps = {
   onBack: () => void;
+  className?: string;
 };
 
-export default function ReturnButton({ onBack }: ReturnButtonProps) {
+export default function ReturnButton({
+  onBack,
+  className = `${styles.button}`,
+}: ReturnButtonProps) {
+  const cssModule = styles as Record<string, string>;
+
+  const classNames = className
+    .split(",")
+    .map((s) => s.trim())
+    .map((token) => (cssModule[token] ? cssModule[token] : token))
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <button
-      className={(styles.playPauseButton, "button")}
-      onClick={onBack}
-      type="button"
-    >
+    <button className={classNames} onClick={onBack} type="button">
       <ReturnIcon />
     </button>
   );

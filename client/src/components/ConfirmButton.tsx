@@ -1,24 +1,31 @@
-import styles from "../styles/PlayPauseButton.module.css";
+import styles from "../styles/Button.module.css";
 type ConfirmButtonProps = {
   onConfirm?: () => void;
   btnType?: "button" | "submit" | "reset";
+  className?: string;
 };
 
 export default function ConfirmButton({
   onConfirm,
   btnType = "button",
+  className = `${styles.button}`,
 }: ConfirmButtonProps) {
+  const cssModule = styles as Record<string, string>;
+
+  const classNames = className
+    .split(",")
+    .map((s) => s.trim())
+    .map((token) => (cssModule[token] ? cssModule[token] : token))
+    .filter(Boolean)
+    .join(" ");
+
   const handleClick = () => {
     if (onConfirm) {
       onConfirm();
     }
   };
   return (
-    <button
-      className={(styles.playPauseButton, "button")}
-      onClick={handleClick}
-      type={btnType}
-    >
+    <button className={classNames} onClick={handleClick} type={btnType}>
       <CompleteIcon />
     </button>
   );
@@ -29,7 +36,7 @@ const CompleteIcon: React.FC = () => {
     <svg
       width="2.5rem"
       height="1.5rem"
-      viewBox="0 0 26 26"
+      viewBox="0 0 32 24"
       fill="var(--c-bg)"
       xmlns="http://www.w3.org/2000/svg"
     >

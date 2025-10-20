@@ -1,14 +1,23 @@
-import styles from "../styles/PlayPauseButton.module.css";
+import styles from "../styles/Button.module.css";
 type AddButtonProps = {
   onAdd: () => void;
+  className?: string;
 };
-export default function AddButton({ onAdd }: AddButtonProps) {
+export default function AddButton({
+  onAdd,
+  className = `${styles.button}`,
+}: AddButtonProps) {
+  const cssModule = styles as Record<string, string>;
+
+  const classNames = className
+    .split(",")
+    .map((s) => s.trim())
+    .map((token) => (cssModule[token] ? cssModule[token] : token))
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <button
-      onClick={onAdd}
-      className={(styles.playPauseButton, "button")}
-      type="button"
-    >
+    <button onClick={onAdd} className={`${classNames}`} type="button">
       <AddIcon />
     </button>
   );

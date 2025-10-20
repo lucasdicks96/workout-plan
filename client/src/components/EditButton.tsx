@@ -1,15 +1,24 @@
-import styles from "../styles/PlayPauseButton.module.css";
+import styles from "../styles/Button.module.css";
 type EditButtonProps = {
   onEdit: () => void;
+  className?: string;
 };
 
-export default function EditButton({ onEdit }: EditButtonProps) {
+export default function EditButton({
+  onEdit,
+  className = `${styles.button}`,
+}: EditButtonProps) {
+  const cssModule = styles as Record<string, string>;
+
+  const classNames = className
+    .split(",")
+    .map((s) => s.trim())
+    .map((token) => (cssModule[token] ? cssModule[token] : token))
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <button
-      className={(styles.playPauseButton, "button")}
-      onClick={onEdit}
-      type="button"
-    >
+    <button className={`${classNames} `} onClick={onEdit} type="button">
       <EditIcon />
     </button>
   );
@@ -19,9 +28,9 @@ const EditIcon = () => {
   return (
     <svg
       height="1.5rem"
+      width="1.5rem"
       version="1.1"
       viewBox="0 0 32 32"
-      width="1.5rem"
       xmlSpace="preserve"
       xmlns="http://www.w3.org/2000/svg"
       xmlnsXlink="http://www.w3.org/1999/xlink"

@@ -1,22 +1,27 @@
 import React from "react";
-import styles from "../styles/PlayPauseButton.module.css";
+import styles from "../styles/Button.module.css";
 
 type PlayPauseButtonProps = {
   onStart: () => void;
   isPlaying?: boolean;
+  className?: string;
 };
 
 export default function PlayPauseButton({
   onStart,
   isPlaying = false,
+  className = `${styles.button}`,
 }: PlayPauseButtonProps) {
-  // const buttonClass = className ? className : styles.playPauseButton;
+  const cssModule = styles as Record<string, string>;
+
+  const classNames = className
+    .split(",")
+    .map((s) => s.trim())
+    .map((token) => (cssModule[token] ? cssModule[token] : token))
+    .filter(Boolean)
+    .join(" ");
   return (
-    <button
-      onClick={onStart}
-      className={(styles.playPauseButton, "button")}
-      type="button"
-    >
+    <button onClick={onStart} className={`${classNames}`} type="button">
       {isPlaying ? <PauseIcon /> : <PlayIcon />}
     </button>
   );

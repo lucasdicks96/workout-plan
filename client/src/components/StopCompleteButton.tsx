@@ -1,4 +1,4 @@
-import styles from "../styles/PlayPauseButton.module.css";
+import styles from "../styles/Button.module.css";
 import ConfirmButton from "./ConfirmButton";
 
 type StopCompleteButtonProps = {
@@ -17,11 +17,7 @@ export default function StopCompleteButton({
       {isComplete ? (
         <ConfirmButton onConfirm={onComplete} />
       ) : (
-        <button
-          className={(styles.playPauseButton, "button")}
-          onClick={onStop}
-          type="button"
-        >
+        <button className={styles.button} onClick={onStop} type="button">
           <StopIcon />
         </button>
       )}
