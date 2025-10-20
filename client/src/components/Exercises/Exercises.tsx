@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
 import styles from "../../styles/Exercises.module.css";
+import stylesButton from "../../styles/Button.module.css";
 import { CombinedExercise } from "../../types/exercises";
 import Modal from "./Modal";
 import EditButton from "../EditButton";
@@ -110,6 +111,7 @@ export function ExerciseList({
                 compositeKey={item.compositeKey}
                 id={item.id}
                 onClick={() => handleCardClick(item)}
+                isEditPage={isEditPage}
               />
             ))}
           </div>
@@ -121,14 +123,22 @@ export function ExerciseList({
 
 type ExerciseCardProps = CombinedExercise & {
   onClick: () => void;
+  isEditPage?: boolean;
 };
 
 const ExerciseCard = memo(
-  ({ title, description, userId, onClick }: ExerciseCardProps) => {
+  ({ title, description, userId, onClick, isEditPage }: ExerciseCardProps) => {
     return (
-      <div className={styles.card} onClick={onClick}>
+      <div className={styles.card}>
         {userId && <span style={{ position: "relative" }}>Eigene Übung</span>}
         <h3>{title}</h3>
+        {isEditPage && (
+          <EditButton
+            onEdit={onClick}
+            className={`${stylesButton.buttonRounded}`}
+          />
+        )}
+
         <div className={styles.exerciseCardDescription}>{description}</div>
       </div>
     );

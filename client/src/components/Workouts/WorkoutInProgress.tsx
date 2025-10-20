@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
 import stylesLayout from "../../styles/Layout.module.css";
+import stylesButton from "../../styles/Button.module.css";
 import PlayPauseButton from "../PlayPauseButton";
 import ReturnButton from "../ReturnButton";
 import StopCompleteButton from "../StopCompleteButton";
 import WorkoutExercises from "./WorkoutExercises";
+import { useSetTitle } from "../../hooks/useSetTitle";
 
 const WORKOUT_IN_PROGRESS_KEY = "workoutInProgressState";
 export default function WorkoutInProgress() {
@@ -292,13 +294,16 @@ export default function WorkoutInProgress() {
     )}:${String(seconds).padStart(2, "0")}`;
   };
 
+  useSetTitle(workoutName);
+
   if (!workoutName && !startTime) {
     return <div>Lade Workout...</div>;
   }
 
   return (
-    <div className="content">
-      <h2 className={stylesLayout.pageTitle}>{workoutName}</h2>
+    // <div className={`${stylesLayout.content}`}>
+    <>
+      {/* <h2 className={stylesLayout.pageTitle}>{workoutName}</h2> */}
       <WorkoutExercises
         workoutList={workoutList || []}
         onUpdate={(key, setIndex, field, value) => {
@@ -316,7 +321,7 @@ export default function WorkoutInProgress() {
       >
         <span>{formatTime(elapsedTime)}</span>
       </div>
-      <div className="button-container">
+      <div className={`${stylesButton.buttonContainer}`}>
         <ReturnButton onBack={handleCancel} />
         <PlayPauseButton
           isPlaying={isRunning}
@@ -328,6 +333,7 @@ export default function WorkoutInProgress() {
           isComplete={isFinished}
         />
       </div>
-    </div>
+      {/* </div> */}
+    </>
   );
 }

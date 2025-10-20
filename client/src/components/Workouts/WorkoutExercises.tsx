@@ -92,15 +92,6 @@ WorkoutExercisesProps) {
 
   return (
     <>
-      {/* {onBack && (
-        <button
-          className="button"
-          onClick={onBack}
-          style={{ marginBottom: "1rem" }}
-        >
-          Zurück
-        </button>
-      )} */}
       <div className={styles.exerciseList}>
         {workoutList.map((exercise, idx) => (
           <div
@@ -109,7 +100,7 @@ WorkoutExercisesProps) {
             onDragStart={onDragStart(idx)}
             onDragOver={onDragOver}
             onDrop={onDrop(idx)}
-            className={stylesWorkoutExercises.card}
+            className={`${stylesWorkoutExercises.card}`}
             style={{
               minHeight: "fit-content",
               boxShadow:
@@ -127,114 +118,124 @@ WorkoutExercisesProps) {
                 &times;
               </button>
             )}
+            <div className={stylesWorkoutExercises.cardContentContainer}>
+              <>
+                <h3>{exercise.title}</h3>
 
-            <>
-              <h3>{exercise.title}</h3>
-
-              <div
-                style={{
-                  maxWidth: "100%",
-                  display: "inline-flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <span>Sätze</span>
-                <span className={stylesWorkoutExercises.input}>
-                  {exercise.sets.length}
-                </span>
-                <button
-                  className="button sm rounded"
-                  onClick={() =>
-                    onRemoveSet && onRemoveSet(exercise.compositeKey)
-                  }
+                <div
+                  className={stylesWorkoutExercises.cardContentItem}
+                  // style={{
+                  //   maxWidth: "100%",
+                  //   display: "inline-flex",
+                  //   justifyContent: "center",
+                  //   alignItems: "center",
+                  // }}
                 >
-                  -
-                </button>
-                <button
-                  className="button sm rounded"
-                  onClick={() => onAddSet && onAddSet(exercise.compositeKey)}
-                >
-                  +
-                </button>
-              </div>
-            </>
-            {exercise.sets.map((set, setIdx) => (
-              <div
-                key={setIdx}
-                className={stylesWorkoutExercises.cardContentContainer}
-              >
-                <div className={stylesWorkoutExercises.cardContentItem}>
-                  <span>{setIdx + 1}</span>
-                  <input
-                    type="number"
-                    className={stylesWorkoutExercises.input}
-                    value={set.repetitions}
-                    onChange={(e) =>
-                      onUpdate &&
-                      onUpdate(
-                        exercise.compositeKey,
-                        setIdx,
-                        "repetitions",
-                        e.target.value
-                      )
-                    }
-                    onFocus={() =>
-                      setActiveInput({
-                        exerciseKey: exercise.compositeKey,
-                        setIndex: setIdx,
-                        field: "repetitions",
-                      })
-                    }
-                  />
-                  <span>x</span>
-                  <input
-                    type="number"
-                    className={stylesWorkoutExercises.input}
-                    value={set.weight}
-                    onChange={(e) =>
-                      onUpdate &&
-                      onUpdate(
-                        exercise.compositeKey,
-                        setIdx,
-                        "weight",
-                        e.target.value
-                      )
-                    }
-                    onFocus={() =>
-                      setActiveInput({
-                        exerciseKey: exercise.compositeKey,
-                        setIndex: setIdx,
-                        field: "weight",
-                      })
-                    }
-                  />
-                  <span>kg</span>
+                  <span className={`${stylesWorkoutExercises.cardSpan}`}>
+                    Sätze
+                  </span>
+                  <span className={stylesWorkoutExercises.input}>
+                    {exercise.sets.length}
+                  </span>
                   <button
                     className="button sm rounded"
-                    onClick={() => handleValueChange(-1)}
-                    disabled={
-                      !activeInput ||
-                      activeInput.exerciseKey !== exercise.compositeKey ||
-                      activeInput.setIndex !== setIdx
+                    onClick={() =>
+                      onRemoveSet && onRemoveSet(exercise.compositeKey)
                     }
                   >
                     -
                   </button>
                   <button
                     className="button sm rounded"
-                    onClick={() => handleValueChange(1)}
-                    disabled={
-                      !activeInput ||
-                      activeInput.exerciseKey !== exercise.compositeKey ||
-                      activeInput.setIndex !== setIdx
-                    }
+                    onClick={() => onAddSet && onAddSet(exercise.compositeKey)}
                   >
                     +
                   </button>
                 </div>
-              </div>
-            ))}
+              </>
+              {exercise.sets.map((set, setIdx) => (
+                <div
+                  key={setIdx}
+                  className={stylesWorkoutExercises.cardContentContainer}
+                >
+                  <div className={stylesWorkoutExercises.cardContentItem}>
+                    <span className={`${stylesWorkoutExercises.cardSpan}`}>
+                      {setIdx + 1}
+                    </span>
+                    <input
+                      type="number"
+                      className={stylesWorkoutExercises.input}
+                      value={set.repetitions}
+                      onChange={(e) =>
+                        onUpdate &&
+                        onUpdate(
+                          exercise.compositeKey,
+                          setIdx,
+                          "repetitions",
+                          e.target.value
+                        )
+                      }
+                      onFocus={() =>
+                        setActiveInput({
+                          exerciseKey: exercise.compositeKey,
+                          setIndex: setIdx,
+                          field: "repetitions",
+                        })
+                      }
+                    />
+                    <span className={`${stylesWorkoutExercises.cardSpan}`}>
+                      x
+                    </span>
+                    <input
+                      type="number"
+                      className={stylesWorkoutExercises.input}
+                      value={set.weight}
+                      onChange={(e) =>
+                        onUpdate &&
+                        onUpdate(
+                          exercise.compositeKey,
+                          setIdx,
+                          "weight",
+                          e.target.value
+                        )
+                      }
+                      onFocus={() =>
+                        setActiveInput({
+                          exerciseKey: exercise.compositeKey,
+                          setIndex: setIdx,
+                          field: "weight",
+                        })
+                      }
+                    />
+                    <span className={`${stylesWorkoutExercises.cardSpan}`}>
+                      kg
+                    </span>
+                    <button
+                      className="button sm rounded"
+                      onClick={() => handleValueChange(-1)}
+                      disabled={
+                        !activeInput ||
+                        activeInput.exerciseKey !== exercise.compositeKey ||
+                        activeInput.setIndex !== setIdx
+                      }
+                    >
+                      -
+                    </button>
+                    <button
+                      className="button sm rounded"
+                      onClick={() => handleValueChange(1)}
+                      disabled={
+                        !activeInput ||
+                        activeInput.exerciseKey !== exercise.compositeKey ||
+                        activeInput.setIndex !== setIdx
+                      }
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>

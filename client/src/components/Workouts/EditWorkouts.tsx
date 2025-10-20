@@ -12,6 +12,7 @@ import ReturnButton from "../ReturnButton";
 import ConfirmButton from "../ConfirmButton";
 import AddButton from "../AddButton";
 import styles from "../../styles/Exercises.module.css";
+import stylesButton from "../../styles/Button.module.css";
 
 export default function EditWorkouts() {
   const [workoutPlans, setWorkoutPlans] = useState<Workout[]>([]);
@@ -180,10 +181,20 @@ export default function EditWorkouts() {
             onRemoveSet={handleRemoveSet}
           />
 
-          <div className="button-container">
-            <ReturnButton onBack={() => setSelectedWorkoutId(null)} />
+          <div className={stylesButton.buttonContainer}>
+            <ReturnButton
+              onBack={() => setSelectedWorkoutId(null)}
+              className={`              
+                ${stylesButton.left},
+                ${stylesButton.button}`}
+            />
             <AddButton onAdd={() => setIsSelecting(true)} />
-            <ConfirmButton onConfirm={handleSaveWorkout} />
+            <ConfirmButton
+              onConfirm={handleSaveWorkout}
+              className={`
+                ${stylesButton.right},
+                ${stylesButton.button}`}
+            />
           </div>
         </>
       ) : (
@@ -196,7 +207,12 @@ export default function EditWorkouts() {
               onDelete={handleDelete}
             />
           </div>
-          <ReturnButton onBack={() => navigate("/workouts")} />
+          <div className={stylesButton.buttonContainerNonRelative}>
+            <ReturnButton
+              onBack={() => navigate("/workouts")}
+              className={`${stylesButton.button}`}
+            />
+          </div>
         </>
       )}
     </>

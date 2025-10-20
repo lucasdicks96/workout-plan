@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
 import styles from "../../styles/Exercises.module.css";
-import stylesModal from "../../styles/Modal.module.css";
+import stylesButton from "../../styles/Button.module.css";
 import { Workout as IWorkout } from "../../types/workouts";
-import PlayPauseButton from "../PlayPauseButton";
-import EditButton from "../EditButton";
 import AddButton from "../AddButton";
+import DeleteButton from "../DeleteButton";
+import EditButton from "../EditButton";
+import PlayPauseButton from "../PlayPauseButton";
 
 export default function Workout() {
   const [workoutList, setWorkoutList] = useState<IWorkout[] | []>([]);
@@ -36,8 +37,11 @@ export default function Workout() {
       <div className={styles.exerciseList}>
         <WorkoutList isLoading={isLoading} workoutList={workoutList} />
       </div>
-      <div className="button-container">
-        <EditButton onEdit={() => navigate("edit-workouts")} />
+      <div className={stylesButton.buttonContainer}>
+        <EditButton
+          onEdit={() => navigate("edit-workouts")}
+          className={`${stylesButton.left}, ${stylesButton.button}`}
+        />
         <AddButton onAdd={() => navigate("create-workouts")} />
       </div>
     </>
@@ -94,6 +98,8 @@ function WorkoutCard({
   const startedWorkoutId = localStorage.getItem("startWorkoutId");
   const startedId = parseInt(JSON.parse(startedWorkoutId || "null"));
 
+  const [deleteIsOpen, setDeleteIsOpen] = useState(false);
+
   const onStart = () => {
     if (!startedWorkoutId) {
       localStorage.setItem("startWorkoutId", JSON.stringify(workoutId));
@@ -128,20 +134,43 @@ function WorkoutCard({
   };
 
   return (
-    <div className={styles.card} onClick={() => onClick?.(workoutId)}>
+    <div
+      className={styles.card}
+      // onClick={() => onClick?.(workoutId)}
+    >
+      <h3 className={styles.workoutCardTitle}>{title}</h3>
       {isEditPage && (
-        <button
-          className={stylesModal.closeButton}
-          onClick={() => onDelete?.(workoutId)}
-        >
-          &times;
-        </button>
+        <div className={stylesButton.buttonContainerNonRelative}>
+          <DeleteButton
+            isOpen={deleteIsOpen}
+            onDelete={() => {
+              onDelete?.(workoutId);
+              setDeleteIsOpen(false);
+            }}
+            onToggleVisibility={setDeleteIsOpen}
+            className={`${stylesButton.buttonRounded}`}
+          />
+
+          {!deleteIsOpen && (
+            <>
+              <EditButton
+                onEdit={() => onClick?.(workoutId)}
+                className={`${stylesButton.buttonRounded}, ${stylesButton.left}`}
+              />
+            </>
+          )}
+        </div>
       )}
-      <h3>{title}</h3>
+
       {!isEditPage && isInProgress && workoutId == startedId && (
         <span>In Arbeit</span>
       )}
-      {!isEditPage && <PlayPauseButton onStart={onStart} />}
+      {!isEditPage && (
+        <PlayPauseButton
+          onStart={onStart}
+          className={`${stylesButton.buttonRounded}`}
+        />
+      )}
     </div>
   );
 }

@@ -3,6 +3,9 @@ import { apiService } from "../../services/apiService";
 import styles from "../../styles/Modal.module.css";
 import stylesExercises from "../../styles/Exercise.module.css";
 import { CombinedExercise } from "../../types/exercises";
+import DeleteButton from "../DeleteButton";
+import ConfirmButton from "../ConfirmButton";
+import ReturnButton from "../ReturnButton";
 
 type ModalProps = {
   isOpen: boolean;
@@ -26,7 +29,7 @@ function Popup({ message, status }: { message: string; status: number }) {
   const style: React.CSSProperties = {
     position: "absolute",
     top: "50%",
-    left: "50%",
+    left: "calc(window.innerWidth / 2)",
     transform: "translate(-50%, -50%)",
     padding: "1.25rem",
     borderRadius: "0.5rem",
@@ -57,6 +60,7 @@ export default function Modal({
     isOpen: false,
     status: 0,
   });
+  const [deleteIsOpen, setDeleteIsOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -84,10 +88,11 @@ export default function Modal({
     return null;
   }
 
-  const onDelete = async () => {
-    console.log(`Deleting exercise: ${formState.id}`);
+  const onDelete = async (id: number) => {
+    const deleteId = id ?? formState.id;
+    console.log(`Deleting exercise: ${deleteId}`);
     try {
-      const response = await apiService.deleteExercise(formState.id);
+      const response = await apiService.deleteExercise(deleteId);
 
       setPopupState({
         message: response.data.message,
@@ -116,8 +121,6 @@ export default function Modal({
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      console.log("ON SUBMIT ORIGINALID", exerciseData.id);
-      console.log("ON SUBMIT TITLE", exerciseData.title);
       if (!formState.title.trim())
         return setPopupState({
           message: "Title erforderlich",
@@ -153,13 +156,6 @@ export default function Modal({
       ) : (
         <form className="form" onSubmit={onSubmit}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <button
-              className={styles.closeButton}
-              onClick={onClose}
-              type="button"
-            >
-              x
-            </button>
             <div>
               <input
                 value={formState.title}
@@ -177,12 +173,30 @@ export default function Modal({
               />
             </div>
             <div className="button-container">
-              <button className="button" type="submit">
-                OK
-              </button>
-              <button className="button" onClick={onDelete} type="button">
-                Löschen
-              </button>
+              {deleteIsOpen && (
+                <DeleteButton
+                  isOpen={deleteIsOpen}
+                  onDelete={() => {
+                    onDelete(formState.id);
+                    setDeleteIsOpen(false);
+                  }}
+                  onToggleVisibility={setDeleteIsOpen}
+                />
+              )}
+              {!deleteIsOpen && (
+                <>
+                  <ReturnButton onBack={onClose} />
+                  <DeleteButton
+                    isOpen={deleteIsOpen}
+                    onDelete={() => {
+                      onDelete(formState.id);
+                      setDeleteIsOpen(false);
+                    }}
+                    onToggleVisibility={setDeleteIsOpen}
+                  />
+                  <ConfirmButton btnType="submit" />
+                </>
+              )}
             </div>
           </div>
         </form>

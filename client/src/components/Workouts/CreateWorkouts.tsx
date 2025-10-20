@@ -9,6 +9,7 @@ import WorkoutExercises from "./WorkoutExercises";
 import ReturnButton from "../ReturnButton";
 import AddButton from "../AddButton";
 import ConfirmButton from "../ConfirmButton";
+import stylesButton from "../../styles/Button.module.css";
 
 export default function CreateWorkout() {
   const {
@@ -113,6 +114,7 @@ export default function CreateWorkout() {
     <>
       <input
         className="input"
+        name="title"
         style={{ maxWidth: "20rem" }}
         type="text"
         placeholder="Name des Trainingsplans"
@@ -132,10 +134,16 @@ export default function CreateWorkout() {
         onAddSet={handleAddSet}
         onRemoveSet={handleRemoveSet}
       />
-      <div className="button-container">
-        <ReturnButton onBack={handleBack} />
+      <div className={stylesButton.buttonContainer}>
+        <ReturnButton
+          onBack={handleBack}
+          className={`${stylesButton.button}, ${stylesButton.left}`}
+        />
         <AddButton onAdd={() => setIsSelecting(true)} />
-        <ConfirmButton onConfirm={handleCreateWorkout} />
+        <ConfirmButton
+          onConfirm={handleCreateWorkout}
+          className={`${stylesButton.button}, ${stylesButton.right}`}
+        />
       </div>
     </>
   );
