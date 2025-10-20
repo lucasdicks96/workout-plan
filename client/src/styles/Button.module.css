@@ -1,0 +1,104 @@
+.buttonRounded {
+  display: flex;
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  align-items: center;
+  justify-content: center;
+  height: 2.5rem;
+  width: 2.5rem;
+  background-color: var(--c-primary);
+  border-style: none;
+  border-radius: 2rem;
+  padding: 0;
+}
+.buttonRounded:hover {
+  background-color: var(--c-primary-hover);
+}
+.left{ 
+  right: 4rem;
+}
+
+.right{
+  right: -1.5rem;
+}
+
+.button {
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  margin: 0.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: bolder;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  background-color: var(--c-primary);
+  color: var(--c-primary-text-on);
+  width: 6rem;
+}
+.button:hover {
+  background-color: var(--c-primary-hover);
+}
+
+
+.deleteWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.deleteButton {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.confirmModal {
+  position: absolute;
+  top: 2.5rem;
+  right: 0;
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  z-index: 50;
+}
+
+.confirmButtonContainer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+.confirmButton {
+  background-color: var(--c-danger);
+  color: white;
+}
+
+.cancelButton {
+  background-color: var(--c-neutral);
+}
+
+.buttonContainer {
+  display: flex;
+  position: relative;
+  flex-direction: row;
+  flex: 0.1;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.buttonContainerNonRelative {
+  display: flex;
+  flex-direction: row;
+  flex: 0.1;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1rem;
+  width: fit-content;
+}
