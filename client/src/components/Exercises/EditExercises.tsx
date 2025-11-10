@@ -4,7 +4,7 @@ import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
 import { CombinedExercise } from "../../types/exercises";
 import { ExerciseList } from "./Exercises";
-import ReturnButton from "../ReturnButton";
+import ReturnButton from "../Buttons/ReturnButton";
 
 export default function EditExercise() {
   const [userExercisesList, setUserExercisesList] = useState<
@@ -21,7 +21,7 @@ export default function EditExercise() {
 
       if (response.status === 200) {
         setUserExercisesList(response.data.exercises);
-        console.log(response.data.exercises);
+        console.log("RESPONSE DATA EXERCISES: ",response.data.exercises);
       } else {
         setUserExercisesList([]);
       }
@@ -36,6 +36,17 @@ export default function EditExercise() {
   useEffect(() => {
     fetchUserExercises();
   }, [fetchUserExercises]);
+
+  if (!userExercisesList || userExercisesList.length === 0) {
+    return (
+      <>
+        <p>Keine Übungen gefunden</p>
+        <div className="button-container">
+          <ReturnButton onBack={() => navigate("/exercises")} />
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
