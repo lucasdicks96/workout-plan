@@ -1,4 +1,4 @@
-import styles from "../styles/Button.module.css";
+import styles from "../../styles/Button.module.css";
 type EditButtonProps = {
   onEdit: () => void;
   className?: string;
