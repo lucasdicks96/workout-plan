@@ -33,16 +33,23 @@ export const apiService = {
     apiClient.post("/user/register", { email, password }),
   logout: () => apiClient.post("/user/logout"),
   getStatus: () => apiClient.get("/user/status"),
-  createExercise: (title: string, description: string) =>
+  createExercise: (title: string, description: string, categories: number[]) =>
     apiClient.post("/exercise/create-exercise", {
       title,
       description,
+      categories,
     }),
-  editExercise: (id: number, title: string, description: string) =>
+  editExercise: (
+    id: number,
+    title: string,
+    description: string,
+    categories: number[]
+  ) =>
     apiClient.put("/exercise/edit-exercise", {
       id,
       title,
       description,
+      categories,
     }),
   deleteExercise: (id: number) =>
     apiClient.delete(`/exercise/delete-exercise/${id}`),
@@ -50,6 +57,7 @@ export const apiService = {
   //   apiClient.get(`/exercise/all-exercises/${userId}`),
   getAllExercises: () => apiClient.get(`/exercise/all-exercises`),
   getUserExercises: () => apiClient.get(`/exercise/user-exercises`),
+  getCategoryTree: () => apiClient.get("/exercise/category-tree"),
   getUserId: () => apiClient.get("/user/id"),
   // getAllWorkouts: (userId: string) =>
   //   apiClient.get(`/workout/all-workouts/${userId}`),
