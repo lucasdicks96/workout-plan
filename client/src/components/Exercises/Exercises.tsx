@@ -1,41 +1,50 @@
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useExercises } from "../../hooks/useExercises";
 import { useSetTitle } from "../../hooks/useSetTitle";
-import { apiService } from "../../services/apiService";
-import styles from "../../styles/Exercises.module.css";
 import stylesButton from "../../styles/Button.module.css";
+import styles from "../../styles/Exercises.module.css";
 import { CombinedExercise } from "../../types/exercises";
+import AddButton from "../Buttons/AddButton";
+import EditButton from "../Buttons/EditButton";
+import CategoryDropdown from "../CategoryDropDown";
+import SearchInput from "../SearchInput";
 import Modal from "./Modal";
-import EditButton from "../EditButton";
-import AddButton from "../AddButton";
 
 export default function Exercises() {
-  const [exerciseList, setExerciseList] = useState<CombinedExercise[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // const [exerciseList, setExerciseList] = useState<CombinedExercise[]>([]);
+  // const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   useSetTitle("Übungen");
 
-  const fetchAllExercises = useCallback(async () => {
-    try {
-      const response = await apiService.getAllExercises();
-      setExerciseList(response.data.exercises);
-    } catch (error) {
-      setExerciseList([]);
-      console.error("Fehler beim Abrufen der Übungen:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAllExercises();
-  }, [fetchAllExercises]);
+  const {
+    isLoading,
+    fetchAllExercises,
+    searchTerm,
+    setSearchTerm,
+    selectedCategory,
+    setSelectedCategory,
+    filteredExercises,
+  } = useExercises(true);
 
   return (
     <>
+      <div>
+        <CategoryDropdown
+          selectedCategory={selectedCategory}
+          onCategoryChange={(value) =>
+            setSelectedCategory(value as number | "Alle")
+          }
+        />
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Übung suchen..."
+        />
+      </div>
       <ExerciseList
-        exerciseList={exerciseList}
         isLoading={isLoading}
+        exerciseList={filteredExercises}
         onUpdateSuccess={fetchAllExercises}
       />
       <div className="button-container">
@@ -52,6 +61,7 @@ type ExerciseProps = {
   exerciseList: CombinedExercise[];
   onUpdateSuccess: () => void;
 };
+
 export function ExerciseList({
   isLoading,
   exerciseList = [],
@@ -60,7 +70,6 @@ export function ExerciseList({
   const [selectedExercise, setSelectedExercise] =
     useState<CombinedExercise | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-
   const location = window.location.pathname;
   const isEditPage = location.includes("edit-exercises");
 
@@ -83,9 +92,6 @@ export function ExerciseList({
     return <p>Lade Übungen...</p>;
   }
 
-  if (!exerciseList || exerciseList.length === 0) {
-    return <p>Keine Übungen verfügbar.</p>;
-  }
   return (
     <>
       {isOpen ? (
