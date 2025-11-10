@@ -116,9 +116,8 @@ export async function updateExercise(
       `
         UPDATE exercises
         SET title = $1,
-            description = $2,
-            updated_at = NOW()
-        WHERE id = $3
+            description = $2
+        WHERE exercises.id = $3
           AND user_id = $4
           AND deleted_at IS NULL
         RETURNING *;
