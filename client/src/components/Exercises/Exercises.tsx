@@ -25,7 +25,7 @@ export default function Exercises() {
     selectedCategory,
     setSelectedCategory,
     filteredExercises,
-  } = useExercises(true);
+  } = useExercises();
 
   return (
     <>
