@@ -1,55 +1,78 @@
 import * as exerciseRepository from "../repositories/exercise.repository";
-import { CombinedExercise, Exercise } from "../types/exercise.types";
+import { InternalServerError } from "../types/errors.types";
+import {
+  Category,
+  CombinedExercise,
+  Exercise,
+  ExerciseCategory,
+} from "../types/exercise.types";
 
 export async function getCombinedExercisesForUser(
   userId: string
 ): Promise<CombinedExercise[]> {
-  const [systemExercises, userExercises] = await Promise.all([
+  const [systemExercises, userExercises, categoryTree] = await Promise.all([
     exerciseRepository.findSystemExercises(),
     exerciseRepository.findExercisesByUserId(userId),
+    getCategoryTree(),
   ]);
 
   const transformedSystemExercises = systemExercises.map((ex) =>
-    transformToCombined(ex, false)
+    transformToCombined(ex, categoryTree)
   );
   const transformedUserExercises = userExercises.map((ex) =>
-    transformToCombined(ex, true)
+    transformToCombined(ex, categoryTree)
   );
+
   return [...transformedSystemExercises, ...transformedUserExercises];
 }
 
 export async function getExercisesForUser(
   userId: string
 ): Promise<CombinedExercise[]> {
-  const userExercises = await exerciseRepository.findExercisesByUserId(userId);
-  if (!userExercises) {
-    throw new Error("Fehler beim Laden der Übungen.");
+  const [userExercises, categoryTree] = await Promise.all([
+    exerciseRepository.findExercisesByUserId(userId),
+    getCategoryTree(),
+  ]);
+  // if (!userExercises) {
+  //   throw new Error("Fehler beim Laden der Übungen.");
+  // }
+  if (!userExercises || userExercises.length === 0) {
+    return [];
   }
   const transformedUserExercises = userExercises.map((ex) =>
-    transformToCombined(ex, true)
+    transformToCombined(ex, categoryTree)
   );
+
   return transformedUserExercises;
 }
 
 export async function createNewExercise(
   title: string,
   description: string,
-  userId: string
+  userId: string,
+  categories: number[]
 ): Promise<Exercise> {
-  return await exerciseRepository.createExercise(title, description, userId);
+  return await exerciseRepository.createExercise(
+    title,
+    description,
+    userId,
+    categories
+  );
 }
 
 export async function updateUserExercise(
   id: number,
   title: string,
   description: string,
-  userId: string
+  userId: string,
+  categories: number[]
 ): Promise<{ message: string }> {
   const updatedExercise = await exerciseRepository.updateExercise(
     id,
     title,
     description,
-    userId
+    userId,
+    categories
   );
   if (!updatedExercise) {
     throw new Error("Übung nicht gefunden oder fehlende Berechtigung.");
@@ -71,15 +94,61 @@ export async function deleteUserExercise(
   return { message: "Löschen erfolgreich" };
 }
 
+export async function getCategories(): Promise<Category[]> {
+  const result = await exerciseRepository.categories();
+  if (!result)
+    throw new InternalServerError("Fehler beim Abrufen der Übungskategorien");
+  return result;
+}
+
+export async function getCategoryTree(): Promise<Category[]> {
+  const flatCategories = await getCategories();
+
+  return buildCategoryTree(flatCategories);
+}
+
 export function transformToCombined(
   exercise: Exercise,
-  isUserCreated: boolean
+  categoryTree: Category[]
 ): CombinedExercise {
+  const catIds = exercise.category.map((c) =>
+    typeof c === "object" ? c.id : c
+  );
+
+  const filteredCategories = filterCategoryTreeByIds(categoryTree, catIds);
   return {
-    compositeKey: `${isUserCreated ? "user" : "system"}-${exercise.id}`,
+    compositeKey: `${exercise.userId ? "user" : "system"}-${exercise.id}`,
     id: exercise.id,
-    userId: exercise.userId,
+    userId: exercise.userId ? exercise.userId : null,
     title: exercise.title,
     description: exercise.description,
+    category: filteredCategories,
   };
+}
+function buildCategoryTree(categories: Category[]): Category[] {
+  const map = new Map<number, Category>();
+  const roots: Category[] = [];
+
+  categories.forEach((cat) => map.set(cat.id, { ...cat, children: [] }));
+
+  categories.forEach((cat) => {
+    if (cat.parent_id) {
+      const parent = map.get(cat.parent_id);
+      if (parent) {
+        parent.children!.push(map.get(cat.id)!);
+      }
+    } else {
+      roots.push(map.get(cat.id)!);
+    }
+  });
+
+  return roots;
+}
+function filterCategoryTreeByIds(tree: Category[], ids: number[]): Category[] {
+  return tree
+    .filter((cat) => ids.includes(cat.id))
+    .map((cat) => ({
+      ...cat,
+      children: cat.children ? filterCategoryTreeByIds(cat.children, ids) : [],
+    }));
 }
