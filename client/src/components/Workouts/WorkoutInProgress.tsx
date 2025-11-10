@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSetTitle } from "../../hooks/useSetTitle";
 import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
-import stylesLayout from "../../styles/Layout.module.css";
 import stylesButton from "../../styles/Button.module.css";
-import PlayPauseButton from "../PlayPauseButton";
-import ReturnButton from "../ReturnButton";
-import StopCompleteButton from "../StopCompleteButton";
+import PlayPauseButton from "../Buttons/PlayPauseButton";
+import ReturnButton from "../Buttons/ReturnButton";
+import StopCompleteButton from "../Buttons/StopCompleteButton";
 import WorkoutExercises from "./WorkoutExercises";
-import { useSetTitle } from "../../hooks/useSetTitle";
 
 const WORKOUT_IN_PROGRESS_KEY = "workoutInProgressState";
 export default function WorkoutInProgress() {
@@ -69,10 +68,11 @@ export default function WorkoutInProgress() {
 
   const loadWorkout = useCallback(async () => {
     try {
-      if (!workoutId || !startedWorkoutId.current) {
+      const id = workoutId ?? startedWorkoutId.current;
+      if (id === null || id === undefined) {
         return console.error("Keine Workout ID gefunden");
       }
-      const response = await apiService.getWorkoutExercises(workoutId);
+      const response = await apiService.getWorkoutExercises(id);
       console.log(response.data);
       if (
         !response.data ||

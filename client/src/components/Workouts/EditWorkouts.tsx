@@ -8,9 +8,9 @@ import { Workout } from "../../types/workouts";
 import ExerciseSelectionList from "../Exercises/ExerciseSelectionList";
 import WorkoutExercises from "./WorkoutExercises";
 import { WorkoutList as WorkoutPlans } from "./Workouts";
-import ReturnButton from "../ReturnButton";
-import ConfirmButton from "../ConfirmButton";
-import AddButton from "../AddButton";
+import ReturnButton from "../Buttons/ReturnButton";
+import ConfirmButton from "../Buttons/ConfirmButton";
+import AddButton from "../Buttons/AddButton";
 import styles from "../../styles/Exercises.module.css";
 import stylesButton from "../../styles/Button.module.css";
 

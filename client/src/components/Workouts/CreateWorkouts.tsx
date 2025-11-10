@@ -6,9 +6,9 @@ import { apiService } from "../../services/apiService";
 import { CombinedExercise } from "../../types/exercises";
 import ExerciseSelectionList from "../Exercises/ExerciseSelectionList";
 import WorkoutExercises from "./WorkoutExercises";
-import ReturnButton from "../ReturnButton";
-import AddButton from "../AddButton";
-import ConfirmButton from "../ConfirmButton";
+import ReturnButton from "../Buttons/ReturnButton";
+import AddButton from "../Buttons/AddButton";
+import ConfirmButton from "../Buttons/ConfirmButton";
 import stylesButton from "../../styles/Button.module.css";
 
 export default function CreateWorkout() {

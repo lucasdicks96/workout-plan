@@ -5,10 +5,10 @@ import { apiService } from "../../services/apiService";
 import styles from "../../styles/Exercises.module.css";
 import stylesButton from "../../styles/Button.module.css";
 import { Workout as IWorkout } from "../../types/workouts";
-import AddButton from "../AddButton";
-import DeleteButton from "../DeleteButton";
-import EditButton from "../EditButton";
-import PlayPauseButton from "../PlayPauseButton";
+import AddButton from "../Buttons/AddButton";
+import DeleteButton from "../Buttons/DeleteButton";
+import EditButton from "../Buttons/EditButton";
+import PlayPauseButton from "../Buttons/PlayPauseButton";
 
 export default function Workout() {
   const [workoutList, setWorkoutList] = useState<IWorkout[] | []>([]);
