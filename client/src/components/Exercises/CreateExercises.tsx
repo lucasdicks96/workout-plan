@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useExercises } from "../../hooks/useExercises";
+import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
 import "../../styles/global.css"; // Import global styles
-import { useSetTitle } from "../../hooks/useSetTitle";
-import ConfirmButton from "../ConfirmButton";
-import ReturnButton from "../ReturnButton";
+import ConfirmButton from "../Buttons/ConfirmButton";
+import ReturnButton from "../Buttons/ReturnButton";
 
 type FormState = {
   title: string;
@@ -12,6 +13,14 @@ type FormState = {
 };
 
 export default function CreateExercise() {
+  const navigate = useNavigate();
+  const {
+    categoryTree,
+    selectedCategories,
+    handleCategorySelect,
+    renderCategoryCheckboxes,
+  } = useExercises();
+
   const [formState, setFormState] = useState<FormState>({
     title: "",
     description: "",
@@ -19,21 +28,15 @@ export default function CreateExercise() {
 
   useSetTitle("Übung erstellen");
 
-  const navigate = useNavigate();
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFormState((prevState) => ({
-      ...prevState,
-      [id]: value,
-    }));
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     try {
-      await apiService.createExercise(formState.title, formState.description);
+      await apiService.createExercise(
+        formState.title,
+        formState.description,
+        selectedCategories
+      );
       navigate("/exercises", { replace: true });
       console.log("Exercise created successfully!");
     } catch (error) {
@@ -50,8 +53,10 @@ export default function CreateExercise() {
             type="text"
             id="title"
             value={formState.title}
-            onChange={handleChange}
-            placeholder="Exercise Name"
+            onChange={(e) =>
+              setFormState({ ...formState, title: e.target.value })
+            }
+            placeholder="Übungsname"
             maxLength={15}
             required
           />
@@ -62,12 +67,31 @@ export default function CreateExercise() {
             type="text"
             id="description"
             value={formState.description}
-            onChange={handleChange}
-            placeholder="Exercise Description"
+            onChange={(e) =>
+              setFormState({ ...formState, description: e.target.value })
+            }
+            placeholder="Übungsbeschreibung"
             maxLength={50}
             required
           />
         </div>
+        <fieldset
+          style={{
+            display: "block",
+            maxHeight: "250px",
+            overflowY: "auto",
+            borderRadius: "5px",
+            padding: "10px",
+          }}
+          className="input"
+        >
+          <legend>Kategorien wählen:</legend>
+          {renderCategoryCheckboxes(
+            categoryTree,
+            selectedCategories,
+            handleCategorySelect
+          )}
+        </fieldset>
         <div className="button-container">
           <ReturnButton onBack={() => navigate("/exercises")} />
           <ConfirmButton btnType="submit" />
