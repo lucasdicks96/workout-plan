@@ -32,11 +32,20 @@ router.get(
   })
 );
 
+router.get(
+  "/category-tree",
+  isAuthenticated,
+  authenticatedHandler(async (req, res: Response) => {
+    const categories = await exerciseService.getCategoryTree();
+    res.status(200).json({ categories: categories });
+  })
+);
+
 router.post(
   "/create-exercise",
   isAuthenticated,
   authenticatedHandler(async (req, res: Response) => {
-    const { title, description } = req.body;
+    const { title, description, categories } = req.body;
     const userId = req.user.id;
 
     if (!title || typeof title !== "string" || title.trim() === "") {
@@ -48,7 +57,8 @@ router.post(
     const newExercise = await exerciseService.createNewExercise(
       title,
       description,
-      userId
+      userId,
+      categories
     );
     res.status(201).json(newExercise);
   })
@@ -58,7 +68,7 @@ router.put(
   "/edit-exercise",
   isAuthenticated,
   authenticatedHandler(async (req, res: Response) => {
-    const { id, title, description } = req.body;
+    const { id, title, description, categories } = req.body;
     const userId = req.user.id;
 
     if (isNaN(id)) {
@@ -73,7 +83,8 @@ router.put(
       id,
       title,
       description,
-      userId
+      userId,
+      categories
     );
     res.status(200).json({ message: result.message });
   })
