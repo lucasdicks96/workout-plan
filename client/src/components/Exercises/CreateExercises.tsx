@@ -57,7 +57,7 @@ export default function CreateExercise() {
               setFormState({ ...formState, title: e.target.value })
             }
             placeholder="Übungsname"
-            maxLength={15}
+            maxLength={50}
             required
           />
         </div>
