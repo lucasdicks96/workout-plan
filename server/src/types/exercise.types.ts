@@ -3,6 +3,7 @@ export interface Exercise {
   userId: string | null;
   title: string;
   description: string;
+  category: Category[];
 }
 
 export interface CombinedExercise {
@@ -11,6 +12,7 @@ export interface CombinedExercise {
   userId: string | null;
   title: string;
   description?: string;
+  category?: Category[];
 }
 
 export interface ExerciseForWorkout extends CombinedExercise {
@@ -21,4 +23,11 @@ export interface ExerciseForWorkout extends CombinedExercise {
 
 export interface FinishedExercise extends ExerciseForWorkout {
   workoutId: number;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  children?: Category[];
 }
