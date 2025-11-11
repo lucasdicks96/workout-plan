@@ -1,13 +1,14 @@
 .exerciseList {
-  display: flex; /* Verwandelt den Container in ein flexibles Layout */
-  flex-wrap: wrap; /*Erlaubt das Umbrechen der Karten in neue Zeilen */
+  display: flex; 
+  flex-wrap: wrap; 
   /* flex: 1; */
-  width: 100%; /* Stellt sicher, dass der Container die volle Breite hat */
+  position: relative;
+  width: 100%; 
   min-width: 12.5rem;
   max-width: 106rem;
   max-height: 70vh;
   overflow: auto;
-  padding: 10px; /* Optional: Innenabstand hinzufügen */
+  padding: 10px; 
   align-items: flex-start;
   justify-content: center;
   flex-direction: row;
