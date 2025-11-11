@@ -1,19 +1,10 @@
-export interface Exercise {
-  id: number;
-  title: string;
-  description: string;
-}
-
-export interface UserExercise extends Exercise {
-  userId: string;
-}
-
 export interface CombinedExercise {
   compositeKey: string;
   id: number;
   userId: string | null;
   title: string;
   description: string;
+  category?: Category[];
 }
 
 export interface ExerciseForWorkout extends CombinedExercise {
@@ -24,4 +15,11 @@ export interface ExerciseForWorkout extends CombinedExercise {
 
 export interface FinishedExercise extends ExerciseForWorkout {
   workoutId: number;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  children?: Category[];
 }
