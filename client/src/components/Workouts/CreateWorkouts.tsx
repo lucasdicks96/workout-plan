@@ -9,6 +9,8 @@ import WorkoutExercises from "./WorkoutExercises";
 import ReturnButton from "../Buttons/ReturnButton";
 import AddButton from "../Buttons/AddButton";
 import ConfirmButton from "../Buttons/ConfirmButton";
+import Popup from "../Popup";
+import { PopupRef } from "../Popup";
 import stylesButton from "../../styles/Button.module.css";
 
 export default function CreateWorkout() {
@@ -32,6 +34,8 @@ export default function CreateWorkout() {
   const navigate = useNavigate();
 
   useSetTitle("Plan erstellen");
+
+  const popupRef = useRef<PopupRef>(null);
 
   const isInitialMount = useRef(true);
 
@@ -81,8 +85,10 @@ export default function CreateWorkout() {
 
     try {
       await apiService.createWorkout(workoutName, workoutList);
-      navigate("/workouts");
+      popupRef.current?.show("Trainingsplan erstellt!", 200);
+      // navigate("/workouts");
     } catch (error) {
+      popupRef.current?.show("Fehler beim Erstellen des Trainingsplans", 500);
       console.error("Fehler beim Erstellen des Plans", error);
     } finally {
       localStorage.removeItem("createPlan");
@@ -112,6 +118,9 @@ export default function CreateWorkout() {
   }
   return (
     <>
+      <div style={{ position: "relative" }}>
+        <Popup ref={popupRef} onClose={() => navigate("/workouts")} />
+      </div>
       <input
         className="input"
         name="title"

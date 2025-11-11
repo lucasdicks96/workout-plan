@@ -1,8 +1,10 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, useRef } from "react";
 import { apiService } from "../../services/apiService";
 import styles from "../../styles/Modal.module.css";
 import stylesExercises from "../../styles/Exercise.module.css";
 import { CombinedExercise, Category } from "../../types/exercises";
+import Popup from "../Popup";
+import { PopupRef } from "../Popup";
 import DeleteButton from "../Buttons/DeleteButton";
 import ConfirmButton from "../Buttons/ConfirmButton";
 import ReturnButton from "../Buttons/ReturnButton";
@@ -20,30 +22,6 @@ type FormState = {
   description: string;
 };
 
-type PopupState = {
-  message: string;
-  isOpen: boolean;
-  status: number;
-};
-
-function Popup({ message, status }: { message: string; status: number }) {
-  const style: React.CSSProperties = {
-    position: "absolute",
-    top: "50%",
-    left: "calc(window.innerWidth / 2)",
-    transform: "translate(-50%, -50%)",
-    padding: "1.25rem",
-    borderRadius: "0.5rem",
-    backgroundColor:
-      status === 200 || status === 204 ? "var(--c-primary)" : "var(--c-danger)",
-    color: "var(--c-text-primary)",
-    zIndex: 100,
-    textAlign: "center",
-    fontWeight: "bold",
-  };
-  return <div style={style}>{message}</div>;
-}
-
 export default function Modal({
   isOpen,
   exerciseData,
@@ -56,11 +34,8 @@ export default function Modal({
     id: 0,
   });
 
-  const [popupState, setPopupState] = useState<PopupState>({
-    message: "",
-    isOpen: false,
-    status: 0,
-  });
+  const popupRef = useRef<PopupRef>(null);
+
   const [deleteIsOpen, setDeleteIsOpen] = useState(false);
 
   const {
@@ -78,23 +53,11 @@ export default function Modal({
         id: exerciseData.id,
         description: exerciseData.description,
       });
-      setPopupState({ message: "", isOpen: false, status: 0 });
 
       const catIds = exerciseData.category?.map((c: Category) => c.id) ?? [];
       setSelectedCategories(catIds);
     }
   }, [isOpen, exerciseData, setSelectedCategories]);
-
-  useEffect(() => {
-    if (popupState.isOpen) {
-      const timer = setTimeout(() => {
-        setPopupState({ ...popupState, isOpen: false });
-        onUpdateSuccess();
-        onClose();
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [popupState, onClose, onUpdateSuccess]);
 
   if (!isOpen) {
     return null;
@@ -106,19 +69,15 @@ export default function Modal({
     try {
       const response = await apiService.deleteExercise(deleteId);
 
-      setPopupState({
-        message: response.data.message,
-        isOpen: true,
-        status: response.status,
-      });
-      console.log(response.data);
+      popupRef.current?.show(response.data.message, response.status);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        setPopupState({
-          message: error.message || "Ein Fehler ist aufgetreten",
-          isOpen: true,
-          status: 500,
-        });
+        if (error instanceof Error) {
+          popupRef.current?.show(
+            error.message || "Ein Fehler ist aufgetreten",
+            500
+          );
+        }
       }
     }
   };
@@ -133,76 +92,84 @@ export default function Modal({
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      if (!formState.title.trim())
-        return setPopupState({
-          message: "Title erforderlich",
-          isOpen: true,
-          status: 400,
-        });
       const response = await apiService.editExercise(
         formState.id,
         formState.title,
         formState.description,
         selectedCategories
       );
-      setPopupState({
-        message: response.data.message,
-        isOpen: true,
-        status: response.status,
-      });
+
+      popupRef.current?.show(response.data.message, response.status);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        setPopupState({
-          message: error.message || "Ein Fehler ist aufgetreten",
-          isOpen: true,
-          status: 500,
-        });
+        popupRef.current?.show(
+          error.message || "Ein Fehler ist aufgetreten",
+          500
+        );
       }
     }
   };
+  const handlePopupClose = () => {
+    onUpdateSuccess();
+    onClose();
+  };
 
   return (
-    <div className={stylesExercises.exerciseList}>
+    <div
+      className={stylesExercises.exerciseList}
+      style={{ position: "relative" }}
+    >
       <div className={styles.backdrop} onClick={onClose} />
-      {popupState.isOpen ? (
-        <Popup message={popupState.message} status={popupState.status} />
-      ) : (
-        <form className="form" onSubmit={onSubmit}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div>
-              <input
-                value={formState.title}
-                className="input"
-                type="text"
-                id="title"
-                onChange={onChange}
+
+      <form className="form" onSubmit={onSubmit}>
+        <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <Popup ref={popupRef} duration={1500} onClose={handlePopupClose} />
+          <div>
+            <input
+              value={formState.title}
+              className="input"
+              type="text"
+              id="title"
+              onChange={onChange}
+            />
+            <input
+              value={formState.description}
+              className="input"
+              type="text"
+              id="description"
+              onChange={onChange}
+            />
+          </div>
+          <fieldset
+            style={{
+              maxHeight: "200px",
+              overflowY: "auto",
+              border: "1px solid #ccc",
+              padding: "0.75rem",
+              marginTop: "1rem",
+            }}
+          >
+            <legend>Kategorien bearbeiten:</legend>
+            {renderCategoryCheckboxes(
+              categoryTree,
+              selectedCategories,
+              handleCategorySelect
+            )}
+          </fieldset>
+          <div className="button-container">
+            {deleteIsOpen && (
+              <DeleteButton
+                isOpen={deleteIsOpen}
+                onDelete={() => {
+                  onDelete(formState.id);
+                  setDeleteIsOpen(false);
+                }}
+                onToggleVisibility={setDeleteIsOpen}
               />
-              <input
-                value={formState.description}
-                className="input"
-                type="text"
-                id="description"
-                onChange={onChange}
-              />
-            </div>
-            <fieldset
-              style={{
-                maxHeight: "200px",
-                overflowY: "auto",
-                border: "1px solid #ccc",
-                padding: "0.75rem",
-                marginTop: "1rem",
-              }}
-            >
-              <legend>Kategorien bearbeiten:</legend>
-              {renderCategoryCheckboxes(
-                categoryTree,
-                selectedCategories,
-                handleCategorySelect
-              )}
-            </fieldset>
-            <div className="button-container">
-              {deleteIsOpen && (
+            )}
+            {!deleteIsOpen && (
+              <>
+                <ReturnButton onBack={onClose} />
                 <DeleteButton
                   isOpen={deleteIsOpen}
                   onDelete={() => {
@@ -211,25 +178,12 @@ export default function Modal({
                   }}
                   onToggleVisibility={setDeleteIsOpen}
                 />
-              )}
-              {!deleteIsOpen && (
-                <>
-                  <ReturnButton onBack={onClose} />
-                  <DeleteButton
-                    isOpen={deleteIsOpen}
-                    onDelete={() => {
-                      onDelete(formState.id);
-                      setDeleteIsOpen(false);
-                    }}
-                    onToggleVisibility={setDeleteIsOpen}
-                  />
-                  <ConfirmButton btnType="submit" />
-                </>
-              )}
-            </div>
+                <ConfirmButton btnType="submit" />
+              </>
+            )}
           </div>
-        </form>
-      )}
+        </div>
+      </form>
     </div>
   );
 }

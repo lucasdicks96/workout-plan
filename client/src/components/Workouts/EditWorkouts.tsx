@@ -1,18 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
+import stylesButton from "../../styles/Button.module.css";
+import styles from "../../styles/Exercises.module.css";
 import { CombinedExercise } from "../../types/exercises";
 import { Workout } from "../../types/workouts";
+import AddButton from "../Buttons/AddButton";
+import ConfirmButton from "../Buttons/ConfirmButton";
+import ReturnButton from "../Buttons/ReturnButton";
 import ExerciseSelectionList from "../Exercises/ExerciseSelectionList";
 import WorkoutExercises from "./WorkoutExercises";
 import { WorkoutList as WorkoutPlans } from "./Workouts";
-import ReturnButton from "../Buttons/ReturnButton";
-import ConfirmButton from "../Buttons/ConfirmButton";
-import AddButton from "../Buttons/AddButton";
-import styles from "../../styles/Exercises.module.css";
-import stylesButton from "../../styles/Button.module.css";
+import Popup from "../Popup";
+import { PopupRef } from "../Popup";
 
 export default function EditWorkouts() {
   const [workoutPlans, setWorkoutPlans] = useState<Workout[]>([]);
@@ -23,6 +25,8 @@ export default function EditWorkouts() {
   const [workoutName, setWorkoutName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const popupRef = useRef<PopupRef>(null);
 
   useSetTitle("Trainingspläne bearbeiten");
 
@@ -118,9 +122,14 @@ export default function EditWorkouts() {
         selectedWorkoutId,
         workoutList
       );
-      if (response.status === 200) navigate("/workouts");
+      if (response.status === 200) {
+        // navigate("/workouts/edit-workouts");
+        popupRef.current?.show("Trainingsplan erfolgreich gespeichert!", 200);
+        // handleBackToList();
+      }
     } catch (error) {
       console.error("Fehler beim Speichern des Trainingsplans:", error);
+      popupRef.current?.show("Fehler beim Speichern des Trainingsplans", 500);
     }
   };
 
@@ -131,12 +140,22 @@ export default function EditWorkouts() {
   const handleBackToList = () => {
     setSelectedWorkoutId(null);
   };
+
+  const handleClosePopup = () => {
+    // if (selectedWorkoutId !== null) {
+    loadAllWorkouts(); // Refresh nach Delete/Save
+    // }
+    handleBackToList();
+  };
+
   const handleDelete = async (workoutId: number) => {
     try {
       await apiService.deleteWorkout(workoutId);
+      popupRef.current?.show("Traingsplan erfolgreich gelöscht!", 200);
       setSelectedWorkoutId(null);
-      loadAllWorkouts();
+      // loadAllWorkouts();
     } catch (error) {
+      popupRef.current?.show("Fehler beim Löschen des Plans", 500);
       console.error("Fehler beim Löschen des Plans", error);
     }
   };
@@ -153,7 +172,26 @@ export default function EditWorkouts() {
   }
 
   return (
-    <>
+    // <>
+    //   <div style={{ position: "relative", top: "30%" }}>
+    //     <Popup ref={popupRef} duration={1500} onClose={handleClosePopup} />
+    //   </div>
+    <div
+      style={{
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100%",
+      }}
+    >
+      <Popup
+        ref={popupRef}
+        duration={1500}
+        onClose={handleClosePopup}
+        showBackdrop={true}
+      />
       {selectedWorkoutId ? (
         <>
           {error && <p style={{ color: "var(--c-danger)" }}>{error}</p>}
@@ -215,6 +253,7 @@ export default function EditWorkouts() {
           </div>
         </>
       )}
-    </>
+    </div>
+    /* </> */
   );
 }
