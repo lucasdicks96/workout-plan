@@ -64,6 +64,8 @@ export const apiService = {
   getAllWorkouts: () => apiClient.get(`/workout/all-workouts`),
   getWorkoutExercises: (workoutId: number) =>
     apiClient.get(`/workout/workout-exercises/${workoutId}`),
+  getLastWorkout: (workoutId: number) =>
+    apiClient.get(`/workout/last-workout/${workoutId}`),
   createWorkout: (title: string, exercises: WorkoutExercises[]) =>
     apiClient.post("/workout/create-workout", {
       title,

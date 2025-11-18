@@ -4,7 +4,11 @@ import {
   InternalServerError,
   UnauthorizedError,
 } from "../types/errors.types";
-import { Workout, WorkoutExercises } from "../types/workout.types";
+import {
+  Workout,
+  WorkoutExercises,
+  CompletedWorkout,
+} from "../types/workout.types";
 
 export async function createWorkoutPlan(
   title: string,
@@ -69,7 +73,7 @@ export async function getWorkoutById(
     if (!exercise) {
       exercise = {
         id: exerciseId,
-        userId: item.user_Id,
+        userId: item.user_id,
         compositeKey: `${item.user_id ? "user" : "system"}-${exerciseId}`,
         title: item.title,
         displayOrder: item.display_order,
@@ -92,17 +96,66 @@ export async function getWorkoutById(
   return newWorkout;
 }
 
-// export async function getWorkoutExercises(workoutId: number) {
-//   const workout = await workoutRepository.findWorkoutById(workoutId);
-//   if (!workout) {
-//     throw new NotFoundError("Workout nicht gefunden");
-//   }
-//   // let exercises: WorkoutExercises[] = [];
-//   // for (const exercise of workout.exercises) {
-//   //   exercises.push(exercise);
-//   // }
-//   return { exercises: workout.exercises, title: workout.title };
-// }
+export async function getLastWorkout(
+  workoutId: number,
+  userId: string
+): Promise<Workout> {
+  if (!workoutId) throw new BadRequestError("Workout ID fehlt.");
+
+  const owner = await workoutRepository.ownerCheck(workoutId, userId);
+
+  if (!owner) throw new UnauthorizedError("Nicht berechtigt das zu tun.");
+
+  const workoutData = await workoutRepository.findLastCompletedWorkout(
+    workoutId,
+    userId
+  );
+
+  
+
+  if (!Array.isArray(workoutData) || workoutData.length === 0) {
+    throw new BadRequestError("Keine Workout-Daten gefunden.");
+  }
+
+  const { plan_title, plan_user_id } = workoutData[0];
+
+  const newWorkout: Workout = {
+    id: workoutId,
+    title: plan_title,
+    userId: plan_user_id,
+    exercises: [],
+  };
+
+  const exerciseMap = new Map<number, WorkoutExercises>();
+  workoutData.forEach((item) => {
+    const exerciseId = item.exercise_id;
+    let exercise = exerciseMap.get(exerciseId);
+
+    if (!exercise) {
+      exercise = {
+        id: exerciseId,
+        userId: item.user_id,
+        compositeKey: `${item.user_id ? "user" : "system"}-${exerciseId}`,
+        title: item.title,
+        displayOrder: item.display_order,
+        sets: [],
+      };
+      exerciseMap.set(exerciseId, exercise);
+    }
+
+    exercise.sets.push({
+      setNumber: item.set_number,
+      repetitions: item.target_repetitions,
+      weight: item.target_weight,
+    });
+  });
+
+  newWorkout.exercises = Array.from(exerciseMap.values()).sort(
+    (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0)
+  );
+  console.log("GET LAST WORKOUT DATA: ", newWorkout);
+  return newWorkout;
+}
 
 export async function getCompletedWorkouts(userId: string) {
   const completedWorkouts = await workoutRepository.findCompletedWorkouts(
@@ -122,8 +175,6 @@ export async function saveCompletedWorkout(
   exercises: WorkoutExercises[],
   title: string
 ) {
-  // const endTime = Date.now();
-
   const transformed = transformWorkoutExercisesToDatabaseFormat(
     exercises,
     userId,
@@ -133,8 +184,8 @@ export async function saveCompletedWorkout(
 
   const pgStartTime = convertMsToPgTimestamp(startTime);
   const pgEndTime = convertMsToPgTimestamp(endTime);
-  const pauseTimeInSeconds = Math.floor(pauseTime / 1000);
   const durationInSeconds = Math.floor(duration / 1000);
+  const pauseTimeInSeconds = Math.floor(pauseTime / 1000);
 
   const result = await workoutRepository.saveCompletedWorkout(
     userId,
@@ -159,7 +210,7 @@ export async function deleteWorkout(workoutId: number, userId: string) {
     throw new Error(
       "Benutzer hat nicht die Rechte, dieses Workout zu bearbeiten."
     );
-  // const deletedAt = Date.now();
+
   const result = await workoutRepository.deleteWorkout(workoutId, userId);
   if (!result)
     throw new InternalServerError("Fehler beim Löschen des Workouts");

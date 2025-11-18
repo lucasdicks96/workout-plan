@@ -34,18 +34,22 @@ router.get(
   })
 );
 
-// router.get(
-//   "/workout/:workoutId",
-//   isAuthenticated,
-//   authenticatedHandler(async (req, res: Response) => {
-//     console.log(req.params);
-//     const workoutId = parseInt(req.params.workoutId);
-//     const userId = req.user.id;
-//     // if (isNaN(workoutId) || isNaN(userId)) {
-//     //   return res.status(400).json({ message: "Falsche WorkoutId oder UserId" });
-//     // }
-//   })
-// );
+router.get(
+  "/last-workout/:workoutId",
+  isAuthenticated,
+  authenticatedHandler(async (req, res: Response) => {
+    const workoutId = parseInt(req.params.workoutId);
+    const userId = req.user.id;
+    if (!workoutId || isNaN(workoutId)) {
+      throw new BadRequestError("Falsche Workout ID");
+    }
+    const workoutData = await workoutService.getLastWorkout(workoutId, userId);
+    res.status(200).json({
+      message: "Workout erfolgreich übermittelt",
+      workout: workoutData,
+    });
+  })
+);
 
 router.post(
   "/create-workout",
@@ -109,8 +113,8 @@ router.post(
       workoutId,
       req.user.id,
       startTime,
-      pauseTime,
       endTime,
+      pauseTime,
       duration,
       exercises,
       title
