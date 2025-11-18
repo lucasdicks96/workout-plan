@@ -72,7 +72,7 @@ export default function WorkoutInProgress() {
       if (id === null || id === undefined) {
         return console.error("Keine Workout ID gefunden");
       }
-      const response = await apiService.getWorkoutExercises(id);
+      const response = await apiService.getLastWorkout(id);
       console.log(response.data);
       if (
         !response.data ||
@@ -214,6 +214,10 @@ export default function WorkoutInProgress() {
     // Timer läuft und wird pausiert
     if (isRunning) {
       setPauseTime(now);
+      console.log(
+        "Timer läuft und wird pausiert: ",
+        totalPausedDuration / 1000
+      );
       setIsRunning(false);
     }
     // Timer ist pausiert und wird fortgesetzt
@@ -258,7 +262,7 @@ export default function WorkoutInProgress() {
         startedWorkoutId.current,
         startTime,
         endTime,
-        pauseTime,
+        totalPausedDuration,
         elapsedTime,
         workoutList,
         workoutName
