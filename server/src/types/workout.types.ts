@@ -13,8 +13,8 @@ export interface CompletedWorkout {
   workoutId: number;
   title: string;
   duration: number;
-  startTime: number;
-  endTime: number;
+  startTime: Date;
+  endTime: Date;
   pauseTime: number;
   exercises: WorkoutExercises[];
   // date: string;
