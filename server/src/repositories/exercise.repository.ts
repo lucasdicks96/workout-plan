@@ -1,6 +1,5 @@
-import { cli } from "winston/lib/winston/config";
 import pool from "../config/db";
-import { Category, Exercise, ExerciseCategory } from "../types/exercise.types";
+import { Category, Exercise } from "../types/exercise.types";
 
 export async function findSystemExercises(): Promise<Exercise[]> {
   const result = await pool.query(
