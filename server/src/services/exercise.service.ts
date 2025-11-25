@@ -3,8 +3,7 @@ import { InternalServerError } from "../types/errors.types";
 import {
   Category,
   CombinedExercise,
-  Exercise,
-  ExerciseCategory,
+  Exercise
 } from "../types/exercise.types";
 
 export async function getCombinedExercisesForUser(
