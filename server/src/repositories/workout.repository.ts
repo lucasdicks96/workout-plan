@@ -30,7 +30,7 @@ export async function findAllWorkouts(userId: string): Promise<Workout[]> {
 export async function findWorkoutById(workoutId: number): Promise<any> {
   const client = await pool.connect();
   try {
-    client.query("BEGIN ");
+    await client.query("BEGIN ");
 
     const exerciseResult = await pool.query(
       `SELECT workout_plans.title as plan_title, workout_plans.user_id as plan_user_id, exercises.title, exercises.user_id, plan_exercises.exercise_id, plan_exercises.display_order, plan_sets.set_number, plan_sets.target_repetitions, plan_sets.target_weight 
@@ -118,7 +118,7 @@ export async function findLastCompletedWorkout(
 ) {
   const client = await pool.connect();
   try {
-    client.query("BEGIN");
+    await client.query("BEGIN");
     const planIdResult = await pool.query(
       `SELECT id FROM completed_workouts
       WHERE user_id = $1 AND workout_plan_id = $2
