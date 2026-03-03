@@ -8,11 +8,11 @@ import {
 
 export async function ownerCheck(
   workoutId: number,
-  userId: string
+  userId: string,
 ): Promise<boolean> {
   const result = await pool.query(
     "SELECT user_id FROM workout_plans WHERE id = $1 AND user_id = $2",
-    [workoutId, userId]
+    [workoutId, userId],
   );
   const owner = result.rows[0].user_id === userId ? true : false;
   return owner;
@@ -21,7 +21,7 @@ export async function ownerCheck(
 export async function findAllWorkouts(userId: string): Promise<Workout[]> {
   const result = await pool.query(
     "SELECT * FROM workout_plans WHERE user_id = $1 AND deleted_at IS NULL ORDER BY title ASC",
-    [userId]
+    [userId],
   );
   const workouts: Workout[] = result.rows;
   return workouts;
@@ -43,7 +43,7 @@ export async function findWorkoutById(workoutId: number): Promise<any> {
       ON plan_exercises.workout_plan_id = workout_plans.id 
       WHERE plan_exercises.workout_plan_id = $1
       ORDER BY plan_exercises.display_order, plan_sets.set_number ASC`,
-      [workoutId]
+      [workoutId],
     );
 
     return exerciseResult.rows;
@@ -58,21 +58,21 @@ export async function findWorkoutById(workoutId: number): Promise<any> {
 export async function createWorkoutPlan(
   title: string,
   userId: string,
-  exercises: WorkoutExercises[]
+  exercises: WorkoutExercises[],
 ): Promise<{ message: string }> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const planResult = await client.query(
       "INSERT INTO workout_plans (user_id, title) VALUES ($1, $2) RETURNING id",
-      [userId, title]
+      [userId, title],
     );
     const planId = planResult.rows[0].id;
 
     for (let i = 0; i < exercises.length; i++) {
       const exerciseResult = await client.query(
         "INSERT INTO plan_exercises (workout_plan_id, exercise_id, display_order) VALUES ($1, $2, $3) RETURNING id",
-        [planId, exercises[i].id, exercises[i].displayOrder]
+        [planId, exercises[i].id, exercises[i].displayOrder],
       );
       const planExerciseId = exerciseResult.rows[0].id;
 
@@ -84,7 +84,7 @@ export async function createWorkoutPlan(
             exercises[i].sets[j].setNumber,
             exercises[i].sets[j].weight,
             exercises[i].sets[j].repetitions,
-          ]
+          ],
         );
       }
     }
@@ -94,7 +94,7 @@ export async function createWorkoutPlan(
     await client.query("ROLLBACK");
     // console.error(error);
     throw new InternalServerError(
-      "Fehler bei der Erstellung des Workout-Plans."
+      "Fehler bei der Erstellung des Workout-Plans.",
     );
   } finally {
     client.release();
@@ -102,11 +102,38 @@ export async function createWorkoutPlan(
 }
 
 export async function findCompletedWorkouts(
-  userId: string
+  userId: string,
 ): Promise<CompletedWorkout[]> {
+  // ADD start/end time, duration, pause time
   const result = await pool.query(
-    "SELECT (workout_plan_id, title, start_time, end_time, duration_seconds, pause_seconds) FROM completed_workouts WHERE user_id = $1",
-    [userId]
+    `SELECT   completed_workouts.id AS workout_id,
+              completed_workouts.start_time,
+              workout_plans.title AS plan_title,
+              completed_sets.set_number,
+              exercises.title,
+              exercises.user_id,
+              unique_plan_exercises.display_order
+    FROM      completed_workouts
+    JOIN      completed_sets
+    ON        completed_workouts.id = completed_sets.completed_workout_id
+    JOIN      exercises
+    ON        completed_sets.exercise_id = exercises.id
+    JOIN      workout_plans
+    ON        completed_workouts.workout_plan_id = workout_plans.id
+    JOIN (
+    SELECT    workout_plan_id, exercise_id, MIN(display_order) as display_order
+    FROM      plan_exercises
+    GROUP BY  workout_plan_id, exercise_id)
+    AS        unique_plan_exercises
+    ON        completed_sets.exercise_id = unique_plan_exercises.exercise_id 
+    AND       workout_plans.id = unique_plan_exercises.workout_plan_id
+
+    WHERE     completed_workouts.user_id = $1
+    ORDER BY 
+              completed_workouts.start_time DESC,   
+              unique_plan_exercises.display_order ASC,
+              completed_sets.set_number ASC;`,
+    [userId],
   );
   const completedWorkouts: CompletedWorkout[] = result.rows;
   return completedWorkouts;
@@ -114,23 +141,24 @@ export async function findCompletedWorkouts(
 
 export async function findLastCompletedWorkout(
   workoutId: number,
-  userId: string
+  userId: string,
 ) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const planIdResult = await pool.query(
-      `SELECT id FROM completed_workouts
-      WHERE user_id = $1 AND workout_plan_id = $2
+      `SELECT id
+      FROM    completed_workouts
+      WHERE   user_id = $1 AND workout_plan_id = $2
       ORDER BY end_time DESC
       LIMIT 1`,
-      [userId, workoutId]
+      [userId, workoutId],
     );
 
     if (planIdResult.rows.length === 0) {
       // Fallback: Kein Completed-Workout -> Hole Plan-Daten
       console.log(
-        "Kein letztes Completed-Workout gefunden. Fallback zu findWorkoutById."
+        "Kein letztes Completed-Workout gefunden. Fallback zu findWorkoutById.",
       );
       const planData = await findWorkoutById(workoutId);
       return planData;
@@ -140,32 +168,36 @@ export async function findLastCompletedWorkout(
     console.log("LAST WORKOUT ID: ", lastWorkoutID);
 
     const result = await pool.query(
-      `SELECT DISTINCT ON (completed_sets.exercise_id, completed_sets.set_number) 
-    completed_workouts.id,
-    completed_workouts.user_id as plan_user_id,
-    completed_workouts.workout_plan_id,
-    completed_workouts.end_time,
-    completed_workouts.title as plan_title,
-    exercises.title,
-    exercises.user_id,
-    completed_sets.exercise_id,
-    completed_sets.set_number,
-    completed_sets.performed_repetitions as target_repetitions, 
-    completed_sets.performed_weight as target_weight, 
-    plan_exercises.display_order
-FROM completed_workouts
-JOIN completed_sets ON completed_workouts.id = completed_sets.completed_workout_id
-JOIN plan_exercises ON (
-    completed_sets.exercise_id = plan_exercises.exercise_id 
-AND completed_workouts.workout_plan_id = plan_exercises.workout_plan_id)
-JOIN exercises ON plan_exercises.exercise_id = exercises.id
-WHERE completed_workouts.user_id = $1
-AND completed_workouts.id = $2
-ORDER BY  completed_sets.exercise_id ASC,         
-    completed_sets.set_number ASC,            
-    plan_exercises.display_order ASC;         
+      `SELECT
+    DISTINCT
+    ON        (completed_sets.exercise_id, completed_sets.set_number) 
+              completed_workouts.id,
+              completed_workouts.user_id as plan_user_id,
+              completed_workouts.workout_plan_id,
+              completed_workouts.end_time,
+              completed_workouts.title AS plan_title,
+              exercises.title,
+              exercises.user_id,
+              completed_sets.exercise_id AS exercise_id,
+              completed_sets.set_number,
+              completed_sets.performed_repetitions AS repetitions, 
+              completed_sets.performed_weight AS weight, 
+              plan_exercises.display_order
+    FROM      completed_workouts
+    JOIN      completed_sets 
+    ON        completed_workouts.id = completed_sets.completed_workout_id
+    JOIN      plan_exercises 
+    ON (      completed_sets.exercise_id = plan_exercises.exercise_id 
+    AND       completed_workouts.workout_plan_id = plan_exercises.workout_plan_id)
+    JOIN      exercises
+    ON        plan_exercises.exercise_id = exercises.id
+    WHERE     completed_workouts.user_id = $1
+    AND       completed_workouts.id = $2
+    ORDER BY  completed_sets.exercise_id ASC,         
+              completed_sets.set_number ASC,            
+              plan_exercises.display_order ASC;         
 `,
-      [userId, lastWorkoutID]
+      [userId, lastWorkoutID],
     );
     return result.rows;
   } catch (error) {
@@ -184,14 +216,14 @@ export async function saveCompletedWorkout(
   endTime: string,
   duration: number,
   pauseTime: number,
-  exercises: WorkoutExercises[]
+  exercises: WorkoutExercises[],
 ): Promise<{ message: string }> {
   const client = await pool.connect();
   try {
     await pool.query("BEGIN");
     const completedPlanResults = await client.query(
       "INSERT INTO completed_workouts (user_id, workout_plan_id, title, start_time, end_time, duration_seconds, pause_seconds) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
-      [userId, workoutId, title, startTime, endTime, duration, pauseTime]
+      [userId, workoutId, title, startTime, endTime, duration, pauseTime],
     );
     const completedPlanId = completedPlanResults.rows[0].id;
 
@@ -205,7 +237,7 @@ export async function saveCompletedWorkout(
             set.setNumber,
             set.repetitions,
             set.weight,
-          ]
+          ],
         );
       }
     }
@@ -215,7 +247,7 @@ export async function saveCompletedWorkout(
     await client.query("ROLLBACK");
     console.error(error);
     throw new InternalServerError(
-      "Fehler beim Speichern des abgeschlossenen Workouts."
+      "Fehler beim Speichern des abgeschlossenen Workouts.",
     );
   } finally {
     client.release();
@@ -224,11 +256,11 @@ export async function saveCompletedWorkout(
 
 export async function deleteWorkout(
   workoutId: number,
-  userId: string
+  userId: string,
 ): Promise<{ message: string }> {
   await pool.query(
     "UPDATE workout_plans SET deleted_at = NOW() WHERE id = $1 AND user_id = $2",
-    [workoutId, userId]
+    [workoutId, userId],
   );
 
   return { message: `Workout erfolgreich gelöscht ${workoutId}` };
@@ -238,7 +270,7 @@ export async function updateWorkout(
   workoutId: number,
   userId: string,
   title: string,
-  exercises: WorkoutExercises[]
+  exercises: WorkoutExercises[],
 ) {
   const client = await pool.connect();
   try {
@@ -246,34 +278,34 @@ export async function updateWorkout(
 
     const ownerCheck = await client.query(
       "SELECT user_id FROM workout_plans WHERE id = $1",
-      [workoutId]
+      [workoutId],
     );
     if (ownerCheck.rows.length === 0 || ownerCheck.rows[0].user_id !== userId) {
       throw new UnauthorizedError(
-        "Workout nicht gefunden oder Benutzer ist nicht autorisiert."
+        "Workout nicht gefunden oder Benutzer ist nicht autorisiert.",
       );
     }
 
     await client.query(
       "UPDATE workout_plans SET title = $1 WHERE id = $2 AND user_id = $3 RETURNING *",
-      [title, workoutId, userId]
+      [title, workoutId, userId],
     );
 
     await client.query(
       "DELETE FROM plan_exercises WHERE workout_plan_id = $1",
-      [workoutId]
+      [workoutId],
     );
 
     for (const exercise of exercises) {
       const exerciseResults = await client.query(
         "INSERT INTO plan_exercises (workout_plan_id, exercise_id, display_order) VALUES ($1, $2, $3) RETURNING id",
-        [workoutId, exercise.id, exercise.displayOrder]
+        [workoutId, exercise.id, exercise.displayOrder],
       );
       const planExerciseId = exerciseResults.rows[0].id;
       for (const set of exercise.sets) {
         await client.query(
           "INSERT INTO plan_sets(plan_exercise_id, set_number, target_repetitions, target_weight) VALUES ($1, $2, $3, $4)",
-          [planExerciseId, set.setNumber, set.repetitions, set.weight]
+          [planExerciseId, set.setNumber, set.repetitions, set.weight],
         );
       }
     }
@@ -282,7 +314,7 @@ export async function updateWorkout(
   } catch (error) {
     await client.query("ROLLBACK");
     throw new InternalServerError(
-      "Fehler beim Aktualisieren des Workout-Plans"
+      "Fehler beim Aktualisieren des Workout-Plans",
     );
   } finally {
     client.release();
