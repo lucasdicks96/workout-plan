@@ -33,16 +33,24 @@ export async function findWorkoutById(workoutId: number): Promise<any> {
     await client.query("BEGIN ");
 
     const exerciseResult = await pool.query(
-      `SELECT workout_plans.title as plan_title, workout_plans.user_id as plan_user_id, exercises.title, exercises.user_id, plan_exercises.exercise_id, plan_exercises.display_order, plan_sets.set_number, plan_sets.target_repetitions, plan_sets.target_weight 
-      FROM plan_exercises 
-      JOIN exercises 
-      ON plan_exercises.exercise_id = exercises.id 
-      JOIN plan_sets 
-      ON plan_exercises.id = plan_sets.plan_exercise_id 
-	  JOIN workout_plans 
-      ON plan_exercises.workout_plan_id = workout_plans.id 
-      WHERE plan_exercises.workout_plan_id = $1
-      ORDER BY plan_exercises.display_order, plan_sets.set_number ASC`,
+      `SELECT   workout_plans.title as plan_title,
+                workout_plans.user_id as plan_user_id,
+                exercises.title,
+                exercises.user_id,
+                plan_exercises.exercise_id,
+                plan_exercises.display_order,
+                plan_sets.set_number,
+                plan_sets.target_repetitions,
+                plan_sets.target_weight 
+      FROM      plan_exercises 
+      JOIN      exercises 
+      ON        plan_exercises.exercise_id = exercises.id 
+      JOIN      plan_sets 
+      ON        plan_exercises.id = plan_sets.plan_exercise_id 
+	    JOIN      workout_plans 
+      ON        plan_exercises.workout_plan_id = workout_plans.id 
+      WHERE     plan_exercises.workout_plan_id = $1
+      ORDER BY  plan_exercises.display_order, plan_sets.set_number ASC`,
       [workoutId],
     );
 
@@ -110,6 +118,8 @@ export async function findCompletedWorkouts(
               completed_workouts.start_time,
               workout_plans.title AS plan_title,
               completed_sets.set_number,
+              completed_sets.performed_repetitions,
+			        completed_sets.performed_weight,
               exercises.title,
               exercises.user_id,
               unique_plan_exercises.display_order
@@ -146,11 +156,12 @@ export async function findLastCompletedWorkout(
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const planIdResult = await pool.query(
-      `SELECT id
-      FROM    completed_workouts
-      WHERE   user_id = $1 AND workout_plan_id = $2
-      ORDER BY end_time DESC
+    const planIdResult = await client.query(
+      `SELECT   id
+      FROM      completed_workouts
+      WHERE     user_id = $1
+      AND       workout_plan_id = $2
+      ORDER BY  end_time DESC
       LIMIT 1`,
       [userId, workoutId],
     );
@@ -160,6 +171,7 @@ export async function findLastCompletedWorkout(
       console.log(
         "Kein letztes Completed-Workout gefunden. Fallback zu findWorkoutById.",
       );
+      await client.query("COMMIT");
       const planData = await findWorkoutById(workoutId);
       return planData;
     }
@@ -167,38 +179,37 @@ export async function findLastCompletedWorkout(
 
     console.log("LAST WORKOUT ID: ", lastWorkoutID);
 
-    const result = await pool.query(
-      `SELECT
-    DISTINCT
-    ON        (completed_sets.exercise_id, completed_sets.set_number) 
-              completed_workouts.id,
-              completed_workouts.user_id as plan_user_id,
-              completed_workouts.workout_plan_id,
-              completed_workouts.end_time,
-              completed_workouts.title AS plan_title,
-              exercises.title,
-              exercises.user_id,
-              completed_sets.exercise_id AS exercise_id,
-              completed_sets.set_number,
-              completed_sets.performed_repetitions AS repetitions, 
-              completed_sets.performed_weight AS weight, 
-              plan_exercises.display_order
-    FROM      completed_workouts
-    JOIN      completed_sets 
-    ON        completed_workouts.id = completed_sets.completed_workout_id
-    JOIN      plan_exercises 
-    ON (      completed_sets.exercise_id = plan_exercises.exercise_id 
-    AND       completed_workouts.workout_plan_id = plan_exercises.workout_plan_id)
-    JOIN      exercises
-    ON        plan_exercises.exercise_id = exercises.id
-    WHERE     completed_workouts.user_id = $1
-    AND       completed_workouts.id = $2
-    ORDER BY  completed_sets.exercise_id ASC,         
-              completed_sets.set_number ASC,            
-              plan_exercises.display_order ASC;         
-`,
-      [userId, lastWorkoutID],
+    const result = await client.query(
+      `WITH     unique_plan_exercises 
+      AS (
+      SELECT   workout_plan_id,
+                exercise_id,
+                MIN(display_order) as display_order
+      FROM     plan_exercises
+      WHERE    workout_plan_id = $1
+      GROUP BY workout_plan_id, exercise_id
+      )
+      SELECT 
+                completed_workouts.start_time AS last_workout_date,
+                exercises.id AS exercise_id,
+                exercises.name AS exercise_name,
+                completed_sets.set_number,
+                completed_sets.*, 
+                unique_plan_exercises.display_order
+      FROM      completed_workouts
+      JOIN      completed_sets
+      ON        completed_workouts.id = completed_sets.completed_workout_id
+      JOIN      exercises
+      ON        completed_sets.exercise_id = exercises.id
+      JOIN      unique_plan_exercises
+      ON        completed_sets.exercise_id = unique_plan_exercises.exercise_id 
+      AND       completed_workouts.workout_plan_id = unique_plan_exercises.workout_plan_id
+      WHERE     completed_workouts.id = $2
+      ORDER BY  unique_plan_exercises.display_order ASC, 
+                completed_sets.set_number ASC;`,
+      [workoutId, lastWorkoutID],
     );
+    await client.query("COMMIT");
     return result.rows;
   } catch (error) {
     await client.query("ROLLBACK");
