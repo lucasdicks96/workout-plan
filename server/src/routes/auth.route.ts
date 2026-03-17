@@ -38,7 +38,7 @@ router.post(
       }
       next(error);
     }
-  }
+  },
 );
 router.post("/login", (req: Request, res: Response, next: NextFunction) => {
   passport.authenticate("local", (err: any, user: any, info: any) => {
@@ -90,5 +90,48 @@ router.post("/logout", (req: Request, res: Response, next: NextFunction) => {
     });
   });
 });
+
+// router.post(
+//   "/logout",
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       // Call passport's logout if available (passport@0.6 requires a callback)
+//       if (typeof (req as any).logout === "function") {
+//         await new Promise<void>((resolve, reject) => {
+//           (req as any).logout((err: any) => {
+//             if (err) return reject(err);
+//             resolve();
+//           });
+//         });
+//       }
+
+//       // Regenerate a fresh session id (helps prevent session fixation)
+//       if (req.session) {
+//         await new Promise<void>((resolve, reject) => {
+//           req.session.regenerate((err: any) => {
+//             if (err) return reject(err);
+//             resolve();
+//           });
+//         });
+//       }
+
+//       // Destroy session data server-side
+//       if (req.session) {
+//         await new Promise<void>((resolve, reject) => {
+//           req.session.destroy((err: any) => {
+//             if (err) return reject(err);
+//             resolve();
+//           });
+//         });
+//       }
+
+//       // Clear client cookie and return success
+//       res.clearCookie("connect.sid", { path: "/" });
+//       return res.status(200).json({ message: "Logout erfolgreich" });
+//     } catch (err) {
+//       return next(err instanceof Error ? err : new InternalServerError("Logout fehlgeschlagen"));
+//     }
+//   }
+// );
 
 export default router;
