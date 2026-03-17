@@ -28,7 +28,7 @@ app.use(
       httpOnly: true,
       maxAge: 1000 * 3600 * 12,
     },
-  })
+  }),
 );
 app.use(passport.initialize());
 app.use(passport.session());
@@ -40,7 +40,7 @@ app.use(
   cors({
     origin: ["http://localhost:5173", "http://192.168.50.244:5173"],
     credentials: true,
-  })
+  }),
 );
 
 app.use("/user", userRoute);
