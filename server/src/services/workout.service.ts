@@ -145,8 +145,8 @@ export async function getLastWorkout(
 
     exercise.sets.push({
       setNumber: item.set_number,
-      repetitions: item.target_repetitions,
-      weight: item.target_weight,
+      repetitions: item.repetitions,
+      weight: item.weight,
     });
   });
 
