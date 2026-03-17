@@ -67,7 +67,7 @@ router.post("/login", (req: Request, res: Response, next: NextFunction) => {
 router.get("/status", isAuthenticated, (req: Request, res: Response) => {
   const userWithoutPassword = req.user;
   if (!req.user) {
-    throw new UnauthorizedError("Nicht authorisiert.");
+    throw new UnauthorizedError("Nicht autorisiert.");
   }
   return res.status(200).json({ user: userWithoutPassword });
 });
