@@ -4,45 +4,34 @@ import {
   InternalServerError,
   UnauthorizedError,
 } from "../types/errors.types";
-import {
-  Workout,
-  WorkoutExercises,
-  CompletedWorkout,
-} from "../types/workout.types";
+import { Workout, WorkoutExercises } from "../types/workout.types";
 
 export async function createWorkoutPlan(
   title: string,
   userId: string,
-  exercises: WorkoutExercises[]
+  exercises: WorkoutExercises[],
 ) {
   if (!exercises || exercises.length === 0)
     throw new BadRequestError("Workout Daten fehlen");
   if (!userId) throw new UnauthorizedError("Benutzer ID fehlt");
   if (!title) throw new BadRequestError("Workout Titel fehlt");
 
-  const databaseFormat = transformWorkoutExercisesToDatabaseFormat(
-    exercises,
-    userId,
-    true,
-    true
-  );
-
-  const newWorkout = await workoutRepository.createWorkoutPlan(
+  const newWorkout = await workoutRepository.postWorkoutPlan(
     title,
     userId,
-    databaseFormat
+    exercises,
   );
   return newWorkout;
 }
 
 export async function getAllWorkouts(userId: string) {
-  const workouts = await workoutRepository.findAllWorkouts(userId);
+  const workouts = await workoutRepository.getWorkouts(userId);
   return workouts;
 }
 
 export async function getWorkoutById(
   workoutId: number,
-  userId: string
+  userId: string,
 ): Promise<Workout> {
   if (!workoutId) throw new BadRequestError("Workout ID fehlt.");
 
@@ -50,7 +39,7 @@ export async function getWorkoutById(
 
   if (!owner) throw new UnauthorizedError("Nicht berechtigt das zu tun.");
 
-  const workoutData = await workoutRepository.findWorkoutById(workoutId);
+  const workoutData = await workoutRepository.getWorkout(workoutId);
 
   if (!Array.isArray(workoutData) || workoutData.length === 0) {
     throw new BadRequestError("Keine Workout-Daten gefunden.");
@@ -73,8 +62,6 @@ export async function getWorkoutById(
     if (!exercise) {
       exercise = {
         id: exerciseId,
-        userId: item.user_id,
-        compositeKey: `${item.user_id ? "user" : "system"}-${exerciseId}`,
         title: item.title,
         displayOrder: item.display_order,
         sets: [],
@@ -90,7 +77,7 @@ export async function getWorkoutById(
   });
 
   newWorkout.exercises = Array.from(exerciseMap.values()).sort(
-    (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0)
+    (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0),
   );
 
   return newWorkout;
@@ -98,7 +85,7 @@ export async function getWorkoutById(
 
 export async function getLastWorkout(
   workoutId: number,
-  userId: string
+  userId: string,
 ): Promise<Workout> {
   if (!workoutId) throw new BadRequestError("Workout ID fehlt.");
 
@@ -106,12 +93,10 @@ export async function getLastWorkout(
 
   if (!owner) throw new UnauthorizedError("Nicht berechtigt das zu tun.");
 
-  const workoutData = await workoutRepository.findLastCompletedWorkout(
+  const workoutData = await workoutRepository.getLastCompletedWorkout(
     workoutId,
-    userId
+    userId,
   );
-
-  
 
   if (!Array.isArray(workoutData) || workoutData.length === 0) {
     throw new BadRequestError("Keine Workout-Daten gefunden.");
@@ -134,8 +119,6 @@ export async function getLastWorkout(
     if (!exercise) {
       exercise = {
         id: exerciseId,
-        userId: item.user_id,
-        compositeKey: `${item.user_id ? "user" : "system"}-${exerciseId}`,
         title: item.title,
         displayOrder: item.display_order,
         sets: [],
@@ -151,21 +134,20 @@ export async function getLastWorkout(
   });
 
   newWorkout.exercises = Array.from(exerciseMap.values()).sort(
-    (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0)
+    (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0),
   );
   console.log("GET LAST WORKOUT DATA: ", newWorkout);
   return newWorkout;
 }
 
 export async function getCompletedWorkouts(userId: string) {
-  const completedWorkouts = await workoutRepository.findCompletedWorkouts(
-    userId
-  );
+  const completedWorkouts =
+    await workoutRepository.getCompletedWorkouts(userId);
 
   return completedWorkouts;
 }
 
-export async function saveCompletedWorkout(
+export async function postCompletedWorkout(
   workoutId: number,
   userId: string,
   startTime: number,
@@ -173,21 +155,14 @@ export async function saveCompletedWorkout(
   pauseTime: number,
   duration: number,
   exercises: WorkoutExercises[],
-  title: string
+  title: string,
 ) {
-  const transformed = transformWorkoutExercisesToDatabaseFormat(
-    exercises,
-    userId,
-    false,
-    false
-  );
-
   const pgStartTime = convertMsToPgTimestamp(startTime);
   const pgEndTime = convertMsToPgTimestamp(endTime);
   const durationInSeconds = Math.floor(duration / 1000);
   const pauseTimeInSeconds = Math.floor(pauseTime / 1000);
 
-  const result = await workoutRepository.saveCompletedWorkout(
+  const result = await workoutRepository.postCompletedWorkout(
     userId,
     workoutId,
     title,
@@ -195,11 +170,11 @@ export async function saveCompletedWorkout(
     pgEndTime,
     durationInSeconds,
     pauseTimeInSeconds,
-    transformed
+    exercises,
   );
   if (!result)
     throw new InternalServerError(
-      "Fehler beim Speichern des abgeschlossenen Workouts"
+      "Fehler beim Speichern des abgeschlossenen Workouts",
     );
   return result;
 }
@@ -208,7 +183,7 @@ export async function deleteWorkout(workoutId: number, userId: string) {
   const owner = await workoutRepository.ownerCheck(workoutId, userId);
   if (!owner)
     throw new Error(
-      "Benutzer hat nicht die Rechte, dieses Workout zu bearbeiten."
+      "Benutzer hat nicht die Rechte, dieses Workout zu bearbeiten.",
     );
 
   const result = await workoutRepository.deleteWorkout(workoutId, userId);
@@ -217,24 +192,17 @@ export async function deleteWorkout(workoutId: number, userId: string) {
   return result;
 }
 
-export async function updateWorkout(
+export async function putWorkout(
   workoutId: number,
   userId: string,
   title: string,
-  exercises: WorkoutExercises[]
+  exercises: WorkoutExercises[],
 ) {
-  const transformed = transformWorkoutExercisesToDatabaseFormat(
-    exercises,
-    userId,
-    false,
-    true
-  );
-
-  const result = await workoutRepository.updateWorkout(
+  const result = await workoutRepository.putWorkout(
     workoutId,
     userId,
     title,
-    transformed
+    exercises,
   );
 
   if (!result)
@@ -242,90 +210,7 @@ export async function updateWorkout(
   return result;
 }
 
-function transformWorkoutExercisesToDatabaseFormat(
-  exercises: WorkoutExercises[],
-  userId: string,
-  description: boolean,
-  displayOrder: boolean
-): WorkoutExercises[] {
-  let transformed: WorkoutExercises[] = [];
-
-  if (description && displayOrder) {
-    for (const ex of exercises) {
-      for (const s of ex.sets) {
-        transformed.push({
-          id: ex.id,
-          userId: userId ? userId : null,
-          title: ex.title,
-          description: ex.description,
-          displayOrder: ex.displayOrder,
-          sets: [
-            {
-              setNumber: s.setNumber,
-              repetitions: s.repetitions,
-              weight: s.weight,
-            },
-          ],
-        });
-      }
-    }
-  } else if (!description && displayOrder) {
-    for (const ex of exercises) {
-      for (const s of ex.sets) {
-        transformed.push({
-          id: ex.id,
-          userId: userId ? userId : null,
-          title: ex.title,
-          displayOrder: ex.displayOrder,
-          sets: [
-            {
-              setNumber: s.setNumber,
-              repetitions: s.repetitions,
-              weight: s.weight,
-            },
-          ],
-        });
-      }
-    }
-  } else if (description && !displayOrder) {
-    for (const ex of exercises) {
-      for (const s of ex.sets) {
-        transformed.push({
-          id: ex.id,
-          userId: userId ? userId : null,
-          title: ex.title,
-          description: ex.description,
-          sets: [
-            {
-              setNumber: s.setNumber,
-              repetitions: s.repetitions,
-              weight: s.weight,
-            },
-          ],
-        });
-      }
-    }
-  } else {
-    for (const ex of exercises) {
-      for (const s of ex.sets) {
-        transformed.push({
-          id: ex.id,
-          userId: userId ? userId : null,
-          title: ex.title,
-          sets: [
-            {
-              setNumber: s.setNumber,
-              repetitions: s.repetitions,
-              weight: s.weight,
-            },
-          ],
-        });
-      }
-    }
-  }
-
-  return transformed;
-}
+const buildWorkout = () => {};
 
 // Konvertierungs-Hilfsfunktion
 const convertMsToPgTimestamp = (ms: number) => {
