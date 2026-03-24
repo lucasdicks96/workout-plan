@@ -1,9 +1,8 @@
-
 export interface Workout {
   id: number;
   userId: string;
   title: string;
-  exercises: WorkoutExercises[];
+  exercises: WorkoutExercise[];
 }
 
 export interface CompletedWorkout {
@@ -15,11 +14,11 @@ export interface CompletedWorkout {
   startTime: Date;
   endTime: Date;
   pauseTime: number;
-  exercises: WorkoutExercises[];
+  exercises: WorkoutExercise[];
   // date: string;
 }
 
-export interface WorkoutExercises {
+export interface WorkoutExercise {
   id: number;
   title: string;
   displayOrder: number;

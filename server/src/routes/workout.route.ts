@@ -2,7 +2,7 @@ import { Response, Router } from "express";
 import { isAuthenticated } from "../middlewares/isAuthenticated";
 import * as workoutService from "../services/workout.service";
 import { BadRequestError } from "../types/errors.types";
-import { WorkoutExercises } from "../types/workout.types";
+import { WorkoutExercise } from "../types/workout.types";
 import { authenticatedHandler } from "../utils/auth.utils";
 
 const router = Router();
@@ -143,7 +143,7 @@ router.put(
   authenticatedHandler(async (req, res: Response) => {
     const workoutId = parseInt(req.body.workoutId);
     const title: string = req.body.title;
-    const exercises: WorkoutExercises[] = req.body.exercises;
+    const exercises: WorkoutExercise[] = req.body.exercises;
     if (!workoutId || isNaN(workoutId)) {
       throw new BadRequestError("Workout ID fehlerhaft.");
     }
