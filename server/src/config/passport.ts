@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { findUserById } from "../repositories/user.repository";
+import { getUserById } from "../repositories/user.repository";
 import * as authService from "../services/auth.service";
 import { BadRequestError } from "../types/errors.types";
 
@@ -25,8 +25,8 @@ passport.use(
 
         return done(err);
       }
-    }
-  )
+    },
+  ),
 );
 
 passport.serializeUser(function (user: any, done: any) {
@@ -35,7 +35,7 @@ passport.serializeUser(function (user: any, done: any) {
 
 passport.deserializeUser(async function (id: string, done: any) {
   try {
-    const user = await findUserById(id);
+    const user = await getUserById(id);
     if (!user) {
       return done(null, false);
     }
