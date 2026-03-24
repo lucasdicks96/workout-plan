@@ -3,7 +3,7 @@ import { InternalServerError, UnauthorizedError } from "../types/errors.types";
 import {
   CompletedWorkout,
   Workout,
-  WorkoutExercises,
+  WorkoutExercise,
 } from "../types/workout.types";
 
 export async function ownerCheck(
@@ -56,7 +56,7 @@ export async function getWorkout(workoutId: number): Promise<any> {
 export async function postWorkoutPlan(
   title: string,
   userId: string,
-  exercises: WorkoutExercises[],
+  exercises: WorkoutExercise[],
 ): Promise<{ message: string }> {
   const client = await pool.connect();
   try {
@@ -99,14 +99,16 @@ export async function postWorkoutPlan(
   }
 }
 
-export async function getCompletedWorkouts(
-  userId: string,
-): Promise<CompletedWorkout[]> {
-  // ADD start/end time, duration, pause time
+export async function getCompletedWorkouts(userId: string) {
   const result = await pool.query(
     `SELECT   completed_workouts.id AS workout_id,
               completed_workouts.start_time,
+              completed_workouts.workout_plan_id,
+              completed_workouts.duration_seconds,
+              completed_workouts.pause_seconds,
+              completed_workouts.end_time,
               workout_plans.title AS plan_title,
+              completed_sets.exercise_id,
               completed_sets.set_number,
               completed_sets.performed_repetitions,
 			        completed_sets.performed_weight,
@@ -135,8 +137,7 @@ export async function getCompletedWorkouts(
               completed_sets.set_number ASC;`,
     [userId],
   );
-  const completedWorkouts: CompletedWorkout[] = result.rows;
-  return completedWorkouts;
+  return result.rows;
 }
 
 export async function getLastCompletedWorkout(
@@ -206,7 +207,7 @@ export async function postCompletedWorkout(
   endTime: string,
   duration: number,
   pauseTime: number,
-  exercises: WorkoutExercises[],
+  exercises: WorkoutExercise[],
 ): Promise<{ message: string }> {
   const client = await pool.connect();
   try {
@@ -267,7 +268,7 @@ export async function putWorkout(
   workoutId: number,
   userId: string,
   title: string,
-  exercises: WorkoutExercises[],
+  exercises: WorkoutExercise[],
 ) {
   const client = await pool.connect();
   try {
