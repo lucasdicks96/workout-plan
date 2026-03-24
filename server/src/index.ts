@@ -1,19 +1,18 @@
 import env from "dotenv";
+env.config();
 import express from "express";
 import session from "express-session";
 import passport from "./config/passport";
 import userRoute from "./routes/auth.route";
 import exerciseRoute from "./routes/exercise.route";
 import workoutRoute from "./routes/workout.route";
-var cors = require("cors");
-var cookieParser = require("cookie-parser");
+import cors from "cors";
+import cookieParser from "cookie-parser";
 import errorHandler from "./middlewares/error";
 
 const port = parseInt(process.env.PORT || "5000");
 
 const app = express();
-
-env.config();
 
 app.use(cookieParser());
 app.use(
