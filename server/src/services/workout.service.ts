@@ -4,12 +4,16 @@ import {
   InternalServerError,
   UnauthorizedError,
 } from "../types/errors.types";
-import { Workout, WorkoutExercises } from "../types/workout.types";
+import {
+  CompletedWorkout,
+  Workout,
+  WorkoutExercise,
+} from "../types/workout.types";
 
 export async function createWorkoutPlan(
   title: string,
   userId: string,
-  exercises: WorkoutExercises[],
+  exercises: WorkoutExercise[],
 ) {
   if (!exercises || exercises.length === 0)
     throw new BadRequestError("Workout Daten fehlen");
@@ -54,7 +58,7 @@ export async function getWorkoutById(
     exercises: [],
   };
 
-  const exerciseMap = new Map<number, WorkoutExercises>();
+  const exerciseMap = new Map<number, WorkoutExercise>();
   workoutData.forEach((item) => {
     const exerciseId = item.exercise_id;
     let exercise = exerciseMap.get(exerciseId);
@@ -111,7 +115,7 @@ export async function getLastWorkout(
     exercises: [],
   };
 
-  const exerciseMap = new Map<number, WorkoutExercises>();
+  const exerciseMap = new Map<number, WorkoutExercise>();
   workoutData.forEach((item) => {
     const exerciseId = item.exercise_id;
     let exercise = exerciseMap.get(exerciseId);
@@ -140,9 +144,81 @@ export async function getLastWorkout(
   return newWorkout;
 }
 
-export async function getCompletedWorkouts(userId: string) {
-  const completedWorkouts =
-    await workoutRepository.getCompletedWorkouts(userId);
+export async function getCompletedWorkouts(
+  userId: string,
+): Promise<CompletedWorkout[]> {
+  const flatData = await workoutRepository.getCompletedWorkouts(userId);
+
+  if (!Array.isArray(flatData) || flatData.length === 0) {
+    return [];
+  }
+
+  const workoutGroupMap = new Map<
+    string,
+    {
+      workout: CompletedWorkout;
+      exerciseMap: Map<number, WorkoutExercise>;
+    }
+  >();
+
+  flatData.forEach((item) => {
+    const completedWorkoutId = item.workout_id;
+
+    let workoutEntry = workoutGroupMap.get(completedWorkoutId);
+
+    if (!workoutEntry) {
+      workoutEntry = {
+        workout: {
+          id: completedWorkoutId,
+          userId: userId,
+          workoutId: item.workout_plan_id,
+          title: item.plan_title,
+          duration: item.duration_seconds,
+          startTime: item.start_time,
+          endTime: item.end_time,
+          pauseTime: item.pause_seconds,
+          exercises: [],
+        },
+        exerciseMap: new Map<number, WorkoutExercise>(),
+      };
+      workoutGroupMap.set(completedWorkoutId, workoutEntry);
+    }
+
+    const exerciseId = item.exercise_id;
+    let exercise = workoutEntry.exerciseMap.get(exerciseId);
+
+    if (!exercise) {
+      exercise = {
+        id: exerciseId,
+        title: item.title,
+        displayOrder: item.display_order,
+        sets: [],
+      };
+      workoutEntry.exerciseMap.set(exerciseId, exercise);
+    }
+
+    if (item.set_number != null) {
+      exercise.sets.push({
+        setNumber: item.set_number,
+        weight: item.weight,
+        repetitions: item.repetitions,
+      });
+    }
+  });
+
+  const completedWorkouts: CompletedWorkout[] = [];
+
+  for (const { workout, exerciseMap } of workoutGroupMap.values()) {
+    workout.exercises = Array.from(exerciseMap.values()).sort(
+      (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0),
+    );
+
+    completedWorkouts.push(workout);
+  }
+
+  completedWorkouts.sort(
+    (a, b) => b.startTime.getTime() - a.startTime.getTime(),
+  );
 
   return completedWorkouts;
 }
@@ -154,7 +230,7 @@ export async function postCompletedWorkout(
   endTime: number,
   pauseTime: number,
   duration: number,
-  exercises: WorkoutExercises[],
+  exercises: WorkoutExercise[],
   title: string,
 ) {
   const pgStartTime = convertMsToPgTimestamp(startTime);
@@ -196,7 +272,7 @@ export async function putWorkout(
   workoutId: number,
   userId: string,
   title: string,
-  exercises: WorkoutExercises[],
+  exercises: WorkoutExercise[],
 ) {
   const result = await workoutRepository.putWorkout(
     workoutId,
