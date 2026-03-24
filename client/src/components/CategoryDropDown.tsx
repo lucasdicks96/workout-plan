@@ -29,7 +29,7 @@ export default function CategoryDropdown({
   };
 
   return (
-    <select className="input" value={selectedCategory} onChange={handleChange}>
+    <select className="input" value={selectedCategory} onChange={handleChange} name="category">
       <option value="Alle">Alle Kategorien</option>
       {renderCategoryOptions(categoryTree)}
     </select>

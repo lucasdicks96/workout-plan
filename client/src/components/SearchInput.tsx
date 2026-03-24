@@ -13,6 +13,7 @@ export default function SearchInput({
     <input
       className="input"
       type="text"
+      id="searchInput"
       value={value}
       placeholder={placeholder || "Suchen..."}
       onChange={(e) => onChange(e.target.value)}
