@@ -110,8 +110,8 @@ export async function getCompletedWorkouts(userId: string) {
               workout_plans.title AS plan_title,
               completed_sets.exercise_id,
               completed_sets.set_number,
-              completed_sets.performed_repetitions,
-			        completed_sets.performed_weight,
+              completed_sets.performed_repetitions AS repetitions,
+			        completed_sets.performed_weight AS weight,
               exercises.title,
               exercises.user_id,
               unique_plan_exercises.display_order
