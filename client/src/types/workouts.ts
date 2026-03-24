@@ -1,4 +1,3 @@
-import { CombinedExercise } from "./exercises";
 
 export interface Workout {
   id: number;
@@ -7,15 +6,22 @@ export interface Workout {
   exercises: WorkoutExercises[];
 }
 
-export interface FinishedWorkout extends Workout {
-  date: string;
+export interface CompletedWorkout {
+  id: string;
+  userId: string;
+  workoutId: number;
+  title: string;
   duration: number;
-  startTime: number;
-  endTime: number;
+  startTime: Date;
+  endTime: Date;
   pauseTime: number;
+  exercises: WorkoutExercises[];
+  // date: string;
 }
 
-export interface WorkoutExercises extends CombinedExercise {
+export interface WorkoutExercises {
+  id: number;
+  title: string;
   displayOrder: number;
   sets: WorkoutExerciseSets[];
 }
