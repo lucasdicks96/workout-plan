@@ -32,10 +32,10 @@ export default function CreateExercise() {
     e.preventDefault();
 
     try {
-      await apiService.createExercise(
+      await apiService.postExercise(
         formState.title,
         formState.description,
-        selectedCategories
+        selectedCategories,
       );
       navigate("/exercises", { replace: true });
       console.log("Exercise created successfully!");
@@ -51,7 +51,7 @@ export default function CreateExercise() {
           <input
             className="input"
             type="text"
-            id="title"
+            name="title"
             value={formState.title}
             onChange={(e) =>
               setFormState({ ...formState, title: e.target.value })
@@ -65,7 +65,7 @@ export default function CreateExercise() {
           <input
             className="input"
             type="text"
-            id="description"
+            name="description"
             value={formState.description}
             onChange={(e) =>
               setFormState({ ...formState, description: e.target.value })
@@ -89,7 +89,7 @@ export default function CreateExercise() {
           {renderCategoryCheckboxes(
             categoryTree,
             selectedCategories,
-            handleCategorySelect
+            handleCategorySelect,
           )}
         </fieldset>
         <div className="button-container">

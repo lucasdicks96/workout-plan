@@ -2,14 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
-import { CombinedExercise } from "../../types/exercises";
+import { Exercise } from "../../types/exercises";
 import { ExerciseList } from "./Exercises";
 import ReturnButton from "../Buttons/ReturnButton";
 
 export default function EditExercise() {
-  const [userExercisesList, setUserExercisesList] = useState<
-    CombinedExercise[]
-  >([]);
+  const [userExercisesList, setUserExercisesList] = useState<Exercise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -21,7 +19,7 @@ export default function EditExercise() {
 
       if (response.status === 200) {
         setUserExercisesList(response.data.exercises);
-        console.log("RESPONSE DATA EXERCISES: ",response.data.exercises);
+        console.log("RESPONSE DATA EXERCISES: ", response.data.exercises);
       } else {
         setUserExercisesList([]);
       }

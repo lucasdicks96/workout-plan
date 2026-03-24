@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiService } from "../services/apiService";
-import { Category, CombinedExercise } from "../types/exercises";
+import { Category, Exercise } from "../types/exercises";
 
 /**
  * Custom Hook zur Verwaltung von Übungen mit Kategorie-Filterung.
@@ -14,12 +14,12 @@ export function useExercises() {
   const strictSubcategory: boolean = true;
   const debugMode: boolean = false; // Umschaltung für Debug-Logs; in Production auf false setzen
 
-  const [exerciseList, setExerciseList] = useState<CombinedExercise[]>([]);
+  const [exerciseList, setExerciseList] = useState<Exercise[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<number | "Alle">(
-    "Alle"
+    "Alle",
   );
 
   const [categoryTree, setCategoryTree] = useState<Category[]>([]);
@@ -84,7 +84,7 @@ export function useExercises() {
         "Entries: Arme(4) has parent_id:",
         map.get(4)?.parent_id,
         "Bizeps(20) parent_id:",
-        map.get(20)?.parent_id
+        map.get(20)?.parent_id,
       );
     }
 
@@ -114,7 +114,7 @@ export function useExercises() {
 
       if (debugMode) {
         console.log(
-          `getAllDescendants(${numId}): Direct [${directChildren.join(", ")}]`
+          `getAllDescendants(${numId}): Direct [${directChildren.join(", ")}]`,
         );
       }
 
@@ -144,13 +144,13 @@ export function useExercises() {
       const result = Array.from(descendants).sort((a, b) => a - b);
       if (debugMode && result.length > 0) {
         console.log(
-          `getAllDescendants(${numId}) iterative BFS: [${result.join(", ")}]`
+          `getAllDescendants(${numId}) iterative BFS: [${result.join(", ")}]`,
         ); // z.B. [20,21,22]
       }
 
       return result;
     },
-    [debugMode]
+    [debugMode],
   );
 
   /**
@@ -198,7 +198,7 @@ export function useExercises() {
         if (!currentCat) {
           if (debugMode)
             console.log(
-              `getAllAncestors(${numId}): No cat for ${currentId} – stop`
+              `getAllAncestors(${numId}): No cat for ${currentId} – stop`,
             );
           break;
         }
@@ -209,7 +209,7 @@ export function useExercises() {
         if (!parentId || !Number.isFinite(parentId) || visited.has(parentId)) {
           if (debugMode)
             console.log(
-              `getAllAncestors(${numId}): Root or cycle at ${currentId} – stop`
+              `getAllAncestors(${numId}): Root or cycle at ${currentId} – stop`,
             );
           break;
         }
@@ -226,7 +226,7 @@ export function useExercises() {
 
       return ancestors;
     },
-    [idToCategoryMap, debugMode]
+    [idToCategoryMap, debugMode],
   );
 
   /**
@@ -314,7 +314,7 @@ export function useExercises() {
       categories.forEach(recurse);
       return Array.from(ids);
     },
-    []
+    [],
   );
 
   /**
@@ -323,14 +323,15 @@ export function useExercises() {
   const fetchAllExercises = useCallback(async (): Promise<void> => {
     try {
       setIsLoading(true);
-      const response = await apiService.getAllExercises();
+      const response = await apiService.getExercises();
       if (response?.data?.exercises && Array.isArray(response.data.exercises)) {
         // Deduplizierung: Filtert einzigartige nach ID
-        const uniqueExercises = response.data.exercises.filter(
-          (ex: CombinedExercise, index: number, self: CombinedExercise[]) =>
-            index === self.findIndex((e: CombinedExercise) => e.id === ex.id)
+        const uniqueExercises: Exercise[] = response.data.exercises.filter(
+          (ex: Exercise, index: number, self: Exercise[]) =>
+            index === self.findIndex((e: Exercise) => e.id === ex.id),
         );
         setExerciseList(uniqueExercises);
+        console.log("FETCH ALL EXERCISES: ", uniqueExercises);
       } else {
         console.warn("Ungültige API-Antwort: Kein exercises-Array");
         setExerciseList([]);
@@ -383,15 +384,15 @@ export function useExercises() {
       const tempCategoryMap = categoryMap;
       console.log(
         "Global parentMap (Bizeps 20 -> Arme 4):",
-        tempParentMap.get(20)
+        tempParentMap.get(20),
       );
       console.log(
         "Global categoryMap (Arme 4 -> [20,21,22]):",
-        tempCategoryMap.get(4)
+        tempCategoryMap.get(4),
       );
       console.log(
         "Global Category Tree Roots:",
-        categoryTree.slice(0, 5).map((c) => ({ id: c.id, name: c.name }))
+        categoryTree.slice(0, 5).map((c) => ({ id: c.id, name: c.name })),
       );
     }
   }, [categoryTree, parentMap, categoryMap, debugMode]);
@@ -404,7 +405,7 @@ export function useExercises() {
       categoryTree?.length > 0 &&
       getAllCategoryIdsFromTree
     ) {
-      exerciseList.forEach((ex: CombinedExercise) => {
+      exerciseList.forEach((ex: Exercise) => {
         if (
           ex.category &&
           Array.isArray(ex.category) &&
@@ -414,8 +415,8 @@ export function useExercises() {
           const allIds = getAllCategoryIdsFromTree(ex.category);
           console.log(
             `Übung "${ex.title}": Roots [${rootIds.join(
-              ", "
-            )}], All IDs [${allIds.join(", ")}]`
+              ", ",
+            )}], All IDs [${allIds.join(", ")}]`,
           );
         }
       });
@@ -426,7 +427,7 @@ export function useExercises() {
    * Prüft, ob eine Übung zur ausgewählten Kategorie passt, unter Berücksichtigung der Baum-Hierarchie.
    * Direkter Match: selectedCat in Übungs-Tree-IDs.
    * Hierarchie-Match: selectedCat ist Vorfahr/Nachkomme von Übungs-IDs.
-   * Streng-Modus: Für Unterkategorien, Geschwister-Matches ausschließen (z. B. kein Trizeps bei Bizeps).
+   * Strict-Mode: Für Unterkategorien, Geschwister-Matches ausschließen (z. B. kein Trizeps bei Bizeps).
    *
    * @param exerciseCategories - Kategorien aus exercise.category.
    * @param selectedCat - Ausgewählte Kategorie-ID oder "Alle".
@@ -437,7 +438,7 @@ export function useExercises() {
     (
       exerciseCategories: Category[] | undefined,
       selectedCat: number | "Alle",
-      exerciseTitle?: string
+      exerciseTitle?: string,
     ): boolean => {
       const selCatNum = Number(selectedCat);
       if (selectedCat === "Alle" || !Number.isFinite(selCatNum)) return true; // "Alle" matcht alles; ungültige ID -> überspringen
@@ -492,8 +493,8 @@ export function useExercises() {
           `Match for "${
             exerciseTitle || "Unknown"
           }": SelectedCat ${selCatNum}, Tree IDs [${allExerciseTreeIds.join(
-            ", "
-          )}], Direct: ${directMatch}, Hierarchy: ${hierarchyMatch}`
+            ", ",
+          )}], Direct: ${directMatch}, Hierarchy: ${hierarchyMatch}`,
         );
       }
 
@@ -508,37 +509,35 @@ export function useExercises() {
       strictSubcategory,
       debugMode,
       parentMap,
-    ]
+    ],
   );
 
   /**
    * Memoisiertes gefiltertes und einzigartiges Übungs-Array basierend auf Suche und Kategorie.
    * Frühe Returns bei ungeladenen States; filtert null-Kategorien.
    */
-  const filteredExercises = useMemo((): CombinedExercise[] => {
+  const filteredExercises = useMemo((): Exercise[] => {
     if (!categoryTree?.length || !exerciseList?.length) return [];
 
-    const matched: CombinedExercise[] = exerciseList.filter(
-      (ex: CombinedExercise) => {
-        if (
-          !ex ||
-          !ex.category ||
-          !Array.isArray(ex.category) ||
-          ex.category.length === 0
-        ) {
-          return false; // Keine Kategorien
-        }
-        return (
-          (ex.title || "").toLowerCase().includes(searchTerm.toLowerCase()) &&
-          matchesCategoryWithTree(ex.category, selectedCategory, ex.title)
-        );
+    const matched: Exercise[] = exerciseList.filter((ex: Exercise) => {
+      if (
+        !ex ||
+        !ex.category ||
+        !Array.isArray(ex.category) ||
+        ex.category.length === 0
+      ) {
+        return false; // Keine Kategorien
       }
-    );
+      return (
+        (ex.title || "").toLowerCase().includes(searchTerm.toLowerCase()) &&
+        matchesCategoryWithTree(ex.category, selectedCategory, ex.title)
+      );
+    });
 
     // Nach ID deduplizieren
     return matched.filter(
-      (ex: CombinedExercise, index: number, self: CombinedExercise[]) =>
-        index === self.findIndex((e: CombinedExercise) => e.id === ex.id)
+      (ex: Exercise, index: number, self: Exercise[]) =>
+        index === self.findIndex((e: Exercise) => e.id === ex.id),
     );
   }, [
     exerciseList,
@@ -554,7 +553,7 @@ export function useExercises() {
       console.log(
         `Gefilterte Übungen (${selectedCategory}): ${
           filteredExercises.length
-        } - ${filteredExercises.map((e) => e.title).join(", ")}`
+        } - ${filteredExercises.map((e) => e.title).join(", ")}`,
       );
     }
   }, [filteredExercises, selectedCategory, debugMode]);
@@ -587,7 +586,7 @@ export function useExercises() {
             descendants = getAllDescendants(numId, categoryMap);
           } else {
             console.warn(
-              `categoryMap leer für Deselect ${numId} – entferne nur Parent (lade categoryTree?)`
+              `categoryMap leer für Deselect ${numId} – entferne nur Parent (lade categoryTree?)`,
             );
           }
 
@@ -600,16 +599,16 @@ export function useExercises() {
           if (debugMode) {
             console.log(
               `Deselect ${numId}: Prev [${prevNums.join(
-                ", "
+                ", ",
               )}], Descendants [${descendants.join(
-                ", "
-              )}], ToRemove [${Array.from(toRemove).join(", ")}]`
+                ", ",
+              )}], ToRemove [${Array.from(toRemove).join(", ")}]`,
             );
           }
 
           // Einmaliger Filter: Alle toRemove entfernen
           const newSelected = prevNums.filter(
-            (id: number) => !toRemove.has(Number(id))
+            (id: number) => !toRemove.has(Number(id)),
           );
 
           if (debugMode && descendants.length > 0) {
@@ -617,8 +616,8 @@ export function useExercises() {
               `Auto-deselected ${
                 descendants.length
               } descendants for ${numId}. New selected: [${newSelected.join(
-                ", "
-              )}]`
+                ", ",
+              )}]`,
             );
           }
 
@@ -644,8 +643,8 @@ export function useExercises() {
           if (debugMode && ancestors.length > 0) {
             console.log(
               `Auto-added ancestors for ${numId}: [${ancestors.join(
-                ", "
-              )}]. New selected: [${newSelected.join(", ")}]`
+                ", ",
+              )}]. New selected: [${newSelected.join(", ")}]`,
             );
           }
 
@@ -653,7 +652,7 @@ export function useExercises() {
         }
       });
     },
-    [getAllAncestors, getAllDescendants, categoryMap, debugMode]
+    [getAllAncestors, getAllDescendants, categoryMap, debugMode],
   );
 
   /**
@@ -710,13 +709,13 @@ export function useExercises() {
 
       if (debugMode) {
         console.log(
-          `renderCategoryOptions: Generierte ${options.length} Optionen (iterativ, pre-order)`
+          `renderCategoryOptions: Generierte ${options.length} Optionen (iterativ, pre-order)`,
         );
       }
 
       return options;
     },
-    [debugMode]
+    [debugMode],
   );
 
   /**
@@ -735,7 +734,7 @@ export function useExercises() {
       cats: Category[],
       selectedCategories: number[],
       handleCategorySelect: (id: number) => void,
-      depth: number = 0
+      depth: number = 0,
     ): JSX.Element[] => {
       if (!Array.isArray(cats) || !Array.isArray(selectedCategories)) return []; // Guard: Ungültiges Input
 
@@ -761,7 +760,7 @@ export function useExercises() {
             key={cat.id}
             style={{
               display: "block",
-              marginLeft: `${currentDepth * 20}px`, 
+              marginLeft: `${currentDepth * 20}px`,
               userSelect: "none",
               padding: "2px 0",
             }}
@@ -792,13 +791,13 @@ export function useExercises() {
 
       if (debugMode) {
         console.log(
-          `renderCategoryCheckboxes: Generierte ${labels.length} Checkboxes (iterativ, pre-order)`
+          `renderCategoryCheckboxes: Generierte ${labels.length} Checkboxes (iterativ, pre-order)`,
         );
       }
 
       return labels;
     },
-    [debugMode]
+    [debugMode],
   );
 
   return {

@@ -1,19 +1,18 @@
-import { FormEvent, useEffect, useState, useRef } from "react";
-import { apiService } from "../../services/apiService";
-import styles from "../../styles/Modal.module.css";
-import stylesExercises from "../../styles/Exercise.module.css";
-import { CombinedExercise, Category } from "../../types/exercises";
-import Popup from "../Popup";
-import { PopupRef } from "../Popup";
-import DeleteButton from "../Buttons/DeleteButton";
-import ConfirmButton from "../Buttons/ConfirmButton";
-import ReturnButton from "../Buttons/ReturnButton";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useExercises } from "../../hooks/useExercises";
+import { apiService } from "../../services/apiService";
+import stylesExercises from "../../styles/Exercise.module.css";
+import styles from "../../styles/Modal.module.css";
+import { Category, Exercise } from "../../types/exercises";
+import ConfirmButton from "../Buttons/ConfirmButton";
+import DeleteButton from "../Buttons/DeleteButton";
+import ReturnButton from "../Buttons/ReturnButton";
+import Popup, { PopupRef } from "../Popup";
 
 type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  exerciseData: CombinedExercise;
+  exerciseData: Exercise;
   onUpdateSuccess: () => void;
 };
 type FormState = {
@@ -75,7 +74,7 @@ export default function Modal({
         if (error instanceof Error) {
           popupRef.current?.show(
             error.message || "Ein Fehler ist aufgetreten",
-            500
+            500,
           );
         }
       }
@@ -92,11 +91,11 @@ export default function Modal({
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const response = await apiService.editExercise(
+      const response = await apiService.putExercise(
         formState.id,
         formState.title,
         formState.description,
-        selectedCategories
+        selectedCategories,
       );
 
       popupRef.current?.show(response.data.message, response.status);
@@ -104,7 +103,7 @@ export default function Modal({
       if (error instanceof Error) {
         popupRef.current?.show(
           error.message || "Ein Fehler ist aufgetreten",
-          500
+          500,
         );
       }
     }
@@ -129,14 +128,14 @@ export default function Modal({
               value={formState.title}
               className="input"
               type="text"
-              id="title"
+              name="title"
               onChange={onChange}
             />
             <input
               value={formState.description}
               className="input"
               type="text"
-              id="description"
+              name="description"
               onChange={onChange}
             />
           </div>
@@ -153,7 +152,7 @@ export default function Modal({
             {renderCategoryCheckboxes(
               categoryTree,
               selectedCategories,
-              handleCategorySelect
+              handleCategorySelect,
             )}
           </fieldset>
           <div className="button-container">

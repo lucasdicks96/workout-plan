@@ -3,39 +3,38 @@ import {
   WorkoutExerciseSets,
   WorkoutExercises as WorkoutExercisesType,
 } from "../types/workouts";
-import { CombinedExercise } from "../types/exercises";
 
 export function useWorkoutManager(
-  initialWorkoutList: WorkoutExercisesType[] = []
+  initialWorkoutList: WorkoutExercisesType[] = [],
 ) {
   const [workoutList, setWorkoutList] =
     useState<WorkoutExercisesType[]>(initialWorkoutList);
   const [isSelecting, setIsSelecting] = useState(false);
 
   const updateExerciseInWorkout = (
-    key: string,
+    key: number,
     setIdx: number,
     field: keyof WorkoutExerciseSets,
-    value: number
+    value: number,
   ) => {
     setWorkoutList((current) =>
       current.map((ex) =>
-        ex.compositeKey === key
+        ex.id === key
           ? {
               ...ex,
               sets: ex.sets.map((set, idx) =>
-                idx === setIdx ? { ...set, [field]: value } : set
+                idx === setIdx ? { ...set, [field]: value } : set,
               ),
             }
-          : ex
-      )
+          : ex,
+      ),
     );
   };
 
-  const handleAddSet = (key: string) => {
+  const handleAddSet = (key: number) => {
     setWorkoutList((current) =>
       current.map((ex) =>
-        ex.compositeKey === key
+        ex.id === key
           ? {
               ...ex,
               sets: [
@@ -47,28 +46,28 @@ export function useWorkoutManager(
                 },
               ],
             }
-          : ex
-      )
+          : ex,
+      ),
     );
   };
 
-  const handleRemoveSet = (key: string) => {
+  const handleRemoveSet = (key: number) => {
     setWorkoutList((current) =>
       current.map((ex) => {
-        if (ex.compositeKey === key && ex.sets.length > 1) {
+        if (ex.id === key && ex.sets.length > 1) {
           return {
             ...ex,
             sets: ex.sets.slice(0, -1),
           };
         }
         return ex;
-      })
+      }),
     );
   };
 
-  const removeExerciseFromWorkout = (key: string) => {
+  const removeExerciseFromWorkout = (key: number) => {
     setWorkoutList((current) => {
-      const newList = current.filter((ex) => ex.compositeKey !== key);
+      const newList = current.filter((ex) => ex.id !== key);
       return updateDisplayOrder(newList);
     });
   };
@@ -84,7 +83,7 @@ export function useWorkoutManager(
     setWorkoutList(updateDisplayOrder(newList));
   };
 
-  const addExerciseToWorkout = (exercise: CombinedExercise) => {
+  const addExerciseToWorkout = (exercise: WorkoutExercisesType) => {
     setWorkoutList((current) => {
       const newList = [
         ...current,

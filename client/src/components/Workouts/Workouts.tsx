@@ -19,7 +19,7 @@ export default function Workout() {
 
   const loadAllWorkouts = useCallback(async () => {
     try {
-      const response = await apiService.getAllWorkouts();
+      const response = await apiService.getWorkouts();
       setWorkoutList(response.data.workouts);
     } catch (error) {
       setWorkoutList([]);
@@ -115,7 +115,7 @@ function WorkoutCard({
 
       if (progressId != workoutId) {
         const confirmNew = window.confirm(
-          "Es ist bereits ein Workout im Gange. Wenn du ein neues startest, gehen die Daten des aktuellen Workouts verloren. Möchtest du wirklich ein neues Workout starten?"
+          "Es ist bereits ein Workout im Gange. Wenn du ein neues startest, gehen die Daten des aktuellen Workouts verloren. Möchtest du wirklich ein neues Workout starten?",
         );
         if (!confirmNew) {
           return;

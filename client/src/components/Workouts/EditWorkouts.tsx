@@ -5,7 +5,7 @@ import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
 import stylesButton from "../../styles/Button.module.css";
 import styles from "../../styles/Exercises.module.css";
-import { CombinedExercise } from "../../types/exercises";
+import { Exercise } from "../../types/exercises";
 import { Workout } from "../../types/workouts";
 import AddButton from "../Buttons/AddButton";
 import ConfirmButton from "../Buttons/ConfirmButton";
@@ -18,9 +18,9 @@ import { PopupRef } from "../Popup";
 
 export default function EditWorkouts() {
   const [workoutPlans, setWorkoutPlans] = useState<Workout[]>([]);
-  const [allExercises, setAllExercises] = useState<CombinedExercise[]>([]);
+  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<number | null>(
-    null
+    null,
   );
   const [workoutName, setWorkoutName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
@@ -48,7 +48,7 @@ export default function EditWorkouts() {
   useEffect(() => {
     const fetchAllExercises = async () => {
       try {
-        const response = await apiService.getAllExercises();
+        const response = await apiService.getExercises();
         setAllExercises(response.data.exercises);
       } catch (error) {
         console.error("Fehler beim Abrufen aller Übungen:", error);
@@ -60,7 +60,7 @@ export default function EditWorkouts() {
   const loadAllWorkouts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await apiService.getAllWorkouts();
+      const response = await apiService.getWorkouts();
       setWorkoutPlans(response.data.workouts);
     } catch (error) {
       console.error("Fehler beim Abrufen der Workouts:", error);
@@ -77,7 +77,7 @@ export default function EditWorkouts() {
     if (selectedWorkoutId === null) return console.error("Workout-ID NULL");
     setIsLoading(true);
     try {
-      const response = await apiService.getWorkoutExercises(selectedWorkoutId);
+      const response = await apiService.getWorkout(selectedWorkoutId);
       setWorkoutList(response.data.workout.exercises);
       setWorkoutName(response.data.workout.title);
     } catch (error) {
@@ -117,10 +117,10 @@ export default function EditWorkouts() {
         setError("Jede Übung muss mindestens einen Satz enthalten.");
         throw new Error("Jede Übung muss mindestens einen Satz enthalten.");
       }
-      const response = await apiService.updateWorkout(
+      const response = await apiService.putWorkout(
         workoutName,
         selectedWorkoutId,
-        workoutList
+        workoutList,
       );
       if (response.status === 200) {
         // navigate("/workouts/edit-workouts");
@@ -197,6 +197,7 @@ export default function EditWorkouts() {
           {error && <p style={{ color: "var(--c-danger)" }}>{error}</p>}
           <input
             className="input"
+            name="name"
             style={{ maxWidth: "20rem" }}
             type="text"
             placeholder="Name des Trainingsplans"

@@ -4,7 +4,7 @@ import { useExercises } from "../../hooks/useExercises";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import stylesButton from "../../styles/Button.module.css";
 import styles from "../../styles/Exercises.module.css";
-import { CombinedExercise } from "../../types/exercises";
+import { Exercise } from "../../types/exercises";
 import AddButton from "../Buttons/AddButton";
 import EditButton from "../Buttons/EditButton";
 import CategoryDropdown from "../CategoryDropDown";
@@ -58,7 +58,7 @@ export default function Exercises() {
 
 type ExerciseProps = {
   isLoading: boolean;
-  exerciseList: CombinedExercise[];
+  exerciseList: Exercise[];
   onUpdateSuccess: () => void;
 };
 
@@ -67,20 +67,21 @@ export function ExerciseList({
   exerciseList = [],
   onUpdateSuccess,
 }: ExerciseProps) {
-  const [selectedExercise, setSelectedExercise] =
-    useState<CombinedExercise | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
+    null,
+  );
   const [isOpen, setIsOpen] = useState(false);
   const location = window.location.pathname;
   const isEditPage = location.includes("edit-exercises");
 
   const handleCardClick = useCallback(
-    (exercise: CombinedExercise) => {
-      if (exercise.compositeKey.includes("user") && isEditPage) {
+    (exercise: Exercise) => {
+      if (exercise.userId !== null && isEditPage) {
         setSelectedExercise(exercise);
         setIsOpen(true);
       }
     },
-    [isEditPage]
+    [isEditPage],
   );
 
   const handleCloseModal = () => {
@@ -110,11 +111,10 @@ export function ExerciseList({
           <div className={styles.exerciseList}>
             {exerciseList.map((item) => (
               <ExerciseCard
-                key={item.compositeKey}
+                key={item.id}
                 title={item.title}
                 userId={item.userId}
                 description={item.description}
-                compositeKey={item.compositeKey}
                 id={item.id}
                 onClick={() => handleCardClick(item)}
                 isEditPage={isEditPage}
@@ -127,7 +127,7 @@ export function ExerciseList({
   );
 }
 
-type ExerciseCardProps = CombinedExercise & {
+type ExerciseCardProps = Exercise & {
   onClick: () => void;
   isEditPage?: boolean;
 };
@@ -136,7 +136,9 @@ const ExerciseCard = memo(
   ({ title, description, userId, onClick, isEditPage }: ExerciseCardProps) => {
     return (
       <div className={styles.card}>
-        {userId && <span style={{ position: "relative" }}>Eigene Übung</span>}
+        {typeof userId === "string" && (
+          <span style={{ position: "relative" }}>Eigene Übung</span>
+        )}
         <h3>{title}</h3>
         {isEditPage && (
           <EditButton
@@ -148,5 +150,5 @@ const ExerciseCard = memo(
         <div className={styles.exerciseCardDescription}>{description}</div>
       </div>
     );
-  }
+  },
 );

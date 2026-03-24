@@ -10,20 +10,20 @@ import {
 type WorkoutExercisesProps = {
   workoutList: WorkoutExercisesType[];
   onUpdate?: (
-    key: string,
+    key: number,
     setIndex: number,
     field: keyof WorkoutExerciseSets,
-    value: string
+    value: string,
   ) => void;
-  onAddSet?: (key: string) => void;
-  onRemoveSet?: (key: string) => void;
-  onRemove?: (key: string) => void;
+  onAddSet?: (key: number) => void;
+  onRemoveSet?: (key: number) => void;
+  onRemove?: (key: number) => void;
   onBack?: () => void;
   onReorderWorkoutList?: (workoutList: WorkoutExercisesType[]) => void;
 };
 
 type ActiveInput = {
-  exerciseKey: string;
+  exerciseKey: number;
   setIndex: number;
   field: keyof WorkoutExerciseSets;
 };
@@ -78,7 +78,7 @@ WorkoutExercisesProps) {
 
     const { exerciseKey, setIndex, field } = activeInput;
 
-    const exercise = workoutList.find((ex) => ex.compositeKey === exerciseKey);
+    const exercise = workoutList.find((ex) => ex.id === exerciseKey);
     const currentValue = exercise?.sets[setIndex]?.[field];
 
     if (currentValue !== undefined) {
@@ -95,7 +95,7 @@ WorkoutExercisesProps) {
       <div className={styles.exerciseList}>
         {workoutList.map((exercise, idx) => (
           <div
-            key={exercise.compositeKey}
+            key={exercise.id}
             draggable
             onDragStart={onDragStart(idx)}
             onDragOver={onDragOver}
@@ -113,7 +113,7 @@ WorkoutExercisesProps) {
             {onRemove && (
               <button
                 className={stylesModal.closeButton}
-                onClick={() => onRemove && onRemove(exercise.compositeKey)}
+                onClick={() => onRemove && onRemove(exercise.id)}
               >
                 &times;
               </button>
@@ -139,15 +139,13 @@ WorkoutExercisesProps) {
                   </span>
                   <button
                     className="button sm rounded"
-                    onClick={() =>
-                      onRemoveSet && onRemoveSet(exercise.compositeKey)
-                    }
+                    onClick={() => onRemoveSet && onRemoveSet(exercise.id)}
                   >
                     -
                   </button>
                   <button
                     className="button sm rounded"
-                    onClick={() => onAddSet && onAddSet(exercise.compositeKey)}
+                    onClick={() => onAddSet && onAddSet(exercise.id)}
                   >
                     +
                   </button>
@@ -165,19 +163,20 @@ WorkoutExercisesProps) {
                     <input
                       type="number"
                       className={stylesWorkoutExercises.input}
+                      name="repetitions"
                       value={set.repetitions}
                       onChange={(e) =>
                         onUpdate &&
                         onUpdate(
-                          exercise.compositeKey,
+                          exercise.id,
                           setIdx,
                           "repetitions",
-                          e.target.value
+                          e.target.value,
                         )
                       }
                       onFocus={() =>
                         setActiveInput({
-                          exerciseKey: exercise.compositeKey,
+                          exerciseKey: exercise.id,
                           setIndex: setIdx,
                           field: "repetitions",
                         })
@@ -189,19 +188,15 @@ WorkoutExercisesProps) {
                     <input
                       type="number"
                       className={stylesWorkoutExercises.input}
+                      name="weight"
                       value={set.weight}
                       onChange={(e) =>
                         onUpdate &&
-                        onUpdate(
-                          exercise.compositeKey,
-                          setIdx,
-                          "weight",
-                          e.target.value
-                        )
+                        onUpdate(exercise.id, setIdx, "weight", e.target.value)
                       }
                       onFocus={() =>
                         setActiveInput({
-                          exerciseKey: exercise.compositeKey,
+                          exerciseKey: exercise.id,
                           setIndex: setIdx,
                           field: "weight",
                         })
@@ -215,7 +210,7 @@ WorkoutExercisesProps) {
                       onClick={() => handleValueChange(-1)}
                       disabled={
                         !activeInput ||
-                        activeInput.exerciseKey !== exercise.compositeKey ||
+                        activeInput.exerciseKey !== exercise.id ||
                         activeInput.setIndex !== setIdx
                       }
                     >
@@ -226,7 +221,7 @@ WorkoutExercisesProps) {
                       onClick={() => handleValueChange(1)}
                       disabled={
                         !activeInput ||
-                        activeInput.exerciseKey !== exercise.compositeKey ||
+                        activeInput.exerciseKey !== exercise.id ||
                         activeInput.setIndex !== setIdx
                       }
                     >

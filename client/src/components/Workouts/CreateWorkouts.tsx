@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
-import { CombinedExercise } from "../../types/exercises";
+import { Exercise } from "../../types/exercises";
 import ExerciseSelectionList from "../Exercises/ExerciseSelectionList";
 import WorkoutExercises from "./WorkoutExercises";
 import ReturnButton from "../Buttons/ReturnButton";
@@ -27,7 +27,7 @@ export default function CreateWorkout() {
     reorderWorkoutList,
   } = useWorkoutManager();
 
-  const [allExercises, setAllExercises] = useState<CombinedExercise[]>([]);
+  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
 
   const [workoutName, setWorkoutName] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -60,7 +60,7 @@ export default function CreateWorkout() {
 
   const loadAllExercises = useCallback(async () => {
     try {
-      const response = await apiService.getAllExercises();
+      const response = await apiService.getExercises();
       setAllExercises(response.data.exercises);
     } catch (error) {
       console.error("Fehler beim Abrufen der Übungen:", error);
@@ -84,7 +84,7 @@ export default function CreateWorkout() {
     }
 
     try {
-      await apiService.createWorkout(workoutName, workoutList);
+      await apiService.postWorkout(workoutName, workoutList);
       popupRef.current?.show("Trainingsplan erstellt!", 200);
       // navigate("/workouts");
     } catch (error) {
