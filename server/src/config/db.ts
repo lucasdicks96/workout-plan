@@ -1,7 +1,4 @@
 import pg from "pg";
-import env from "dotenv";
-
-env.config();
 
 const pool = new pg.Pool({
   user: process.env.PG_USER,
