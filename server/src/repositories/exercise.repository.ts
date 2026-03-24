@@ -1,7 +1,7 @@
 import pool from "../config/db";
 import { Category, Exercise } from "../types/exercise.types";
 
-export async function findSystemExercises(): Promise<Exercise[]> {
+export async function getSystemExercises(userId: string): Promise<Exercise[]> {
   const result = await pool.query(
     `SELECT
   exercises.id,
@@ -18,17 +18,24 @@ FROM exercises
 JOIN exercise_categories ON exercises.id = exercise_categories.exercise_id
 JOIN categories ON exercise_categories.category_id = categories.id
 WHERE user_id IS NULL 
+OR user_id = $1
 AND deleted_at IS NULL
 GROUP BY exercises.id, exercises.title, exercises.description, exercises.user_id
-ORDER BY title ASC;`
+ORDER BY title ASC;`,
+    [userId],
   );
-  const exercises: Exercise[] = result.rows;
+
+  const exercises: Exercise[] = result.rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    userId: row.user_id,
+    category: row.category,
+  }));
   return exercises;
 }
 
-export async function findExercisesByUserId(
-  userId: string
-): Promise<Exercise[]> {
+export async function getUserExercises(userId: string): Promise<Exercise[]> {
   const result = await pool.query(
     `SELECT
   exercises.id,
@@ -48,7 +55,7 @@ WHERE (user_id = $1)
 AND deleted_at IS NULL
 GROUP BY exercises.id, exercises.title, exercises.description, exercises.user_id
 ORDER BY title ASC;`,
-    [userId]
+    [userId],
   );
   const userExercises: Exercise[] = result.rows.map((row) => ({
     id: row.id,
@@ -60,18 +67,18 @@ ORDER BY title ASC;`,
   return userExercises;
 }
 
-export async function createExercise(
+export async function postExercise(
   title: string,
   description: string,
   userId: string,
-  categories: number[]
+  categories: number[],
 ): Promise<Exercise> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const result = await client.query(
       "INSERT INTO exercises (title, description, user_id) VALUES ($1, $2, $3) RETURNING *",
-      [title, description, userId]
+      [title, description, userId],
     );
     const exData = result.rows[0];
     const ex = {
@@ -84,7 +91,7 @@ export async function createExercise(
     for (const cat of categories) {
       await client.query(
         "INSERT INTO exercise_categories (exercise_id, category_id) VALUES ($1, $2)",
-        [exData.id, (cat as any).id ?? (cat as any)]
+        [exData.id, cat],
       );
     }
 
@@ -99,12 +106,12 @@ export async function createExercise(
   }
 }
 
-export async function updateExercise(
+export async function putExercise(
   id: number,
   title: string,
   description: string,
   userId: string,
-  categories: number[]
+  categories: number[],
 ): Promise<Exercise | null> {
   const client = await pool.connect();
 
@@ -121,7 +128,7 @@ export async function updateExercise(
           AND deleted_at IS NULL
         RETURNING *;
       `,
-      [title, description, id, userId]
+      [title, description, id, userId],
     );
 
     const updatedExercise = updateResult.rows[0];
@@ -135,7 +142,7 @@ export async function updateExercise(
         DELETE FROM exercise_categories
         WHERE exercise_id = $1;
       `,
-      [id]
+      [id],
     );
 
     if (categories && categories.length > 0) {
@@ -146,7 +153,7 @@ export async function updateExercise(
       await client.query(
         `INSERT INTO exercise_categories (exercise_id, category_id)
          VALUES ${insertValues};`,
-        [id, ...categories]
+        [id, ...categories],
       );
     }
 
@@ -163,17 +170,17 @@ export async function updateExercise(
 
 export async function softDeleteExercise(
   id: number,
-  userId: string
+  userId: string,
 ): Promise<Exercise | null> {
   const result = await pool.query(
     "UPDATE exercises SET deleted_at = NOW() WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL RETURNING *",
-    [id, userId]
+    [id, userId],
   );
   return result.rows[0] || null;
 }
 export async function categories(): Promise<Category[]> {
   const result = await pool.query(
-    "SELECT id, name, parent_id FROM categories ORDER BY parent_id NULLS FIRST, name"
+    "SELECT id, name, parent_id FROM categories ORDER BY parent_id NULLS FIRST, name",
   );
   return result.rows;
 }
