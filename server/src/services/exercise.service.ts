@@ -1,35 +1,23 @@
 import * as exerciseRepository from "../repositories/exercise.repository";
 import { InternalServerError } from "../types/errors.types";
-import {
-  Category,
-  CombinedExercise,
-  Exercise
-} from "../types/exercise.types";
+import { Category, Exercise } from "../types/exercise.types";
 
-export async function getCombinedExercisesForUser(
-  userId: string
-): Promise<CombinedExercise[]> {
-  const [systemExercises, userExercises, categoryTree] = await Promise.all([
-    exerciseRepository.findSystemExercises(),
-    exerciseRepository.findExercisesByUserId(userId),
+export async function getExercises(userId: string): Promise<Exercise[]> {
+  const [exercises, categoryTree] = await Promise.all([
+    exerciseRepository.getSystemExercises(userId),
     getCategoryTree(),
   ]);
 
-  const transformedSystemExercises = systemExercises.map((ex) =>
-    transformToCombined(ex, categoryTree)
-  );
-  const transformedUserExercises = userExercises.map((ex) =>
-    transformToCombined(ex, categoryTree)
+  const transformedExercises = exercises.map((ex) =>
+    transformToCombined(ex, categoryTree),
   );
 
-  return [...transformedSystemExercises, ...transformedUserExercises];
+  return transformedExercises;
 }
 
-export async function getExercisesForUser(
-  userId: string
-): Promise<CombinedExercise[]> {
+export async function getUserExercises(userId: string): Promise<Exercise[]> {
   const [userExercises, categoryTree] = await Promise.all([
-    exerciseRepository.findExercisesByUserId(userId),
+    exerciseRepository.getUserExercises(userId),
     getCategoryTree(),
   ]);
   // if (!userExercises) {
@@ -39,39 +27,39 @@ export async function getExercisesForUser(
     return [];
   }
   const transformedUserExercises = userExercises.map((ex) =>
-    transformToCombined(ex, categoryTree)
+    transformToCombined(ex, categoryTree),
   );
 
   return transformedUserExercises;
 }
 
-export async function createNewExercise(
+export async function postExercise(
   title: string,
   description: string,
   userId: string,
-  categories: number[]
+  categories: number[],
 ): Promise<Exercise> {
-  return await exerciseRepository.createExercise(
+  return await exerciseRepository.postExercise(
     title,
     description,
     userId,
-    categories
+    categories,
   );
 }
 
-export async function updateUserExercise(
+export async function putUserExercise(
   id: number,
   title: string,
   description: string,
   userId: string,
-  categories: number[]
+  categories: number[],
 ): Promise<{ message: string }> {
-  const updatedExercise = await exerciseRepository.updateExercise(
+  const updatedExercise = await exerciseRepository.putExercise(
     id,
     title,
     description,
     userId,
-    categories
+    categories,
   );
   if (!updatedExercise) {
     throw new Error("Übung nicht gefunden oder fehlende Berechtigung.");
@@ -81,11 +69,11 @@ export async function updateUserExercise(
 
 export async function deleteUserExercise(
   id: number,
-  userId: string
+  userId: string,
 ): Promise<{ message: string }> {
   const deletedExercise = await exerciseRepository.softDeleteExercise(
     id,
-    userId
+    userId,
   );
   if (!deletedExercise) {
     throw new Error("Übung nicht gefunden oder fehlende Berechtigung.");
@@ -108,15 +96,14 @@ export async function getCategoryTree(): Promise<Category[]> {
 
 export function transformToCombined(
   exercise: Exercise,
-  categoryTree: Category[]
-): CombinedExercise {
+  categoryTree: Category[],
+): Exercise {
   const catIds = exercise.category.map((c) =>
-    typeof c === "object" ? c.id : c
+    typeof c === "object" ? c.id : c,
   );
 
   const filteredCategories = filterCategoryTreeByIds(categoryTree, catIds);
   return {
-    compositeKey: `${exercise.userId ? "user" : "system"}-${exercise.id}`,
     id: exercise.id,
     userId: exercise.userId ? exercise.userId : null,
     title: exercise.title,

@@ -18,7 +18,7 @@ export async function ownerCheck(
   return result.rowCount !== null && result.rowCount > 0;
 }
 
-export async function findAllWorkouts(userId: string): Promise<Workout[]> {
+export async function getWorkouts(userId: string): Promise<Workout[]> {
   const result = await pool.query(
     "SELECT * FROM workout_plans WHERE user_id = $1 AND deleted_at IS NULL ORDER BY title ASC",
     [userId],
@@ -27,7 +27,7 @@ export async function findAllWorkouts(userId: string): Promise<Workout[]> {
   return workouts;
 }
 
-export async function findWorkoutById(workoutId: number): Promise<any> {
+export async function getWorkout(workoutId: number): Promise<any> {
   const exerciseResult = await pool.query(
     `SELECT   workout_plans.title as plan_title,
                 workout_plans.user_id as plan_user_id,
@@ -53,7 +53,7 @@ export async function findWorkoutById(workoutId: number): Promise<any> {
   return exerciseResult.rows;
 }
 
-export async function createWorkoutPlan(
+export async function postWorkoutPlan(
   title: string,
   userId: string,
   exercises: WorkoutExercises[],
@@ -99,7 +99,7 @@ export async function createWorkoutPlan(
   }
 }
 
-export async function findCompletedWorkouts(
+export async function getCompletedWorkouts(
   userId: string,
 ): Promise<CompletedWorkout[]> {
   // ADD start/end time, duration, pause time
@@ -139,7 +139,7 @@ export async function findCompletedWorkouts(
   return completedWorkouts;
 }
 
-export async function findLastCompletedWorkout(
+export async function getLastCompletedWorkout(
   workoutId: number,
   userId: string,
 ) {
@@ -158,7 +158,7 @@ export async function findLastCompletedWorkout(
     console.log(
       "Kein letztes Completed-Workout gefunden. Fallback zu findWorkoutById.",
     );
-    const planData = await findWorkoutById(workoutId);
+    const planData = await getWorkout(workoutId);
     return planData;
   }
   const lastWorkoutID: string = planIdResult.rows[0].id;
@@ -198,7 +198,7 @@ export async function findLastCompletedWorkout(
   return result.rows;
 }
 
-export async function saveCompletedWorkout(
+export async function postCompletedWorkout(
   userId: string,
   workoutId: number,
   title: string,
@@ -218,18 +218,19 @@ export async function saveCompletedWorkout(
     const completedPlanId = completedPlanResults.rows[0].id;
 
     for (const exercise of exercises) {
-      for (const set of exercise.sets) {
-        await client.query(
-          "INSERT INTO completed_sets (completed_workout_id, exercise_id, set_number, performed_repetitions, performed_weight) VALUES ($1, $2, $3, $4, $5)",
-          [
-            completedPlanId,
-            exercise.id,
-            set.setNumber,
-            set.repetitions,
-            set.weight,
-          ],
-        );
-      }
+      await client.query(
+        `INSERT INTO completed_sets 
+          (completed_workout_id, exercise_id, set_number, performed_repetitions, performed_weight)
+           SELECT $1,* 
+           FROM UNNEST ($2::int[], $3::int[], $4::int[], $5::float[])`,
+        [
+          completedPlanId,
+          exercise.id,
+          exercise.sets.map((set) => set.setNumber),
+          exercise.sets.map((set) => set.repetitions),
+          exercise.sets.map((set) => set.weight),
+        ],
+      );
     }
     await client.query("COMMIT");
     return { message: "Abgeschlossenes Workout erfolgreich gespeichert" };
@@ -262,7 +263,7 @@ export async function deleteWorkout(
   return { message: `Workout erfolgreich gelöscht ${workoutId}` };
 }
 
-export async function updateWorkout(
+export async function putWorkout(
   workoutId: number,
   userId: string,
   title: string,

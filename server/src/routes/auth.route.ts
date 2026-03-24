@@ -1,4 +1,3 @@
-import env from "dotenv";
 import { NextFunction, Request, Response, Router } from "express";
 import passport from "passport";
 import { isAuthenticated } from "../middlewares/isAuthenticated";
@@ -11,7 +10,6 @@ import {
 } from "../types/errors.types";
 
 const router = Router();
-env.config();
 
 router.post(
   "/register",
@@ -55,6 +53,12 @@ router.post("/login", (req: Request, res: Response, next: NextFunction) => {
       if (err) {
         return next(err);
       }
+      // Session ID regenerieren, um Session Fixation zu verhindern
+      req.session.regenerate((err) => {
+        if (err) {
+          return next(err);
+        }
+      });
 
       return res.status(200).json({
         message: "Login erfolgreich",

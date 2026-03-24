@@ -8,16 +8,16 @@ import { authenticatedHandler } from "../utils/auth.utils";
 const router = Router();
 
 router.get(
-  "/all-workouts",
+  "/workouts",
   isAuthenticated,
   authenticatedHandler(async (req, res: Response) => {
     const workouts = await workoutService.getAllWorkouts(req.user.id);
     res.status(200).json({ workouts: workouts });
-  })
+  }),
 );
 
 router.get(
-  "/workout-exercises/:workoutId",
+  "/workout/:workoutId",
   isAuthenticated,
   authenticatedHandler(async (req, res: Response) => {
     const workoutId = parseInt(req.params.workoutId);
@@ -31,7 +31,7 @@ router.get(
       message: "Workout Übungen erfolgreich übermittelt",
       workout: workoutData,
     });
-  })
+  }),
 );
 
 router.get(
@@ -48,11 +48,11 @@ router.get(
       message: "Workout erfolgreich übermittelt",
       workout: workoutData,
     });
-  })
+  }),
 );
 
 router.post(
-  "/create-workout",
+  "/workout",
   isAuthenticated,
   authenticatedHandler(async (req, res: Response) => {
     const { title, exercises } = req.body;
@@ -64,14 +64,14 @@ router.post(
     const result = await workoutService.createWorkoutPlan(
       title,
       userId,
-      exercises
+      exercises,
     );
     res.status(200).json({ message: result.message });
-  })
+  }),
 );
 
 router.delete(
-  "/delete-workout/:workoutId",
+  "/workout/:workoutId",
   isAuthenticated,
   authenticatedHandler(async (req, res: Response) => {
     const workoutId = parseInt(req.params.workoutId);
@@ -80,11 +80,11 @@ router.delete(
     }
     const result = await workoutService.deleteWorkout(workoutId, req.user.id);
     res.status(200).json({ message: result.message });
-  })
+  }),
 );
 
 router.post(
-  "/save-completed-workout",
+  "/completed-workout",
   isAuthenticated,
   authenticatedHandler(async (req, res: Response) => {
     const {
@@ -109,7 +109,7 @@ router.post(
 
     if (!endTime) throw new BadRequestError("Endzeit des Workouts fehlt");
 
-    const result = await workoutService.saveCompletedWorkout(
+    const result = await workoutService.postCompletedWorkout(
       workoutId,
       req.user.id,
       startTime,
@@ -117,10 +117,10 @@ router.post(
       pauseTime,
       duration,
       exercises,
-      title
+      title,
     );
     res.status(200).json({ message: result.message });
-  })
+  }),
 );
 
 router.get(
@@ -128,17 +128,17 @@ router.get(
   isAuthenticated,
   authenticatedHandler(async (req, res: Response) => {
     const completedWorkouts = await workoutService.getCompletedWorkouts(
-      req.user.id
+      req.user.id,
     );
     res.status(200).json({
       message: "Abgeschlossene Workouts erfolgreich abgefragt.",
       workouts: completedWorkouts,
     });
-  })
+  }),
 );
 
 router.put(
-  "/update-workout",
+  "/workout",
   isAuthenticated,
   authenticatedHandler(async (req, res: Response) => {
     const workoutId = parseInt(req.body.workoutId);
@@ -149,18 +149,18 @@ router.put(
     }
     if (!title || !exercises || exercises.length === 0) {
       throw new BadRequestError(
-        "Es müssen der Title und mindestens eine Übung vorhanden sein."
+        "Es müssen der Title und mindestens eine Übung vorhanden sein.",
       );
     }
 
-    const result = await workoutService.updateWorkout(
+    const result = await workoutService.putWorkout(
       workoutId,
       req.user.id,
       title,
-      exercises
+      exercises,
     );
     res.status(200).json({ message: result.message });
-  })
+  }),
 );
 
 export default router;

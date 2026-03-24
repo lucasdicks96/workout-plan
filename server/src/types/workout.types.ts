@@ -1,4 +1,3 @@
-import { CombinedExercise } from "./exercise.types";
 
 export interface Workout {
   id: number;
@@ -20,8 +19,10 @@ export interface CompletedWorkout {
   // date: string;
 }
 
-export interface WorkoutExercises extends CombinedExercise {
-  displayOrder?: number;
+export interface WorkoutExercises {
+  id: number;
+  title: string;
+  displayOrder: number;
   sets: WorkoutExerciseSets[];
 }
 
