@@ -7,32 +7,85 @@ const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  // Add request interceptor to handle authentication
+  interceptors: {
+    request: {
+      async onRequest(config: any) {
+        // Add any custom headers here if needed
+        return config;
+      },
+    },
+    response: {
+      async onResponse(response: any) {
+        // Handle successful responses
+        return response;
+      },
+      async onResponseError(error: any) {
+        // Handle response errors
+        return Promise.reject(error);
+      },
+    },
+  },
 });
+
+// Add retry logic for transient errors
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
 
 apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Don't retry if request was not JSON or status is not retryable
+    if (!originalRequest.headers || !originalRequest.headers["Content-Type"]) {
+      return Promise.reject(error);
+    }
+
+    // Don't retry if already retried
+    if (originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    // Retry on 408, 429, 500, 502, 503, 504
+    if (error.response?.status && [408, 429, 500, 502, 503, 504].includes(error.response.status)) {
+      originalRequest._retry = true;
+      
+      // Exponential backoff
+      const delay = RETRY_DELAY * Math.pow(2, originalRequest._retries || 0);
+      originalRequest._retries = (originalRequest._retries || 0) + 1;
+      
+      console.log(`Retry ${originalRequest._retries} after ${delay}ms`);
+      
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      
+      return apiClient(originalRequest);
+    }
+
+    // Handle 401 - unauthorized
     if (error.response && error.response.status === 401) {
-      const originalRequestUrl = error.config.url;
+      const originalRequestUrl = error.config?.url;
       const publicUrls = ["/user/login", "/user/register", "/user/status"];
 
-      if (!publicUrls.includes(originalRequestUrl)) {
+      if (!publicUrls.includes(originalRequestUrl || "")) {
+        console.warn("Unauthorized access attempt, redirecting to login");
         window.location.href = "/";
       }
     }
+
     return Promise.reject(error);
   },
 );
 
 export const apiService = {
   login: (email: string, password: string) =>
-    apiClient.post("/user/login", { email, password }),
+    apiClient.post("/user/login", { email, password }).then((res) => res.data),
   register: (email: string, password: string) =>
-    apiClient.post("/user/register", { email, password }),
-  logout: () => apiClient.post("/user/logout"),
-  getStatus: () => apiClient.get("/user/status"),
+    apiClient.post("/user/register", { email, password }).then((res) => res.data),
+  logout: () => apiClient.post("/user/logout").then((res) => res.data),
+  getStatus: () => apiClient.get("/user/status").then((res) => res.data),
   postExercise: (title: string, description: string, categories: number[]) =>
     apiClient.post("/exercise/exercise", {
       title,

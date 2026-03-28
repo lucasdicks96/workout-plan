@@ -1,6 +1,12 @@
-export default interface User {
+export interface User {
   id: string;
   email: string;
   password?: string;
-  role: string;
+  role: "user" | "admin";
+}
+
+export interface UserWithoutPassword {
+  id: string;
+  email: string;
+  role: "user" | "admin";
 }
