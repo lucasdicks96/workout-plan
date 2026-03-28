@@ -1,5 +1,5 @@
 import axios from "axios";
-import { WorkoutExercises } from "../types/workouts";
+import { CompletedWorkout, WorkoutExercises } from "../types/workouts";
 
 const apiClient = axios.create({
   baseURL: "http://localhost:5000",
@@ -99,6 +99,10 @@ export const apiService = {
       title,
     }),
   getCompletedWorkouts: () => apiClient.get(`/workout/completed-workouts`),
+  getCompletedWorkout: (workoutId: string) =>
+    apiClient.get(`/workout/completed-workouts/${workoutId}`),
+  putCompletedWorkout: (workoutId: string, workout: CompletedWorkout) =>
+    apiClient.put(`/workout/completed-workout`, { workoutId, workout }),
   deleteWorkout: (workoutId: number) =>
     apiClient.delete(`/workout/workout/${workoutId}`),
 };
