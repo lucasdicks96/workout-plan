@@ -4,14 +4,15 @@ import stylesModal from "../../styles/Modal.module.css";
 import SearchInput from "../SearchInput";
 import CategoryDropDown from "../CategoryDropDown";
 import { useExercises } from "../../hooks/useExercises";
-import { CombinedExercise } from "../../types/exercises";
+import { Exercise } from "../../types/exercises";
 import { WorkoutExercises } from "../../types/workouts";
 import { useSetTitle } from "../../hooks/useSetTitle";
+import type { Exercise } from "../../types/exercises";
 
 type ExerciseSelectionListProps = {
-  allExercises?: CombinedExercise[];
+  allExercises?: Exercise[];
   workoutList: WorkoutExercises[];
-  onSelectExercise: (exercise: CombinedExercise) => void;
+  onSelectExercise: (exercise: Exercise) => void;
   onBack: () => void;
 };
 
@@ -20,7 +21,7 @@ function ExerciseSelectionList({
   onSelectExercise,
   onBack,
 }: ExerciseSelectionListProps) {
-  const exercisesInWorkout = new Set(workoutList.map((ex) => ex.compositeKey));
+  const exercisesInWorkout = new Set(workoutList.map((ex) => ex.id));
   useSetTitle("Wähle eine Übung aus");
   const {
     searchTerm,
@@ -46,10 +47,10 @@ function ExerciseSelectionList({
       </div>
       <div className={styles.exerciseList}>
         {filteredExercises.map((exercise) => {
-          const isAdded = exercisesInWorkout.has(exercise.compositeKey);
+          const isAdded = exercisesInWorkout.has(exercise.id);
           return (
             <div
-              key={exercise.compositeKey}
+              key={exercise.id}
               className={`${styles.card} ${isAdded ? styles.disabled : ""}`}
               onClick={() => !isAdded && onSelectExercise(exercise)}
             >
