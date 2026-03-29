@@ -13,6 +13,7 @@ import History from "./components/Workouts/History";
 import WorkoutInProgress from "./components/Workouts/WorkoutInProgress";
 import Workout from "./components/Workouts/Workouts";
 import { useAuth } from "./hooks/useAuth";
+import EditHistoryWorkout from "./components/Workouts/EditHistoryWorkout";
 
 const NotFound = () => (
   <div>
@@ -55,6 +56,10 @@ function App() {
                 element={<WorkoutInProgress />}
               />
               <Route path="history" element={<History />} />
+              <Route
+                path="/history/edit/:id"
+                element={<EditHistoryWorkout />}
+              />
             </Route>
           </Route>
           <Route element={<PublicRoute />}>
