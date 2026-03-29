@@ -7,25 +7,6 @@ const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  // Add request interceptor to handle authentication
-  interceptors: {
-    request: {
-      async onRequest(config: any) {
-        // Add any custom headers here if needed
-        return config;
-      },
-    },
-    response: {
-      async onResponse(response: any) {
-        // Handle successful responses
-        return response;
-      },
-      async onResponseError(error: any) {
-        // Handle response errors
-        return Promise.reject(error);
-      },
-    },
-  },
 });
 
 // Add retry logic for transient errors
