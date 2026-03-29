@@ -10,7 +10,6 @@ const apiClient = axios.create({
 });
 
 // Add retry logic for transient errors
-const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
 apiClient.interceptors.response.use(
