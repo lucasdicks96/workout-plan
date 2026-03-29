@@ -11,7 +11,7 @@ import EditButton from "../Buttons/EditButton";
 import PlayPauseButton from "../Buttons/PlayPauseButton";
 
 export default function Workout() {
-  const [workoutList, setWorkoutList] = useState<IWorkout[] | []>([]);
+  const [workoutList, setWorkoutList] = useState<IWorkout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -88,7 +88,7 @@ function WorkoutCard({
 }: {
   title: string;
   workoutId: number;
-  onClick?: (workoudId: number) => void;
+  onClick?: (workoutId: number) => void;
   onDelete?: (workoutId: number) => void;
 }) {
   const navigate = useNavigate();
@@ -136,7 +136,6 @@ function WorkoutCard({
   return (
     <div
       className={styles.card}
-      // onClick={() => onClick?.(workoutId)}
     >
       <h3 className={styles.workoutCardTitle}>{title}</h3>
       {isEditPage && (

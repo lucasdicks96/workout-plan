@@ -14,12 +14,6 @@ export default function WorkoutInProgress() {
   const [workoutName, setWorkoutName] = useState<string>("");
   const [isFinished, setIsFinished] = useState<boolean>(false);
   const [workoutId, setWorkoutId] = useState<number | null>(null);
-  // const savedWorkoutId = localStorage.getItem("startWorkoutId");
-  // let workoutId: number | null = null;
-  // if (savedWorkoutId) {
-  //   const temp = JSON.parse(savedWorkoutId);
-  //   workoutId = parseInt(temp);
-  // }
   const startedWorkoutId = useRef<number | null>(null);
 
   const navigate = useNavigate();
@@ -42,27 +36,19 @@ export default function WorkoutInProgress() {
   useEffect(() => {
     const savedWorkoutId = localStorage.getItem("startWorkoutId");
     if (savedWorkoutId && startedWorkoutId.current === null) {
-      // Nur setzen, wenn Ref noch leer
       try {
         const temp = JSON.parse(savedWorkoutId);
         const parsedId = typeof temp === "number" ? temp : parseInt(temp, 10);
         if (!isNaN(parsedId) && parsedId > 0) {
           startedWorkoutId.current = parsedId;
           setWorkoutId(parsedId);
-          console.log(
-            "Workout ID einmalig aus localStorage gesetzt:",
-            parsedId,
-          );
+          console.log("Workout ID aus localStorage gesetzt:", parsedId);
         } else {
           console.error("Ungültige Workout ID aus localStorage:", temp);
         }
       } catch (error) {
         console.error("Fehler beim Parsen von startWorkoutId:", error);
       }
-    } else if (!savedWorkoutId) {
-      console.warn(
-        "Keine startWorkoutId in localStorage gefunden – ID wird erst beim Start gesetzt",
-      );
     }
   }, []);
 
@@ -90,7 +76,6 @@ export default function WorkoutInProgress() {
     }
   }, [setWorkoutList, workoutId]);
 
-  // Lade Workout aus State, sonst API Call
   useEffect(() => {
     try {
       const savedStateJSON = localStorage.getItem(WORKOUT_IN_PROGRESS_KEY);
@@ -103,10 +88,7 @@ export default function WorkoutInProgress() {
           if (parsedSavedId) {
             startedWorkoutId.current = parsedSavedId;
             setWorkoutId(parsedSavedId);
-            console.log(
-              "Workout ID einmalig aus savedState gesetzt:",
-              parsedSavedId,
-            );
+            console.log("Workout ID aus savedState gesetzt:", parsedSavedId);
           }
         }
 
@@ -127,7 +109,6 @@ export default function WorkoutInProgress() {
   }, [loadWorkout, setWorkoutList, workoutId]);
 
   useEffect(() => {
-    // Nur speichern, wenn bereits gestartet wurde
     if (startTime && startedWorkoutId.current !== null) {
       const stateToSave = {
         startedWorkoutId: startedWorkoutId.current,
@@ -146,7 +127,6 @@ export default function WorkoutInProgress() {
     }
   });
 
-  // Timeraktualisierung
   useEffect(() => {
     if (isRunning) {
       intervalRef.current = setInterval(() => {
@@ -160,14 +140,11 @@ export default function WorkoutInProgress() {
         clearInterval(intervalRef.current);
       }
     }
-    // Aktualisiere Zeit nach Pause oder Stopp
-    {
-      if (startTime) {
-        if (pauseTime) {
-          setElapsedTime(pauseTime - startTime - totalPausedDuration);
-        } else {
-          setElapsedTime(Date.now() - startTime - totalPausedDuration);
-        }
+    if (startTime) {
+      if (pauseTime) {
+        setElapsedTime(pauseTime - startTime - totalPausedDuration);
+      } else {
+        setElapsedTime(Date.now() - startTime - totalPausedDuration);
       }
     }
     return () => {
@@ -177,7 +154,6 @@ export default function WorkoutInProgress() {
 
   const handleTogglePlayPause = () => {
     const now = Date.now();
-    // Workout wurde gestoppt, soll aber fortgesetzt werden
     if (isFinished) {
       setIsFinished(false);
       if (pauseTime) {
@@ -188,7 +164,6 @@ export default function WorkoutInProgress() {
       }
       return;
     }
-    // Workout wird zum ersten Mal gestartet
     if (!startTime) {
       if (startedWorkoutId.current === null) {
         if (!workoutId) {
@@ -196,32 +171,18 @@ export default function WorkoutInProgress() {
           return;
         }
         startedWorkoutId.current = workoutId;
-        console.log(
-          "Workout ID einmalig beim ersten Start gesetzt:",
-          startedWorkoutId.current,
-        );
-      } else {
-        console.log(
-          "Workout ID bereits gesetzt, überspringe Setzen:",
-          startedWorkoutId.current,
-        );
+        console.log("Workout ID beim ersten Start gesetzt:", startedWorkoutId.current);
       }
       setStartTime(now);
       setIsRunning(true);
       setIsFinished(false);
       return;
     }
-    // Timer läuft und wird pausiert
     if (isRunning) {
       setPauseTime(now);
-      console.log(
-        "Timer läuft und wird pausiert: ",
-        totalPausedDuration / 1000,
-      );
+      console.log("Timer pausiert:", totalPausedDuration / 1000);
       setIsRunning(false);
-    }
-    // Timer ist pausiert und wird fortgesetzt
-    else if (pauseTime) {
+    } else if (pauseTime) {
       const pauseDuration = now - pauseTime;
       setTotalPausedDuration((prev) => prev + pauseDuration);
       setIsRunning(true);
@@ -235,7 +196,6 @@ export default function WorkoutInProgress() {
     if (isRunning) {
       setPauseTime(Date.now());
     }
-
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
@@ -252,10 +212,7 @@ export default function WorkoutInProgress() {
         startedWorkoutId.current === null ||
         isNaN(startedWorkoutId.current)
       ) {
-        console.error(
-          "Keine gültige Workout ID zum Speichern gefunden.",
-          startedWorkoutId.current,
-        );
+        console.error("Keine gültige Workout ID zum Speichern gefunden.");
         return;
       }
       const response = await apiService.postCompletedWorkout(
@@ -305,9 +262,7 @@ export default function WorkoutInProgress() {
   }
 
   return (
-    // <div className={`${stylesLayout.content}`}>
     <>
-      {/* <h2 className={stylesLayout.pageTitle}>{workoutName}</h2> */}
       <WorkoutExercises
         workoutList={workoutList || []}
         onUpdate={(key, setIndex, field, value) => {
@@ -337,7 +292,6 @@ export default function WorkoutInProgress() {
           isComplete={isFinished}
         />
       </div>
-      {/* </div> */}
     </>
   );
 }

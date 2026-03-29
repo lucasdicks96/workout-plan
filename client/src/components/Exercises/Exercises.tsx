@@ -12,8 +12,6 @@ import SearchInput from "../SearchInput";
 import Modal from "./Modal";
 
 export default function Exercises() {
-  // const [exerciseList, setExerciseList] = useState<CombinedExercise[]>([]);
-  // const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   useSetTitle("Übungen");
 
@@ -49,7 +47,6 @@ export default function Exercises() {
       />
       <div className="button-container">
         <EditButton onEdit={() => navigate("edit-exercises")} />
-
         <AddButton onAdd={() => navigate("create-exercises")} />
       </div>
     </>
@@ -146,7 +143,6 @@ const ExerciseCard = memo(
             className={`${stylesButton.buttonRounded}`}
           />
         )}
-
         <div className={styles.exerciseCardDescription}>{description}</div>
       </div>
     );

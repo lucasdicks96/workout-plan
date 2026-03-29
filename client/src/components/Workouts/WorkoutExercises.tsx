@@ -35,9 +35,7 @@ function WorkoutExercises({
   onAddSet,
   onRemoveSet,
   onReorderWorkoutList,
-}: // onBack,
-WorkoutExercisesProps) {
-  // const navigate = useNavigate();
+}: WorkoutExercisesProps) {
   const [activeInput, setActiveInput] = useState<ActiveInput | null>(null);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
@@ -63,7 +61,6 @@ WorkoutExercisesProps) {
       newList.splice(draggedIdx, 1);
       newList.splice(index, 0, draggedItem);
 
-      // setWorkoutList(newList);
       onReorderWorkoutList && onReorderWorkoutList(newList);
 
       setDraggedIdx(null);
@@ -83,7 +80,6 @@ WorkoutExercisesProps) {
 
     if (currentValue !== undefined) {
       const newValue = Number(currentValue) + amount;
-      // Verhindert, dass der Wert negativ wird
       if (newValue >= 0) {
         onUpdate(exerciseKey, setIndex, field, String(newValue));
       }
@@ -124,12 +120,6 @@ WorkoutExercisesProps) {
 
                 <div
                   className={stylesWorkoutExercises.cardContentItem}
-                  // style={{
-                  //   maxWidth: "100%",
-                  //   display: "inline-flex",
-                  //   justifyContent: "center",
-                  //   alignItems: "center",
-                  // }}
                 >
                   <span className={`${stylesWorkoutExercises.cardSpan}`}>
                     Sätze

@@ -112,18 +112,15 @@ export default function EditWorkouts() {
   };
 
   const handleClosePopup = () => {
-    // if (selectedWorkoutId !== null) {
-    loadAllWorkouts(); // Refresh nach Delete/Save
-    // }
+    loadAllWorkouts();
     handleBackToList();
   };
 
   const handleDelete = async (workoutId: number) => {
     try {
       await apiService.deleteWorkout(workoutId);
-      popupRef.current?.show("Traingsplan erfolgreich gelöscht!", 200);
+      popupRef.current?.show("Trainingsplan erfolgreich gelöscht!", 200);
       setSelectedWorkoutId(null);
-      // loadAllWorkouts();
     } catch (error) {
       popupRef.current?.show("Fehler beim Löschen des Plans", 500);
       console.error("Fehler beim Löschen des Plans", error);
@@ -131,10 +128,6 @@ export default function EditWorkouts() {
   };
 
   return (
-    // <>
-    //   <div style={{ position: "relative", top: "30%" }}>
-    //     <Popup ref={popupRef} duration={1500} onClose={handleClosePopup} />
-    //   </div>
     <div
       style={{
         position: "relative",
@@ -152,7 +145,6 @@ export default function EditWorkouts() {
       />
 
       {selectedWorkoutId ? (
-        // Only render SharedWorkoutEditor once data is loaded to properly initialize useWorkoutManager
         !isLoading && (
           <SharedWorkoutEditor
             initialTitle={workoutName}
@@ -181,6 +173,5 @@ export default function EditWorkouts() {
         </>
       )}
     </div>
-    /* </> */
   );
 }

@@ -37,8 +37,6 @@ export default function CreateWorkout() {
 
   const popupRef = useRef<PopupRef>(null);
 
-  const isInitialMount = useRef(true);
-
   useEffect(() => {
     const savedList = localStorage.getItem("createPlan");
     const savedName = localStorage.getItem("planName");
@@ -47,13 +45,7 @@ export default function CreateWorkout() {
     if (savedName) setWorkoutName(JSON.parse(savedName));
   }, [setWorkoutList]);
 
-  // Wenn erster Mount, dann initialMount = false und return
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    // Wird nach dem 2. rendern ausgeführt
     localStorage.setItem("createPlan", JSON.stringify(workoutList));
     localStorage.setItem("planName", JSON.stringify(workoutName));
   }, [workoutList, workoutName]);
@@ -86,7 +78,6 @@ export default function CreateWorkout() {
     try {
       await apiService.postWorkout(workoutName, workoutList);
       popupRef.current?.show("Trainingsplan erstellt!", 200);
-      // navigate("/workouts");
     } catch (error) {
       popupRef.current?.show("Fehler beim Erstellen des Trainingsplans", 500);
       console.error("Fehler beim Erstellen des Plans", error);
@@ -118,9 +109,6 @@ export default function CreateWorkout() {
   }
   return (
     <>
-      <div style={{ position: "relative" }}>
-        <Popup ref={popupRef} onClose={() => navigate("/workouts")} />
-      </div>
       <input
         className="input"
         name="title"

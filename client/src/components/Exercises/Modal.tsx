@@ -71,12 +71,10 @@ export default function Modal({
       popupRef.current?.show(response.data.message, response.status);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        if (error instanceof Error) {
-          popupRef.current?.show(
-            error.message || "Ein Fehler ist aufgetreten",
-            500,
-          );
-        }
+        popupRef.current?.show(
+          error.message || "Ein Fehler ist aufgetreten",
+          500,
+        );
       }
     }
   };

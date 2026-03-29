@@ -10,7 +10,7 @@ import { CompletedWorkout } from "../../types/workouts";
 import EditButton from "../Buttons/EditButton";
 
 export default function History() {
-  const [workouts, setWorkouts] = useState<CompletedWorkout[] | null>([]);
+  const [workouts, setWorkouts] = useState<CompletedWorkout[]>([]);
   const { user } = useAuth();
 
   useSetTitle("Verlauf");
@@ -42,7 +42,6 @@ export default function History() {
   }, [loadWorkout]);
 
   return (
-    // <div className="content">
     <>
       {!workouts || workouts.length === 0 ? (
         <div>Bisher wurden keine Workouts absolviert</div>
@@ -54,7 +53,6 @@ export default function History() {
         </div>
       )}
     </>
-    // </div>
   );
 }
 
@@ -67,7 +65,6 @@ const HistoryItem = ({ workout }: { workout: CompletedWorkout }) => {
       <h3 className={styles.workoutCardTitle}>{workout.title}</h3>
       {date.toLocaleDateString()} - {date.toLocaleTimeString()}
       <EditButton
-        // Change the route to pass the specific completed workout ID
         onEdit={() => navigate(`/history/edit/${workout.id}`)}
         className={`${stylesButton.right} ${stylesButton.buttonRounded}`}
       />
