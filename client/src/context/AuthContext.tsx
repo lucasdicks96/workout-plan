@@ -54,8 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log("Login attempt for:", email);
     try {
       const response = await apiService.login(email, password);
-      console.log("Login successful, user:", response.data.user);
-      setUser(response.data.user);
+      console.log("Login successful, user:", response.user);
+      setUser(response.user);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const message = error.response?.data?.message || "Anmeldung fehlgeschlagen";
@@ -73,8 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log("Register attempt for:", email);
     try {
       const response = await apiService.register(email, password);
-      console.log("Registrierung erfolgreich, user:", response.data.user);
-      setUser(response.data.user);
+      console.log("Registrierung erfolgreich, user:", response.user);
+      setUser(response.user);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const message = error.response?.data?.message || "Registrierung fehlgeschlagen";
