@@ -1,0 +1,68 @@
+/* Workout Cards - Responsive */
+.workout-card {
+  background-color: var(--c-surface);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  min-width: 0;
+  width: 100%;
+  max-width: 350px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  touch-action: manipulation;
+}
+
+.workout-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.workout-card:active {
+  transform: translateY(0);
+}
+
+.workout-card h3 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.workout-card .workoutCardTitle {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Responsive Workout Cards */
+@media (min-width: 769px) {
+  .workout-card {
+    max-width: 400px;
+    min-height: 10rem;
+  }
+  
+  .workout-card h3 {
+    font-size: 1.125rem;
+  }
+}
+
+@media (min-width: 1025px) {
+  .workout-card {
+    max-width: 450px;
+    min-height: 12rem;
+  }
+  
+  .workout-card h3 {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .workout-card {
+    padding: 0.75rem;
+    min-height: auto;
+  }
+  
+  .workout-card h3 {
+    font-size: 0.875rem;
+  }
+}
