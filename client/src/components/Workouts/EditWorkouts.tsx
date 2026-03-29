@@ -1,20 +1,18 @@
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSetTitle } from "../../hooks/useSetTitle";
-import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
 import stylesButton from "../../styles/Button.module.css";
 import styles from "../../styles/Exercises.module.css";
 import { Exercise } from "../../types/exercises";
-import { Workout } from "../../types/workouts";
-import AddButton from "../Buttons/AddButton";
-import ConfirmButton from "../Buttons/ConfirmButton";
+import {
+  Workout,
+  WorkoutExercises as WorkoutExercisesType,
+} from "../../types/workouts";
 import ReturnButton from "../Buttons/ReturnButton";
-import ExerciseSelectionList from "../Exercises/ExerciseSelectionList";
-import WorkoutExercises from "./WorkoutExercises";
+import Popup, { PopupRef } from "../Popup";
+import SharedWorkoutEditor from "./SharedWorkoutEditor";
 import { WorkoutList as WorkoutPlans } from "./Workouts";
-import Popup from "../Popup";
-import { PopupRef } from "../Popup";
 
 export default function EditWorkouts() {
   const [workoutPlans, setWorkoutPlans] = useState<Workout[]>([]);
@@ -22,26 +20,17 @@ export default function EditWorkouts() {
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<number | null>(
     null,
   );
-  const [workoutName, setWorkoutName] = useState<string>("");
+
+  const [workoutExercises, setWorkoutExercises] = useState<
+    WorkoutExercisesType[]
+  >([]);
+  const [workoutName, setWorkoutName] = useState("");
+
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const popupRef = useRef<PopupRef>(null);
 
   useSetTitle("Trainingspläne bearbeiten");
-
-  const {
-    workoutList,
-    setWorkoutList,
-    isSelecting,
-    setIsSelecting,
-    updateExerciseInWorkout,
-    handleAddSet,
-    handleRemoveSet,
-    removeExerciseFromWorkout,
-    addExerciseToWorkout,
-    reorderWorkoutList,
-  } = useWorkoutManager();
 
   const navigate = useNavigate();
 
@@ -74,61 +63,42 @@ export default function EditWorkouts() {
   }, [loadAllWorkouts]);
 
   const loadExercises = useCallback(async () => {
-    if (selectedWorkoutId === null) return console.error("Workout-ID NULL");
+    if (selectedWorkoutId === null) return;
     setIsLoading(true);
     try {
       const response = await apiService.getWorkout(selectedWorkoutId);
-      setWorkoutList(response.data.workout.exercises);
+      setWorkoutExercises(response.data.workout.exercises);
       setWorkoutName(response.data.workout.title);
     } catch (error) {
       console.error("Fehler beim Laden der Workout-Übungen:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [selectedWorkoutId, setWorkoutList]);
+  }, [selectedWorkoutId]);
 
   useEffect(() => {
     if (selectedWorkoutId !== null) {
       loadExercises();
     } else {
-      setWorkoutList([]);
       setWorkoutName("");
     }
-  }, [selectedWorkoutId, loadExercises, setWorkoutList]);
+  }, [selectedWorkoutId, loadExercises]);
 
-  const handleSaveWorkout = async () => {
+  const handleSaveWorkout = async (
+    title: string,
+    exercises: WorkoutExercisesType[],
+  ) => {
     try {
-      if (selectedWorkoutId === null) {
-        setError("Benutzer ID oder Trainingsplan-ID fehlt.");
-        throw new Error();
-      }
-
-      if (workoutName.trim().length === 0) {
-        setError("Trainingsname darf nicht leer sein.");
-        throw new Error("Trainingsname darf nicht leer sein.");
-      }
-
-      if (workoutList.length === 0) {
-        setError("Trainingsplan muss mindestens eine Übung enthalten.");
-        throw new Error("Trainingsplan muss mindestens eine Übung enthalten.");
-      }
-
-      if (workoutList.filter((ex) => ex.sets.length === 0).length > 0) {
-        setError("Jede Übung muss mindestens einen Satz enthalten.");
-        throw new Error("Jede Übung muss mindestens einen Satz enthalten.");
-      }
+      if (selectedWorkoutId === null) throw new Error();
       const response = await apiService.putWorkout(
-        workoutName,
+        title,
         selectedWorkoutId,
-        workoutList,
+        exercises,
       );
       if (response.status === 200) {
-        // navigate("/workouts/edit-workouts");
         popupRef.current?.show("Trainingsplan erfolgreich gespeichert!", 200);
-        // handleBackToList();
       }
     } catch (error) {
-      console.error("Fehler beim Speichern des Trainingsplans:", error);
       popupRef.current?.show("Fehler beim Speichern des Trainingsplans", 500);
     }
   };
@@ -160,17 +130,6 @@ export default function EditWorkouts() {
     }
   };
 
-  if (isSelecting) {
-    return (
-      <ExerciseSelectionList
-        allExercises={allExercises}
-        onBack={() => setIsSelecting(false)}
-        workoutList={workoutList}
-        onSelectExercise={addExerciseToWorkout}
-      />
-    );
-  }
-
   return (
     // <>
     //   <div style={{ position: "relative", top: "30%" }}>
@@ -182,7 +141,6 @@ export default function EditWorkouts() {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
         width: "100%",
       }}
     >
@@ -192,50 +150,18 @@ export default function EditWorkouts() {
         onClose={handleClosePopup}
         showBackdrop={true}
       />
+
       {selectedWorkoutId ? (
-        <>
-          {error && <p style={{ color: "var(--c-danger)" }}>{error}</p>}
-          <input
-            className="input"
-            name="name"
-            style={{ maxWidth: "20rem" }}
-            type="text"
-            placeholder="Name des Trainingsplans"
-            value={workoutName}
-            onChange={(e) => setWorkoutName(e.target.value)}
+        // Only render SharedWorkoutEditor once data is loaded to properly initialize useWorkoutManager
+        !isLoading && (
+          <SharedWorkoutEditor
+            initialTitle={workoutName}
+            initialExercises={workoutExercises}
+            allExercises={allExercises}
+            onSave={handleSaveWorkout}
+            onCancel={handleBackToList}
           />
-
-          <WorkoutExercises
-            onReorderWorkoutList={reorderWorkoutList}
-            onBack={handleBackToList}
-            onRemove={removeExerciseFromWorkout}
-            onUpdate={(key, setIndex, field, value) => {
-              const numericValue = Number(value);
-              if (!isNaN(numericValue)) {
-                updateExerciseInWorkout(key, setIndex, field, numericValue);
-              }
-            }}
-            workoutList={workoutList}
-            onAddSet={handleAddSet}
-            onRemoveSet={handleRemoveSet}
-          />
-
-          <div className={stylesButton.buttonContainer}>
-            <ReturnButton
-              onBack={() => setSelectedWorkoutId(null)}
-              className={`              
-                ${stylesButton.left},
-                ${stylesButton.button}`}
-            />
-            <AddButton onAdd={() => setIsSelecting(true)} />
-            <ConfirmButton
-              onConfirm={handleSaveWorkout}
-              className={`
-                ${stylesButton.right},
-                ${stylesButton.button}`}
-            />
-          </div>
-        </>
+        )
       ) : (
         <>
           <div className={styles.exerciseList}>

@@ -51,7 +51,7 @@ export default function WorkoutInProgress() {
           setWorkoutId(parsedId);
           console.log(
             "Workout ID einmalig aus localStorage gesetzt:",
-            parsedId
+            parsedId,
           );
         } else {
           console.error("Ungültige Workout ID aus localStorage:", temp);
@@ -61,7 +61,7 @@ export default function WorkoutInProgress() {
       }
     } else if (!savedWorkoutId) {
       console.warn(
-        "Keine startWorkoutId in localStorage gefunden – ID wird erst beim Start gesetzt"
+        "Keine startWorkoutId in localStorage gefunden – ID wird erst beim Start gesetzt",
       );
     }
   }, []);
@@ -105,7 +105,7 @@ export default function WorkoutInProgress() {
             setWorkoutId(parsedSavedId);
             console.log(
               "Workout ID einmalig aus savedState gesetzt:",
-              parsedSavedId
+              parsedSavedId,
             );
           }
         }
@@ -141,7 +141,7 @@ export default function WorkoutInProgress() {
       };
       localStorage.setItem(
         WORKOUT_IN_PROGRESS_KEY,
-        JSON.stringify(stateToSave)
+        JSON.stringify(stateToSave),
       );
     }
   });
@@ -198,12 +198,12 @@ export default function WorkoutInProgress() {
         startedWorkoutId.current = workoutId;
         console.log(
           "Workout ID einmalig beim ersten Start gesetzt:",
-          startedWorkoutId.current
+          startedWorkoutId.current,
         );
       } else {
         console.log(
           "Workout ID bereits gesetzt, überspringe Setzen:",
-          startedWorkoutId.current
+          startedWorkoutId.current,
         );
       }
       setStartTime(now);
@@ -216,7 +216,7 @@ export default function WorkoutInProgress() {
       setPauseTime(now);
       console.log(
         "Timer läuft und wird pausiert: ",
-        totalPausedDuration / 1000
+        totalPausedDuration / 1000,
       );
       setIsRunning(false);
     }
@@ -254,18 +254,18 @@ export default function WorkoutInProgress() {
       ) {
         console.error(
           "Keine gültige Workout ID zum Speichern gefunden.",
-          startedWorkoutId.current
+          startedWorkoutId.current,
         );
         return;
       }
-      const response = await apiService.saveCompletedWorkout(
+      const response = await apiService.postCompletedWorkout(
         startedWorkoutId.current,
         startTime,
         endTime,
         totalPausedDuration,
         elapsedTime,
         workoutList,
-        workoutName
+        workoutName,
       );
       console.log(response.data);
       localStorage.removeItem(WORKOUT_IN_PROGRESS_KEY);
@@ -278,7 +278,7 @@ export default function WorkoutInProgress() {
 
   const handleCancel = () => {
     const confirm = window.confirm(
-      "Möchten Sie das laufende Workout wirklich abbrechen? Alle Daten gehen verloren."
+      "Möchten Sie das laufende Workout wirklich abbrechen? Alle Daten gehen verloren.",
     );
     if (confirm) {
       localStorage.removeItem(WORKOUT_IN_PROGRESS_KEY);
@@ -294,7 +294,7 @@ export default function WorkoutInProgress() {
     const seconds = totalSeconds % 60;
     return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
       2,
-      "0"
+      "0",
     )}:${String(seconds).padStart(2, "0")}`;
   };
 

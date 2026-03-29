@@ -8,7 +8,6 @@ import styles from "../../styles/Exercises.module.css";
 import stylesButton from "../../styles/Button.module.css";
 import { CompletedWorkout } from "../../types/workouts";
 import EditButton from "../Buttons/EditButton";
-import type { CompletedWorkout } from "../../types/workouts";
 
 export default function History() {
   const [workouts, setWorkouts] = useState<CompletedWorkout[] | null>([]);

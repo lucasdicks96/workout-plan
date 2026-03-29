@@ -12,7 +12,6 @@ import ConfirmButton from "../Buttons/ConfirmButton";
 import Popup from "../Popup";
 import { PopupRef } from "../Popup";
 import stylesButton from "../../styles/Button.module.css";
-import type { PopupRef } from "../Popup";
 
 export default function CreateWorkout() {
   const {
