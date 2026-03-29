@@ -210,7 +210,7 @@ export async function getCompletedWorkouts(
 
   for (const { workout, exerciseMap } of workoutGroupMap.values()) {
     workout.exercises = Array.from(exerciseMap.values()).sort(
-      (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0),
+      (a, b) => a.displayOrder - b.displayOrder,
     );
 
     completedWorkouts.push(workout);
