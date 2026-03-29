@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import DeleteButton from "../Buttons/DeleteButton";
 import ReturnButton from "../Buttons/ReturnButton";
+import { apiService } from "../../services/apiService";
 
 export default function ProfileView() {
   const { user } = useAuth();

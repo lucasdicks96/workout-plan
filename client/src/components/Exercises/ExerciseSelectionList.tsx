@@ -7,6 +7,7 @@ import { useExercises } from "../../hooks/useExercises";
 import { CombinedExercise } from "../../types/exercises";
 import { WorkoutExercises } from "../../types/workouts";
 import { useSetTitle } from "../../hooks/useSetTitle";
+import type { CombinedExercise } from "../../types/exercises";
 
 type ExerciseSelectionListProps = {
   allExercises?: CombinedExercise[];

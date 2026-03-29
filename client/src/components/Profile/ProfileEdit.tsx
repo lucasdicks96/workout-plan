@@ -6,6 +6,7 @@ import { User } from "../../types/user";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import ReturnButton from "../Buttons/ReturnButton";
 import Popup from "../Popup";
+import type { PopupRef } from "../Popup";
 
 export default function ProfileEdit() {
   const { user } = useAuth();

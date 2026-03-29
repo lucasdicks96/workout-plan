@@ -9,6 +9,7 @@ import AddButton from "../Buttons/AddButton";
 import DeleteButton from "../Buttons/DeleteButton";
 import EditButton from "../Buttons/EditButton";
 import PlayPauseButton from "../Buttons/PlayPauseButton";
+import type { IWorkout } from "../../types/workouts";
 
 export default function Workout() {
   const [workoutList, setWorkoutList] = useState<IWorkout[] | []>([]);
