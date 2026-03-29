@@ -114,6 +114,32 @@ router.put(
   }),
 );
 
+router.put(
+  "/exercise/:id",
+  isAuthenticated,
+  authenticatedHandler(async (req, res: Response) => {
+    const { id, title, description, categories } = req.params;
+    const userId = req.user.id;
+
+    if (isNaN(parseInt(id))) {
+      throw new BadRequestError("Ungültige Übungs-ID.");
+    }
+
+    if (!title || typeof title !== "string" || title.trim() === "") {
+      throw new BadRequestError("Titel darf nicht leer sein.");
+    }
+
+    const result = await exerciseService.putUserExercise(
+      parseInt(id),
+      title,
+      description,
+      userId,
+      categories,
+    );
+    res.status(200).json({ message: result.message });
+  }),
+);
+
 router.delete(
   "/exercise/:id",
   isAuthenticated,
