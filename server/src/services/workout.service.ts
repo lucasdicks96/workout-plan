@@ -286,7 +286,27 @@ export async function putWorkout(
   return result;
 }
 
-const buildWorkout = () => {};
+// Fehlende Service-Methoden für Workouts
+export async function getWorkoutStats(userId: string): Promise<{
+  totalPlans: number;
+  completedWorkouts: number;
+  activeWorkouts: number;
+}> {
+  const stats = await workoutRepository.getWorkoutStats(userId);
+  return stats;
+}
+
+export async function getWorkoutProgress(
+  workoutId: number,
+  userId: string,
+): Promise<{
+  totalSets: number;
+  completedSets: number;
+  progress: number;
+}> {
+  const progress = await workoutRepository.getWorkoutProgress(workoutId, userId);
+  return progress;
+}
 
 // Konvertierungs-Hilfsfunktion
 const convertMsToPgTimestamp = (ms: number) => {

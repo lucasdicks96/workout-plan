@@ -329,3 +329,50 @@ export async function putWorkout(
     client.release();
   }
 }
+
+// Fehlende Repository-Methoden für Workouts
+export async function getWorkoutStats(userId: string): Promise<{
+  totalPlans: number;
+  completedWorkouts: number;
+  activeWorkouts: number;
+}> {
+  const result = await pool.query(
+    `SELECT 
+      COUNT(DISTINCT workout_plans.id) as total_plans,
+      COUNT(DISTINCT completed_workouts.id) as completed_workouts,
+      COUNT(DISTINCT workout_plans.id) - COUNT(DISTINCT completed_workouts.id) as active_workouts
+    FROM users
+    LEFT JOIN workout_plans ON users.id = workout_plans.user_id
+    LEFT JOIN completed_workouts ON workout_plans.id = completed_workouts.workout_plan_id
+    WHERE users.id = $1`,
+    [userId],
+  );
+  return result.rows[0];
+}
+
+export async function getWorkoutProgress(
+  workoutId: number,
+  userId: string,
+): Promise<{
+  totalSets: number;
+  completedSets: number;
+  progress: number;
+}> {
+  const result = await pool.query(
+    `SELECT 
+      COUNT(DISTINCT plan_sets.id) as total_sets,
+      COUNT(DISTINCT completed_sets.id) as completed_sets,
+      ROUND(
+        COUNT(DISTINCT completed_sets.id) * 100.0 / NULLIF(COUNT(DISTINCT plan_sets.id), 0),
+        2
+      ) as progress
+    FROM workout_plans
+    LEFT JOIN plan_exercises ON workout_plans.id = plan_exercises.workout_plan_id
+    LEFT JOIN plan_sets ON plan_exercises.id = plan_sets.plan_exercise_id
+    LEFT JOIN completed_workouts ON workout_plans.id = completed_workouts.workout_plan_id
+    LEFT JOIN completed_sets ON plan_sets.id = completed_sets.plan_exercise_id
+    WHERE workout_plans.id = $1 AND workout_plans.user_id = $2`,
+    [workoutId, userId],
+  );
+  return result.rows[0];
+}

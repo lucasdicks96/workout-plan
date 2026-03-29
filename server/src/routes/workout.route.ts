@@ -138,10 +138,10 @@ router.get(
 );
 
 router.put(
-  "/workout",
+  "/workout/:workoutId",
   isAuthenticated,
   authenticatedHandler(async (req, res: Response) => {
-    const workoutId = parseInt(req.body.workoutId);
+    const workoutId = parseInt(req.params.workoutId);
     const title: string = req.body.title;
     const exercises: WorkoutExercise[] = req.body.exercises;
     if (!workoutId || isNaN(workoutId)) {
@@ -159,6 +159,19 @@ router.put(
       title,
       exercises,
     );
+    res.status(200).json({ message: result.message });
+  }),
+);
+
+router.delete(
+  "/workout/:workoutId",
+  isAuthenticated,
+  authenticatedHandler(async (req, res: Response) => {
+    const workoutId = parseInt(req.params.workoutId);
+    if (!workoutId || isNaN(workoutId)) {
+      throw new BadRequestError("Workout ID stimmt nicht überein.");
+    }
+    const result = await workoutService.deleteWorkout(workoutId, req.user.id);
     res.status(200).json({ message: result.message });
   }),
 );
