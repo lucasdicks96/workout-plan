@@ -60,6 +60,8 @@ function App() {
                 path="/history/edit/:id"
                 element={<EditHistoryWorkout />}
               />
+              <Route path="/profile" element={<ProfileView />} />
+              <Route path="/profile/edit" element={<ProfileEdit />} />
             </Route>
           </Route>
           <Route element={<PublicRoute />}>
