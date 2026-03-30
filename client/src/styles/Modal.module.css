@@ -78,6 +78,38 @@
   overflow-y: auto;
 }
 
+/* Dropdown that opens downward */
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  z-index: 50;
+  max-height: 300px;
+  overflow-y: auto;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Ensure dropdown never goes above viewport */
+.dropdown {
+  max-height: calc(100vh - 200px);
+}
+
 /* Responsive Modal */
 @media (max-width: 480px) {
   .modal {
