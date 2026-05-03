@@ -3,15 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
+import stylesButton from "../../styles/Button.module.css";
 import { Exercise } from "../../types/exercises";
-import ExerciseSelectionList from "../Exercises/ExerciseSelectionList";
-import WorkoutExercises from "./WorkoutExercises";
-import ReturnButton from "../Buttons/ReturnButton";
 import AddButton from "../Buttons/AddButton";
 import ConfirmButton from "../Buttons/ConfirmButton";
-import Popup from "../Popup";
+import ReturnButton from "../Buttons/ReturnButton";
+import ExerciseSelectionList from "../Exercises/ExerciseSelectionList";
 import { PopupRef } from "../Popup";
-import stylesButton from "../../styles/Button.module.css";
+import WorkoutExercises from "./WorkoutExercises";
 
 export default function CreateWorkout() {
   const {
