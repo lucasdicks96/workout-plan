@@ -98,7 +98,7 @@ function WorkoutExercises({
             onDrop={onDrop(idx)}
             className={`${stylesWorkoutExercises.card}`}
             style={{
-              minHeight: "fit-content",
+              // minHeight: "fit-content",
               boxShadow:
                 draggedIdx === idx ? "0 4px 12px rgba(0, 0, 0, 0.3)" : "none",
               border: draggedIdx === idx ? "2px solid #2196f3" : undefined,
