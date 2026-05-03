@@ -6,6 +6,7 @@ import {
 } from "../types/errors.types";
 import {
   CompletedWorkout,
+  FlattenedCompletedWorkout,
   Workout,
   WorkoutExercise,
 } from "../types/workout.types";
@@ -75,8 +76,8 @@ export async function getWorkoutById(
 
     exercise.sets.push({
       setNumber: item.set_number,
-      repetitions: item.target_repetitions,
-      weight: item.target_weight,
+      repetitions: item.repetitions,
+      weight: item.weight,
     });
   });
 
@@ -97,7 +98,7 @@ export async function getLastWorkout(
 
   if (!owner) throw new UnauthorizedError("Nicht berechtigt das zu tun.");
 
-  const workoutData = await workoutRepository.getLastCompletedWorkout(
+  const workoutData: Workout = await workoutRepository.getLastCompletedWorkout(
     workoutId,
     userId,
   );
@@ -140,7 +141,7 @@ export async function getLastWorkout(
   newWorkout.exercises = Array.from(exerciseMap.values()).sort(
     (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0),
   );
-  console.log("GET LAST WORKOUT DATA: ", newWorkout);
+  console.log("GET LAST WORKOUT DATA: ", workoutData);
   return newWorkout;
 }
 
@@ -219,8 +220,93 @@ export async function getCompletedWorkouts(
   completedWorkouts.sort(
     (a, b) => b.startTime.getTime() - a.startTime.getTime(),
   );
-
+  console.log("completed workouts: ", completedWorkouts[0]);
   return completedWorkouts;
+}
+
+export async function getCompletedWorkout(
+  userId: string,
+  workoutId: string,
+): Promise<CompletedWorkout> {
+  try {
+    const flatData: FlattenedCompletedWorkout[] =
+      await workoutRepository.getCompletedWorkout(userId, workoutId);
+
+    if (!Array.isArray(flatData) || flatData.length === 0) {
+      throw new BadRequestError(
+        "Keine Daten für das abgeschlossene Workout gefunden.",
+      );
+    }
+
+    const workoutGroupMap = new Map<
+      string,
+      {
+        workout: CompletedWorkout;
+        exerciseMap: Map<number, WorkoutExercise>;
+      }
+    >();
+
+    flatData.forEach((item) => {
+      const completedWorkoutId = item.workout_id;
+
+      let workoutEntry = workoutGroupMap.get(completedWorkoutId);
+
+      if (!workoutEntry) {
+        workoutEntry = {
+          workout: {
+            id: completedWorkoutId,
+            userId: userId,
+            workoutId: item.workout_plan_id,
+            title: item.plan_title,
+            duration: item.duration_seconds,
+            startTime: item.start_time,
+            endTime: item.end_time,
+            pauseTime: item.pause_seconds,
+            exercises: [],
+          },
+          exerciseMap: new Map<number, WorkoutExercise>(),
+        };
+        workoutGroupMap.set(completedWorkoutId, workoutEntry);
+      }
+
+      const exerciseId = item.exercise_id;
+      let exercise = workoutEntry.exerciseMap.get(exerciseId);
+
+      if (!exercise) {
+        exercise = {
+          id: exerciseId,
+          title: item.title,
+          displayOrder: item.display_order,
+          sets: [],
+        };
+        workoutEntry.exerciseMap.set(exerciseId, exercise);
+      }
+
+      if (item.set_number != null) {
+        exercise.sets.push({
+          setNumber: item.set_number,
+          weight: item.weight,
+          repetitions: item.repetitions,
+        });
+      }
+    });
+
+    let completedWorkouts: CompletedWorkout = {} as CompletedWorkout;
+
+    for (const { workout, exerciseMap } of workoutGroupMap.values()) {
+      workout.exercises = Array.from(exerciseMap.values()).sort(
+        (a, b) => a.displayOrder - b.displayOrder,
+      );
+      completedWorkouts = workout;
+    }
+
+    return completedWorkouts;
+  } catch (error) {
+    console.error("Fehler beim Abrufen des abgeschlossenen Workouts:", error);
+    throw new InternalServerError(
+      "Fehler beim Abrufen des abgeschlossenen Workouts",
+    );
+  }
 }
 
 export async function postCompletedWorkout(
@@ -286,6 +372,14 @@ export async function putWorkout(
   return result;
 }
 
+export async function putCompletedWorkout(exercises: CompletedWorkout) {
+  const result = await workoutRepository.putCompletedWorkout(exercises);
+
+  if (!result)
+    throw new InternalServerError("Fehler beim Aktualisieren des Workouts");
+  return result;
+}
+
 // Fehlende Service-Methoden für Workouts
 export async function getWorkoutStats(userId: string): Promise<{
   totalPlans: number;
@@ -304,7 +398,10 @@ export async function getWorkoutProgress(
   completedSets: number;
   progress: number;
 }> {
-  const progress = await workoutRepository.getWorkoutProgress(workoutId, userId);
+  const progress = await workoutRepository.getWorkoutProgress(
+    workoutId,
+    userId,
+  );
   return progress;
 }
 
