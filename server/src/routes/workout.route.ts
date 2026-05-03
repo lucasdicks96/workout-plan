@@ -2,7 +2,7 @@ import { Response, Router } from "express";
 import { isAuthenticated } from "../middlewares/isAuthenticated";
 import * as workoutService from "../services/workout.service";
 import { BadRequestError } from "../types/errors.types";
-import { WorkoutExercise } from "../types/workout.types";
+import { CompletedWorkout, WorkoutExercise } from "../types/workout.types";
 import { authenticatedHandler } from "../utils/auth.utils";
 
 const router = Router();
@@ -137,6 +137,25 @@ router.get(
   }),
 );
 
+router.get(
+  "/completed-workout/:workoutId",
+  isAuthenticated,
+  authenticatedHandler(async (req, res: Response) => {
+    const workoutId = req.params.workoutId;
+    if (!workoutId) {
+      throw new BadRequestError("Workout ID fehtl.");
+    }
+    const workoutData = await workoutService.getCompletedWorkout(
+      req.user.id,
+      workoutId,
+    );
+    res.status(200).json({
+      message: "Abgeschlossenes Workout erfolgreich abgefragt.",
+      workout: workoutData,
+    });
+  }),
+);
+
 router.put(
   "/workout/:workoutId",
   isAuthenticated,
@@ -159,6 +178,32 @@ router.put(
       title,
       exercises,
     );
+    res.status(200).json({ message: result.message });
+  }),
+);
+
+router.put(
+  "/completed-workout",
+  isAuthenticated,
+  authenticatedHandler(async (req, res: Response) => {
+    const { workout }: { workout: CompletedWorkout } = req.body;
+    console.log(workout);
+
+    if (
+      !workout ||
+      workout.exercises.length === 0 ||
+      workout.title.length === 0
+    ) {
+      throw new BadRequestError(
+        "Es müssen der Title und mindestens eine Übung vorhanden sein.",
+      );
+    }
+
+    if (!workout.workoutId) {
+      throw new BadRequestError("Workout ID fehlerhaft.");
+    }
+
+    const result = await workoutService.putCompletedWorkout(workout);
     res.status(200).json({ message: result.message });
   }),
 );
