@@ -3,14 +3,35 @@ import {
   WorkoutExerciseSets,
   WorkoutExercises as WorkoutExercisesType,
 } from "../types/workouts";
+import { Exercise } from "../types/exercises";
 
+/**
+ * useWorkoutManager
+ *
+ * Ein Custom Hook, der die gesamte Logik für die Erstellung und Bearbeitung eines Workouts kapselt.
+ * Er verwaltet eine Liste von Übungen (einschließlich Sätzen) und bietet Funktionen
+ * zum Manipulieren dieser Liste (Hinzufügen, Entfernen, Reordering).
+ *
+ * @param initialWorkoutList Die optionale initiale Liste der Übungen (z.B. beim Editieren)
+ */
 export function useWorkoutManager(
   initialWorkoutList: WorkoutExercisesType[] = [],
 ) {
+  // Hauptzustand: Die Liste der Übungen im aktuellen Workout
   const [workoutList, setWorkoutList] =
     useState<WorkoutExercisesType[]>(initialWorkoutList);
+
+  // Hilfszustand: Steuert, ob der User gerade in der Übungsauswahl ist
   const [isSelecting, setIsSelecting] = useState(false);
 
+  /**
+   * Aktualisiert ein spezifisches Feld (Gewicht oder Wiederholungen) innerhalb eines Satzes.
+   *
+   * @param key Die ID der Übung
+   * @param setIdx Der Index des Satzes innerhalb der Übung
+   * @param field Das zu aktualisierende Feld ('weight' oder 'repetitions')
+   * @param value Der neue numerische Wert
+   */
   const updateExerciseInWorkout = (
     key: number,
     setIdx: number,
@@ -31,6 +52,9 @@ export function useWorkoutManager(
     );
   };
 
+  /**
+   * Fügt einer spezifischen Übung einen neuen Satz mit Standardwerten hinzu.
+   */
   const handleAddSet = (key: number) => {
     setWorkoutList((current) =>
       current.map((ex) =>
@@ -51,6 +75,9 @@ export function useWorkoutManager(
     );
   };
 
+  /**
+   * Entfernt den letzten Satz einer Übung (sofern mehr als ein Satz vorhanden ist).
+   */
   const handleRemoveSet = (key: number) => {
     setWorkoutList((current) =>
       current.map((ex) => {
@@ -65,6 +92,9 @@ export function useWorkoutManager(
     );
   };
 
+  /**
+   * Entfernt eine komplette Übung aus dem Workout und aktualisiert die Sortierreihenfolge.
+   */
   const removeExerciseFromWorkout = (key: number) => {
     setWorkoutList((current) => {
       const newList = current.filter((ex) => ex.id !== key);
@@ -72,6 +102,10 @@ export function useWorkoutManager(
     });
   };
 
+  /**
+   * Hilfsfunktion: Aktualisiert die Eigenschaft 'displayOrder' basierend auf der
+   * aktuellen Index-Position im Array. Wichtig für Drag & Drop oder Reordering.
+   */
   function updateDisplayOrder(workoutExercises: WorkoutExercisesType[]) {
     return workoutExercises.map((ex, idx) => ({
       ...ex,
@@ -79,11 +113,19 @@ export function useWorkoutManager(
     }));
   }
 
+  /**
+   * Ersetzt die gesamte Liste (z.B. nach einer Drag & Drop Aktion)
+   * und normalisiert die Sortierreihenfolge.
+   */
   const reorderWorkoutList = (newList: WorkoutExercisesType[]) => {
     setWorkoutList(updateDisplayOrder(newList));
   };
 
-  const addExerciseToWorkout = (exercise: WorkoutExercisesType) => {
+  /**
+   * Fügt eine neue Basis-Übung aus dem Übungskatalog dem Workout hinzu.
+   * Initialisiert die Übung mit einem Standard-Satz.
+   */
+  const addExerciseToWorkout = (exercise: Exercise) => {
     setWorkoutList((current) => {
       const newList = [
         ...current,
@@ -95,6 +137,7 @@ export function useWorkoutManager(
       ];
       return updateDisplayOrder(newList);
     });
+    // Nach der Auswahl wird die Liste automatisch geschlossen
     setIsSelecting(false);
   };
 
