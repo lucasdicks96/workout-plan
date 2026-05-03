@@ -29,13 +29,14 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
           setError(err.response.data.message);
         } else {
           setError("Interner Serverfehler.");
+          console.error(err.stack);
         }
       } else {
         console.error("Ein unerwarteter Fehler ist aufgetreten:", err);
         setError(
           err instanceof Error
             ? err.message
-            : "Ein unerwarteter Fehler ist aufgetreten."
+            : "Ein unerwarteter Fehler ist aufgetreten.",
         );
       }
     }
@@ -68,6 +69,7 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
             <label className={styles.authLabel}>E-Mail</label>
             <input
               type="email"
+              id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="input"
@@ -78,6 +80,7 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
             <label className={styles.authLabel}>Passwort</label>
             <input
               type="password"
+              id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input"
