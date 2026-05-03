@@ -31,12 +31,12 @@ const Popup = forwardRef<PopupRef, PopupProps>(
   (
     {
       duration = 1500,
-      className = "",
+      // className = "",
       onClose,
       showBackdrop = true,
       onBackdropClick,
     },
-    ref
+    ref,
   ) => {
     const [internalState, setInternalState] = useState<{
       message: string;
@@ -62,7 +62,7 @@ const Popup = forwardRef<PopupRef, PopupProps>(
           setInternalState((prev) => ({ ...prev, isOpen: false }));
         },
       }),
-      []
+      [],
     );
 
     // Auto-Schließen mit Callback
@@ -92,6 +92,7 @@ const Popup = forwardRef<PopupRef, PopupProps>(
       color: "var(--c-bg)",
       zIndex: 1000,
       textAlign: "center" as const,
+      alignItems: "center" as const,
       fontWeight: "bold" as const,
       minWidth: "250px",
       boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
@@ -110,7 +111,7 @@ const Popup = forwardRef<PopupRef, PopupProps>(
         )}
         <div
           style={popupStyle}
-          className={`${styles.popup} ${className}`}
+          // className={`${styles.popup} ${className}`}
           role="alert"
           aria-live="polite"
           onClick={(e) => e.stopPropagation()} // Stoppt Backdrop-Close
@@ -119,7 +120,7 @@ const Popup = forwardRef<PopupRef, PopupProps>(
         </div>
       </>
     );
-  }
+  },
 );
 
 Popup.displayName = "Popup";
