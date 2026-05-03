@@ -10,15 +10,15 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  /* flex-wrap: no-wrap; */
 }
 
 .input {
   width: 3rem;
   min-width: 3rem;
   max-width: 6rem;
-  padding: 0.5rem 0.75rem;
-  margin-top: 0.5rem;
+  padding: 0.5rem 0.25rem;
+  /* margin-top: 0.5rem; */
   border-radius: 0.5rem;
   background-color: var(--c-bg);
   color: var(--c-text-primary);
@@ -85,6 +85,7 @@
 
 .card .input {
   font-size: 0.875rem;
+  text-align: center;
 }
 
 .card .cardSpan {
@@ -139,7 +140,7 @@
 @media (min-width: 769px) {
   .card {
     max-width: 400px;
-    min-height: 12rem;
+    
   }
   
   .card h3 {
@@ -159,7 +160,7 @@
 @media (min-width: 1025px) {
   .card {
     max-width: 450px;
-    min-height: 14rem;
+    min-height: auto;
   }
   
   .card h3 {
@@ -168,7 +169,8 @@
   
   .card .input {
     font-size: 1.125rem;
-    width: 6rem;
+    width: auto;
+    max-width: 5rem;
   }
   
   .card .cardSpan {
@@ -200,12 +202,12 @@
 /* Touch Device Optimizations */
 @media (hover: none) and (pointer: coarse) {
   .card {
-    min-height: 48px;
+    min-height: auto;
     padding: 1rem;
   }
   
   .input {
-    min-height: 44px;
+    /* min-height: 44px; */
     padding: 0.75rem;
   }
 }
