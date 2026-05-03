@@ -71,60 +71,72 @@
   width: 100%;
 }
 
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.backdrop.backdropOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* Mobile Styles - Sidebar at bottom */
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
+    top: 0;
     left: 0;
-    top: auto;
-    bottom: 0;
-    width: 100%;
-    max-width: 280px;
+    height: 100vh; /* Volle Höhe */
+    width: 280px;
     z-index: 100;
-    padding: 1rem;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-    transform: translateY(100%);
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.2);
+    /* Fährt klassisch von links herein */
+    transform: translateX(-100%);
     transition: transform 0.3s ease-in-out;
   }
 
   .sidebar.open {
-    transform: translateY(0);
-  }
-
-  .sidebarHeader {
-    margin-bottom: 1rem;
-    font-size: 1.25rem;
-  }
-
-  .sidebarNavItem {
-    padding: 0.75rem;
-    font-size: 0.875rem;
+    transform: translateX(0);
   }
 
   .themeToggle {
-    display: none;
+    /* Optional: Falls du das Theme-Toggle auf Mobile anzeigen willst, entferne display: none */
+    display: flex; 
+    flex-direction: column;
   }
 }
 
 /* Mobile menu toggle button */
 @media (max-width: 768px) {
-  .sidebar::before {
-    content: '';
+  .sidebar {
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 99;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s, visibility 0.3s;
+    width: 280px;
+    z-index: 9999; /* WICHTIG: Sehr hoch setzen, damit die Klicks nicht blockiert werden */
+    background-color: var(--c-surface); /* WICHTIG: Verhindert, dass man durch die Sidebar klickt */
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.2);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
   }
 
-  .sidebar.open::before {
-    opacity: 1;
-    visibility: visible;
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .themeToggle {
+    display: flex; 
+    flex-direction: column;
   }
 }
 
@@ -133,12 +145,10 @@
   .sidebar {
     position: sticky;
     top: 0;
-    height: 100vh;
+    /* height: 100vh; */
     overflow-y: auto;
-  }
-  
-  .sidebarNav {
-    overflow-y: visible;
+    transform: none !important; 
+    z-index: 10; /* Auf Desktop reicht ein normaler z-index */
   }
 }
 
@@ -146,9 +156,5 @@
 @media (min-width: 769px) and (max-width: 1024px) {
   .sidebar {
     width: 14rem;
-  }
-  
-  .sidebarNavItem {
-    padding: 0.625rem 0.5rem;
   }
 }
