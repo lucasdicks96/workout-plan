@@ -36,8 +36,8 @@ export async function getWorkout(workoutId: number): Promise<any> {
                 plan_exercises.exercise_id,
                 plan_exercises.display_order,
                 plan_sets.set_number,
-                plan_sets.target_repetitions,
-                plan_sets.target_weight 
+                plan_sets.repetitions,
+                plan_sets.weight 
       FROM      plan_exercises 
       JOIN      exercises 
       ON        plan_exercises.exercise_id = exercises.id 
@@ -99,6 +99,51 @@ export async function postWorkoutPlan(
   }
 }
 
+export async function getCompletedWorkout<T>(
+  userId: string,
+  workoutId: string,
+): Promise<T> {
+  const result = await pool.query(
+    `SELECT   completed_workouts.id AS workout_id,
+              exercises.user_id as user_id,
+              completed_workouts.workout_plan_id,
+              workout_plans.title AS plan_title,
+              completed_workouts.duration_seconds,
+              completed_workouts.start_time,
+              completed_workouts.end_time,
+              completed_workouts.pause_seconds,
+              completed_sets.exercise_id,
+              exercises.title,
+              unique_plan_exercises.display_order,
+              completed_sets.set_number,
+              completed_sets.weight,
+              completed_sets.repetitions
+    FROM      completed_workouts
+    JOIN      completed_sets
+    ON        completed_workouts.id = completed_sets.completed_workout_id
+    JOIN      exercises
+    ON        completed_sets.exercise_id = exercises.id
+    JOIN      workout_plans
+    ON        completed_workouts.workout_plan_id = workout_plans.id
+    JOIN (
+    SELECT    workout_plan_id, exercise_id, MIN(display_order) as display_order
+    FROM      plan_exercises
+    GROUP BY  workout_plan_id, exercise_id)
+    AS        unique_plan_exercises
+    ON        completed_sets.exercise_id = unique_plan_exercises.exercise_id 
+    AND       workout_plans.id = unique_plan_exercises.workout_plan_id
+
+    WHERE     completed_workouts.user_id = $1
+    AND       completed_workouts.id = $2
+    ORDER BY 
+              unique_plan_exercises.display_order ASC,
+              completed_sets.set_number ASC;
+    `,
+    [userId, workoutId],
+  );
+  return result.rows as T;
+}
+
 export async function getCompletedWorkouts(userId: string) {
   const result = await pool.query(
     `SELECT   completed_workouts.id AS workout_id,
@@ -110,8 +155,8 @@ export async function getCompletedWorkouts(userId: string) {
               workout_plans.title AS plan_title,
               completed_sets.exercise_id,
               completed_sets.set_number,
-              completed_sets.performed_repetitions AS repetitions,
-			        completed_sets.performed_weight AS weight,
+              completed_sets.repetitions,
+			        completed_sets.weight,
               exercises.title,
               exercises.user_id,
               unique_plan_exercises.display_order
@@ -178,8 +223,9 @@ export async function getLastCompletedWorkout(
       )
       SELECT 
                 completed_workouts.start_time AS last_workout_date,
-                exercises.id AS exercise_id,
-                exercises.name AS exercise_name,
+                completed_workouts.title AS plan_title,
+                exercises.id,
+                exercises.title,
                 completed_sets.set_number,
                 completed_sets.*, 
                 unique_plan_exercises.display_order
@@ -221,9 +267,9 @@ export async function postCompletedWorkout(
     for (const exercise of exercises) {
       await client.query(
         `INSERT INTO completed_sets 
-          (completed_workout_id, exercise_id, set_number, performed_repetitions, performed_weight)
-           SELECT $1,* 
-           FROM UNNEST ($2::int[], $3::int[], $4::int[], $5::float[])`,
+          (completed_workout_id, exercise_id, set_number, repetitions, weight)
+           SELECT $1, $2,  * 
+           FROM UNNEST ($3::int[], $4::int[], $5::float[])`,
         [
           completedPlanId,
           exercise.id,
@@ -301,7 +347,7 @@ export async function putWorkout(
 
       if (exercise.sets && exercise.sets.length > 0) {
         await client.query(
-          `INSERT INTO plan_sets (plan_exercise_id, set_number, target_repetitions, target_weight) 
+          `INSERT INTO plan_sets (plan_exercise_id, set_number, repetitions, weight) 
            SELECT $1, * FROM UNNEST($2::int[], $3::int[], $4::float[])`,
           [
             planExerciseId,
@@ -312,6 +358,70 @@ export async function putWorkout(
         );
       }
     }
+    await client.query("COMMIT");
+    return { message: "Workout erfolgreich Aktualisiert" };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (error instanceof UnauthorizedError) {
+      throw error;
+    }
+
+    console.error("Error in updateWorkout:", error);
+
+    throw new InternalServerError(
+      "Fehler beim Aktualisieren des Workout-Plans",
+    );
+  } finally {
+    client.release();
+  }
+}
+
+export async function putCompletedWorkout(workout: CompletedWorkout) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const isOwner = await ownerCheck(workout.workoutId, workout.userId, client);
+
+    if (!isOwner) {
+      throw new UnauthorizedError(
+        "Workout nicht gefunden oder Benutzer ist nicht autorisiert.",
+      );
+    }
+
+    await client.query(
+      `UPDATE completed_workouts SET title = $1, start_time = $2, end_time = $3, duration_seconds = $4 
+        WHERE id = $5`,
+      [
+        workout.title,
+        workout.startTime,
+        workout.endTime,
+        workout.duration,
+        workout.id,
+      ],
+    );
+
+    await client.query(
+      "DELETE FROM completed_sets WHERE completed_workout_id = $1 ",
+      [workout.id],
+    );
+
+    for (const exercise of workout.exercises) {
+      if (exercise.sets && exercise.sets.length > 0) {
+        await client.query(
+          `INSERT INTO completed_sets (completed_workout_id, exercise_id, set_number, repetitions, weight)
+     SELECT $4, $5, * FROM UNNEST($1::int[], $2::int[], $3::float[])`,
+          [
+            exercise.sets.map((s) => s.setNumber),
+            exercise.sets.map((s) => s.repetitions),
+            exercise.sets.map((s) => s.weight),
+            workout.id,
+            exercise.id,
+          ],
+        );
+      }
+    }
+
     await client.query("COMMIT");
     return { message: "Workout erfolgreich Aktualisiert" };
   } catch (error) {
