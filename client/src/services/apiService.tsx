@@ -1,5 +1,13 @@
 import axios from "axios";
-import { CompletedWorkout, WorkoutExercises } from "../types/workouts";
+import { Category, Exercise } from "../types/exercises";
+import { UserWithoutPassword } from "../types/user";
+import { CompletedWorkout, Workout, WorkoutExercises } from "../types/workouts";
+
+export interface ApiResponse<T = void> {
+  status: "success" | "fail";
+  message?: string;
+  data: T;
+}
 
 const apiClient = axios.create({
   baseURL: "http://localhost:5000",
@@ -14,7 +22,7 @@ const RETRY_DELAY = 1000;
 
 apiClient.interceptors.response.use(
   (response) => {
-    return response;
+    return response.data;
   },
   async (error) => {
     const originalRequest = error.config;
@@ -30,17 +38,20 @@ apiClient.interceptors.response.use(
     }
 
     // Retry on 408, 429, 500, 502, 503, 504
-    if (error.response?.status && [408, 429, 500, 502, 503, 504].includes(error.response.status)) {
+    if (
+      error.response?.status &&
+      [408, 429, 500, 502, 503, 504].includes(error.response.status)
+    ) {
       originalRequest._retry = true;
-      
+
       // Exponential backoff
       const delay = RETRY_DELAY * Math.pow(2, originalRequest._retries || 0);
       originalRequest._retries = (originalRequest._retries || 0) + 1;
-      
+
       console.log(`Retry ${originalRequest._retries} after ${delay}ms`);
-      
+
       await new Promise((resolve) => setTimeout(resolve, delay));
-      
+
       return apiClient(originalRequest);
     }
 
@@ -60,82 +71,89 @@ apiClient.interceptors.response.use(
 );
 
 export const apiService = {
-  login: (email: string, password: string) =>
-    apiClient.post("/user/login", { email, password }).then((res) => res.data),
-  register: (email: string, password: string) =>
-    apiClient.post("/user/register", { email, password }).then((res) => res.data),
-  logout: () => apiClient.post("/user/logout").then((res) => res.data),
-  getStatus: () => apiClient.get("/user/status").then((res) => res.data),
-  postExercise: (title: string, description: string, categories: number[]) =>
-    apiClient.post("/exercise/exercise", {
-      title,
-      description,
-      categories,
-    }),
-  putExercise: (
-    id: number,
-    title: string,
-    description: string,
-    categories: number[],
-  ) =>
-    apiClient.put("/exercise/exercise", {
-      id,
-      title,
-      description,
-      categories,
-    }),
-  deleteExercise: (id: number) => apiClient.delete(`/exercise/exercise/${id}`),
-  // getAllExercises: (userId: string) =>
-  //   apiClient.get(`/exercise/all-exercises/${userId}`),
-  getExercises: () => apiClient.get(`/exercise/exercises`),
-  getUserExercises: () => apiClient.get(`/exercise/user-exercises`),
-  getCategoryTree: () => apiClient.get("/exercise/category-tree"),
-  getUserId: () => apiClient.get("/user/id"),
+  login: (payload: { email: string; password: string }) =>
+    apiClient.post<typeof payload, ApiResponse<UserWithoutPassword>>(
+      "/user/login",
+      payload,
+    ),
+  register: (payload: { email: string; password: string }) =>
+    apiClient.post<typeof payload, ApiResponse<UserWithoutPassword>>(
+      "/user/register",
+      payload,
+    ),
+  logout: () => apiClient.post<unknown, ApiResponse>("/user/logout"),
+  getStatus: () =>
+    apiClient.get<never, ApiResponse<UserWithoutPassword>>("/user/status"),
+  postExercise: (payload: {
+    title: string;
+    description: string;
+    categories: number[];
+  }) =>
+    apiClient.post<typeof payload, ApiResponse<Exercise>>(
+      "/exercise/exercise",
+      payload,
+    ),
+  putExercise: (payload: {
+    id: number;
+    title: string;
+    description: string;
+    categories: number[];
+  }) =>
+    apiClient.put<typeof payload, ApiResponse>("/exercise/exercise", payload),
+
+  deleteExercise: (id: number) =>
+    apiClient.delete<never, ApiResponse>(`/exercise/exercise/${id}`),
+
+  getExercises: () =>
+    apiClient.get<never, ApiResponse<Exercise[]>>(`/exercise/exercises`),
+  getUserExercises: () =>
+    apiClient.get<never, ApiResponse<Exercise[]>>(`/exercise/user-exercises`),
+  getCategoryTree: () =>
+    apiClient.get<never, ApiResponse<Category[]>>("/exercise/category-tree"),
+  getUserId: () => apiClient.get<never, ApiResponse<string>>("/user/id"),
   // getAllWorkouts: (userId: string) =>
   //   apiClient.get(`/workout/all-workouts/${userId}`),
-  getWorkouts: () => apiClient.get(`/workout/workouts`),
+  getWorkouts: () =>
+    apiClient.get<never, ApiResponse<Workout[]>>(`/workout/workouts`),
   getWorkout: (workoutId: number) =>
-    apiClient.get(`/workout/workout/${workoutId}`),
+    apiClient.get<never, ApiResponse<Workout>>(`/workout/workout/${workoutId}`),
   getLastWorkout: (workoutId: number) =>
-    apiClient.get(`/workout/last-workout/${workoutId}`),
-  postWorkout: (title: string, exercises: WorkoutExercises[]) =>
-    apiClient.post("/workout/workout", {
-      title,
-      exercises,
-    }),
-  putWorkout: (
-    title: string,
-    workoutId: number,
-    exercises: WorkoutExercises[],
-  ) =>
-    apiClient.put("/workout/workout", {
-      title,
-      workoutId,
-      exercises,
-    }),
-  postCompletedWorkout: (
-    workoutId: number,
-    startTime: number,
-    endTime: number,
-    pauseTime: number,
-    duration: number,
-    exercises: WorkoutExercises[],
-    title: string,
-  ) =>
-    apiClient.post("/workout/completed-workout", {
-      workoutId,
-      startTime,
-      endTime,
-      pauseTime,
-      duration,
-      exercises,
-      title,
-    }),
-  getCompletedWorkouts: () => apiClient.get(`/workout/completed-workouts`),
+    apiClient.get<never, ApiResponse<Workout>>(
+      `/workout/last-workout/${workoutId}`,
+    ),
+  postWorkout: (payload: { title: string; exercises: WorkoutExercises[] }) =>
+    apiClient.post<typeof payload, ApiResponse>("/workout/workout", payload),
+  putWorkout: (payload: {
+    title: string;
+    workoutId: number;
+    exercises: WorkoutExercises[];
+  }) => apiClient.put<typeof payload, ApiResponse>("/workout/workout", payload),
+  postCompletedWorkout: (payload: {
+    workoutId: number;
+    startTime: number;
+    endTime: number;
+    pauseTime: number;
+    duration: number;
+    exercises: WorkoutExercises[];
+    title: string;
+  }) =>
+    apiClient.post<typeof payload, ApiResponse>(
+      "/workout/completed-workout",
+      payload,
+    ),
+  getCompletedWorkouts: () =>
+    apiClient.get<never, ApiResponse<CompletedWorkout[]>>(
+      `/workout/completed-workouts`,
+    ),
   getCompletedWorkout: (workoutId: string) =>
-    apiClient.get(`/workout/completed-workouts/${workoutId}`),
-  putCompletedWorkout: (workoutId: string, workout: CompletedWorkout) =>
-    apiClient.put(`/workout/completed-workout`, { workoutId, workout }),
+    apiClient.get<never, ApiResponse<CompletedWorkout>>(
+      `/workout/completed-workout/${workoutId}`,
+    ),
+  putCompletedWorkout: (payload: CompletedWorkout) =>
+    apiClient.put<typeof payload, ApiResponse>(
+      `/workout/completed-workout`,
+      payload,
+    ),
   deleteWorkout: (workoutId: number) =>
-    apiClient.delete(`/workout/workout/${workoutId}`),
+    apiClient.delete<never, ApiResponse>(`/workout/workout/${workoutId}`),
 };
