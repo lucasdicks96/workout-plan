@@ -1,0 +1,9 @@
+{
+  "name": "workout-plan-root",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ]
+}
