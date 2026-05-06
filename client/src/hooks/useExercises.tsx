@@ -27,6 +27,216 @@ export function useExercises() {
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
 
   /**
+   * Lädt alle Übungen aus API, dedupliziert nach ID und updated State.
+   */
+  const fetchAllExercises = useCallback(async (): Promise<void> => {
+    try {
+      setIsLoading(true);
+      const response = await apiService.getExercises();
+      if (response.data && Array.isArray(response.data)) {
+        // Deduplizierung: Filtert einzigartige nach ID
+        const uniqueExercises: Exercise[] = response.data.filter(
+          (ex: Exercise, index: number, self: Exercise[]) =>
+            index === self.findIndex((e: Exercise) => e.id === ex.id),
+        );
+        setExerciseList(uniqueExercises);
+      } else {
+        console.warn("Ungültige API-Antwort: Kein exercises-Array");
+        setExerciseList([]);
+      }
+    } catch (error) {
+      console.error("Fehler beim Abrufen der Übungen:", error);
+      setExerciseList([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  /**
+   * Extrahiert alle Kategorie-IDs aus dem Übungs-Kategoriebaum (selbst + Nachkommen).
+   * Handhabt undefinierte/ leere Arrays;
+   *
+   * @param categories - Array von Category-Objekten aus exercise.category.
+   * @returns Abgeflachtes Array einzigartiger IDs.
+   */
+  const getAllCategoryIdsFromTree = useCallback(
+    (categories: Category[] | undefined): number[] => {
+      if (!Array.isArray(categories) || categories.length === 0) return [];
+
+      const ids = new Set<number>();
+      function recurse(cat: Category): void {
+        if (!cat || !Number.isFinite(cat.id)) return; // Guard pro Kategorie
+        ids.add(cat.id);
+        if (cat.children && Array.isArray(cat.children)) {
+          cat.children.forEach(recurse);
+        }
+      }
+      categories.forEach(recurse);
+      return Array.from(ids);
+    },
+    [],
+  );
+
+  /**
+   * Lädt den Kategoriebaum aus API und updated State.
+   * Handhabt leere/ungültige Antworten.
+   */
+  const fetchCategoryTree = useCallback(async (): Promise<void> => {
+    try {
+      setIsCategoryLoading(true);
+      const response = await apiService.getCategoryTree();
+      if (response.data && Array.isArray(response.data)) {
+        setCategoryTree(response.data);
+      } else {
+        console.warn("Ungültige API-Antwort: Kein categories-Array");
+        setCategoryTree([]);
+      }
+    } catch (error) {
+      console.error("Fehler beim Laden des Kategoriebaums:", error);
+      setCategoryTree([]);
+    } finally {
+      setIsCategoryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAllExercises();
+  }, [fetchAllExercises]);
+
+  useEffect(() => {
+    fetchCategoryTree();
+  }, [fetchCategoryTree]);
+
+  /**
+   * Baut eine Parent-Map aus dem Kategoriebaum für Vorfahren-Traversal.
+   */
+  const parentMap = useMemo((): Map<number, number | null> => {
+    const map = new Map<number, number | null>();
+    function buildParentMap(categories: Category[] | undefined): void {
+      if (!Array.isArray(categories)) return; // Guard: Ungültiger Input
+      categories.forEach((cat: Category) => {
+        if (cat.parent_id !== undefined && Number.isFinite(cat.id)) {
+          map.set(cat.id, cat.parent_id);
+        }
+        if (cat.children && Array.isArray(cat.children)) {
+          buildParentMap(cat.children); // Rekursiv nur für Parent-Setzung
+        }
+      });
+    }
+    buildParentMap(categoryTree);
+    return map;
+  }, [categoryTree]);
+
+  /**
+   * Baut eine Children-Map iterativ aus Kategorie-Daten.
+   * Nutzt children-Arrays bei Nested; Fallback zu parent_id für flache Teile.
+   *
+   * @returns Map<ID, direkte Child-IDs>.
+   */
+  const categoryMap = useMemo((): Map<number, number[]> => {
+    const map = new Map<number, number[]>();
+    if (!Array.isArray(categoryTree) || categoryTree.length === 0) {
+      if (debugMode) console.warn("categoryTree leer – categoryMap empty");
+      return map;
+    }
+
+    // Sammle alle in flacher Liste für parent_id-Gruppierung
+    const allCategories: Category[] = []; // Flache Liste für Iteration
+    function collectFlat(cats: Category[] | undefined): void {
+      if (!Array.isArray(cats)) return;
+      cats.forEach((cat: Category) => {
+        allCategories.push(cat); // Selbst hinzufügen
+        if (cat.children && Array.isArray(cat.children)) {
+          collectFlat(cat.children); // Iterativ sammeln
+        }
+      });
+    }
+    collectFlat(categoryTree);
+
+    // Nach parent_id gruppieren
+    allCategories.forEach((cat: Category) => {
+      const catId = Number(cat.id);
+      const parentId = cat.parent_id ? Number(cat.parent_id) : null; // parent_id aus Daten
+
+      if (Number.isFinite(catId)) {
+        if (parentId && Number.isFinite(parentId)) {
+          if (!map.has(parentId)) map.set(parentId, []);
+          const children = map.get(parentId)!;
+          if (!children.includes(catId)) children.push(catId);
+        } else {
+          // Root: Leere Children-Liste setzen
+          if (!map.has(catId)) map.set(catId, []);
+        }
+
+        // Nested-Children überschreiben, falls verfügbar
+        if (cat.children && Array.isArray(cat.children)) {
+          const nestedChildren = cat.children
+            .map((c: Category) => Number(c.id))
+            .filter(Number.isFinite);
+          map.set(catId, nestedChildren);
+        }
+      }
+    });
+
+    // Children sortieren
+    map.forEach((children) => children.sort((a, b) => a - b));
+
+    if (debugMode) {
+      console.log("categoryMap built iteratively:");
+      console.log("  - Arme (4):", map.get(4)); // [20,21,22]
+      console.log("  - Alle Keys:", Array.from(map.keys()));
+    }
+
+    return map;
+  }, [categoryTree, debugMode]);
+
+  // Effect für Logging von Maps und Tree (nach Initialisierung, TDZ-sicher (temporal dead zone))
+  useEffect(() => {
+    if (debugMode && categoryTree?.length > 0 && parentMap && categoryMap) {
+      const tempParentMap = parentMap;
+      const tempCategoryMap = categoryMap;
+      console.log(
+        "Global parentMap (Bizeps 20 -> Arme 4):",
+        tempParentMap.get(20),
+      );
+      console.log(
+        "Global categoryMap (Arme 4 -> [20,21,22]):",
+        tempCategoryMap.get(4),
+      );
+      console.log(
+        "Global Category Tree Roots:",
+        categoryTree.slice(0, 5).map((c) => ({ id: c.id, name: c.name })),
+      );
+    }
+  }, [categoryTree, parentMap, categoryMap, debugMode]);
+
+  // Effect für Logging von Übungen (nach Laden)
+  useEffect(() => {
+    if (
+      debugMode &&
+      exerciseList?.length > 0 &&
+      categoryTree?.length > 0 &&
+      getAllCategoryIdsFromTree
+    ) {
+      exerciseList.forEach((ex: Exercise) => {
+        if (
+          ex.category &&
+          Array.isArray(ex.category) &&
+          ex.category.length > 0
+        ) {
+          const rootIds = ex.category.map((cat: Category) => cat.id);
+          const allIds = getAllCategoryIdsFromTree(ex.category);
+          console.log(
+            `Übung "${ex.title}": Roots [${rootIds.join(
+              ", ",
+            )}], All IDs [${allIds.join(", ")}]`,
+          );
+        }
+      });
+    }
+  }, [exerciseList, categoryTree, getAllCategoryIdsFromTree, debugMode]);
+
+  /**
    * Baut eine flache Map von ID zu Category-Objekt iterativ auf.
    * Flacht verschachtelte Struktur ab (Roots + alle Children) für O(1)-Lookups.
    *
@@ -154,26 +364,6 @@ export function useExercises() {
   );
 
   /**
-   * Baut eine Parent-Map aus dem Kategoriebaum für Vorfahren-Traversal.
-   */
-  const parentMap = useMemo((): Map<number, number | null> => {
-    const map = new Map<number, number | null>();
-    function buildParentMap(categories: Category[] | undefined): void {
-      if (!Array.isArray(categories)) return; // Guard: Ungültiger Input
-      categories.forEach((cat: Category) => {
-        if (cat.parent_id !== undefined && Number.isFinite(cat.id)) {
-          map.set(cat.id, cat.parent_id);
-        }
-        if (cat.children && Array.isArray(cat.children)) {
-          buildParentMap(cat.children); // Rekursiv nur für Parent-Setzung
-        }
-      });
-    }
-    buildParentMap(categoryTree);
-    return map;
-  }, [categoryTree]);
-
-  /**
    * Holt iterativ alle Vorfahren-IDs für eine Kategorie-ID.
    * Nutzt flache idToCategoryMap; Loop upward via parent_id.
    * Stoppt bei Root (parent_id null);
@@ -228,200 +418,6 @@ export function useExercises() {
     },
     [idToCategoryMap, debugMode],
   );
-
-  /**
-   * Baut eine Children-Map iterativ aus Kategorie-Daten.
-   * Nutzt children-Arrays bei Nested; Fallback zu parent_id für flache Teile.
-   *
-   * @returns Map<ID, direkte Child-IDs>.
-   */
-  const categoryMap = useMemo((): Map<number, number[]> => {
-    const map = new Map<number, number[]>();
-    if (!Array.isArray(categoryTree) || categoryTree.length === 0) {
-      if (debugMode) console.warn("categoryTree leer – categoryMap empty");
-      return map;
-    }
-
-    // Sammle alle in flacher Liste für parent_id-Gruppierung
-    const allCategories: Category[] = []; // Flache Liste für Iteration
-    function collectFlat(cats: Category[] | undefined): void {
-      if (!Array.isArray(cats)) return;
-      cats.forEach((cat: Category) => {
-        allCategories.push(cat); // Selbst hinzufügen
-        if (cat.children && Array.isArray(cat.children)) {
-          collectFlat(cat.children); // Iterativ sammeln
-        }
-      });
-    }
-    collectFlat(categoryTree);
-
-    // Nach parent_id gruppieren
-    allCategories.forEach((cat: Category) => {
-      const catId = Number(cat.id);
-      const parentId = cat.parent_id ? Number(cat.parent_id) : null; // parent_id aus Daten
-
-      if (Number.isFinite(catId)) {
-        if (parentId && Number.isFinite(parentId)) {
-          if (!map.has(parentId)) map.set(parentId, []);
-          const children = map.get(parentId)!;
-          if (!children.includes(catId)) children.push(catId);
-        } else {
-          // Root: Leere Children-Liste setzen
-          if (!map.has(catId)) map.set(catId, []);
-        }
-
-        // Nested-Children überschreiben, falls verfügbar
-        if (cat.children && Array.isArray(cat.children)) {
-          const nestedChildren = cat.children
-            .map((c: Category) => Number(c.id))
-            .filter(Number.isFinite);
-          map.set(catId, nestedChildren);
-        }
-      }
-    });
-
-    // Children sortieren
-    map.forEach((children) => children.sort((a, b) => a - b));
-
-    if (debugMode) {
-      console.log("categoryMap built iteratively:");
-      console.log("  - Arme (4):", map.get(4)); // [20,21,22]
-      console.log("  - Alle Keys:", Array.from(map.keys()));
-    }
-
-    return map;
-  }, [categoryTree, debugMode]);
-
-  /**
-   * Extrahiert alle Kategorie-IDs aus dem Übungs-Kategoriebaum (selbst + Nachkommen).
-   * Handhabt undefinierte/ leere Arrays;
-   *
-   * @param categories - Array von Category-Objekten aus exercise.category.
-   * @returns Abgeflachtes Array einzigartiger IDs.
-   */
-  const getAllCategoryIdsFromTree = useCallback(
-    (categories: Category[] | undefined): number[] => {
-      if (!Array.isArray(categories) || categories.length === 0) return [];
-
-      const ids = new Set<number>();
-      function recurse(cat: Category): void {
-        if (!cat || !Number.isFinite(cat.id)) return; // Guard pro Kategorie
-        ids.add(cat.id);
-        if (cat.children && Array.isArray(cat.children)) {
-          cat.children.forEach(recurse);
-        }
-      }
-      categories.forEach(recurse);
-      return Array.from(ids);
-    },
-    [],
-  );
-
-  /**
-   * Lädt alle Übungen aus API, dedupliziert nach ID und updated State.
-   */
-  const fetchAllExercises = useCallback(async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      const response = await apiService.getExercises();
-      if (response?.data?.exercises && Array.isArray(response.data.exercises)) {
-        // Deduplizierung: Filtert einzigartige nach ID
-        const uniqueExercises: Exercise[] = response.data.exercises.filter(
-          (ex: Exercise, index: number, self: Exercise[]) =>
-            index === self.findIndex((e: Exercise) => e.id === ex.id),
-        );
-        setExerciseList(uniqueExercises);
-        console.log("FETCH ALL EXERCISES: ", uniqueExercises);
-      } else {
-        console.warn("Ungültige API-Antwort: Kein exercises-Array");
-        setExerciseList([]);
-      }
-    } catch (error) {
-      console.error("Fehler beim Abrufen der Übungen:", error);
-      setExerciseList([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  /**
-   * Lädt den Kategoriebaum aus API und updated State.
-   * Handhabt leere/ungültige Antworten.
-   */
-  const fetchCategoryTree = useCallback(async (): Promise<void> => {
-    try {
-      setIsCategoryLoading(true);
-      const response = await apiService.getCategoryTree();
-      if (
-        response?.data?.categories &&
-        Array.isArray(response.data.categories)
-      ) {
-        setCategoryTree(response.data.categories);
-      } else {
-        console.warn("Ungültige API-Antwort: Kein categories-Array");
-        setCategoryTree([]);
-      }
-    } catch (error) {
-      console.error("Fehler beim Laden des Kategoriebaums:", error);
-      setCategoryTree([]);
-    } finally {
-      setIsCategoryLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAllExercises();
-  }, [fetchAllExercises]);
-
-  useEffect(() => {
-    fetchCategoryTree();
-  }, [fetchCategoryTree]);
-
-  // Effect für Logging von Maps und Tree (nach Initialisierung, TDZ-sicher (temporal dead zone))
-  useEffect(() => {
-    if (debugMode && categoryTree?.length > 0 && parentMap && categoryMap) {
-      const tempParentMap = parentMap;
-      const tempCategoryMap = categoryMap;
-      console.log(
-        "Global parentMap (Bizeps 20 -> Arme 4):",
-        tempParentMap.get(20),
-      );
-      console.log(
-        "Global categoryMap (Arme 4 -> [20,21,22]):",
-        tempCategoryMap.get(4),
-      );
-      console.log(
-        "Global Category Tree Roots:",
-        categoryTree.slice(0, 5).map((c) => ({ id: c.id, name: c.name })),
-      );
-    }
-  }, [categoryTree, parentMap, categoryMap, debugMode]);
-
-  // Effect für Logging von Übungen (nach Laden)
-  useEffect(() => {
-    if (
-      debugMode &&
-      exerciseList?.length > 0 &&
-      categoryTree?.length > 0 &&
-      getAllCategoryIdsFromTree
-    ) {
-      exerciseList.forEach((ex: Exercise) => {
-        if (
-          ex.category &&
-          Array.isArray(ex.category) &&
-          ex.category.length > 0
-        ) {
-          const rootIds = ex.category.map((cat: Category) => cat.id);
-          const allIds = getAllCategoryIdsFromTree(ex.category);
-          console.log(
-            `Übung "${ex.title}": Roots [${rootIds.join(
-              ", ",
-            )}], All IDs [${allIds.join(", ")}]`,
-          );
-        }
-      });
-    }
-  }, [exerciseList, categoryTree, getAllCategoryIdsFromTree, debugMode]);
 
   /**
    * Prüft, ob eine Übung zur ausgewählten Kategorie passt, unter Berücksichtigung der Baum-Hierarchie.
