@@ -1,159 +1,159 @@
 import { Response, Router } from "express";
 import { isAuthenticated } from "../middlewares/isAuthenticated";
 import * as exerciseService from "../services/exercise.service";
-import { BadRequestError } from "../types/errors.types";
-import { authenticatedHandler } from "../utils/auth.utils";
+import {
+  authenticatedHandler,
+  AuthenticatedRequest,
+} from "../utils/auth.utils";
+import { ApiSuccessResponse } from "@workout/shared";
+import { Category, Exercise } from "../types/exercise.types";
+
+import {
+  createExerciseBodySchema,
+  CreateExerciseBody,
+  updateExerciseBodySchema,
+  UpdateExerciseBody,
+  exerciseIdParamSchema,
+} from "../schemas/exercise.schema";
 
 const router = Router();
 
 router.get(
   "/exercises",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const userId = req.user.id;
-
-    const combinedExercises = await exerciseService.getExercises(userId);
-
-    res.status(200).json({ exercises: combinedExercises });
-  }),
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<any, any, never>,
+      res: Response<ApiSuccessResponse<Exercise[]>>,
+    ) => {
+      const combinedExercises = await exerciseService.getExercises(req.user.id);
+      res.status(200).json({ status: "success", data: combinedExercises });
+    },
+  ),
 );
 
 router.get(
   "/user-exercises",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const userId = req.user.id;
-
-    const combinedExercises = await exerciseService.getUserExercises(userId);
-
-    res.status(200).json({ exercises: combinedExercises });
-  }),
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<any, any, never>,
+      res: Response<ApiSuccessResponse<Exercise[]>>,
+    ) => {
+      const combinedExercises = await exerciseService.getUserExercises(
+        req.user.id,
+      );
+      res.status(200).json({ status: "success", data: combinedExercises });
+    },
+  ),
 );
 
 router.get(
   "/category-tree",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const categories = await exerciseService.getCategoryTree();
-    res.status(200).json({ categories: categories });
-  }),
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<any, any, never>,
+      res: Response<ApiSuccessResponse<Category[]>>,
+    ) => {
+      const categories = await exerciseService.getCategoryTree();
+      res.status(200).json({ status: "success", data: categories });
+    },
+  ),
 );
 
 router.post(
   "/exercise",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const { title, description, categories } = req.body;
-    const userId = req.user.id;
-
-    if (!title || typeof title !== "string" || title.trim() === "") {
-      throw new BadRequestError(
-        "Titel ist erforderlich und darf nicht leer sein.",
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<any, any, CreateExerciseBody>,
+      res: Response<ApiSuccessResponse<Exercise>>,
+    ) => {
+      const { title, description, categories } = createExerciseBodySchema.parse(
+        req.body,
       );
-    }
 
-    const newExercise = await exerciseService.postExercise(
-      title,
-      description,
-      userId,
-      categories,
-    );
-    res.status(201).json(newExercise);
-  }),
+      const newExercise = await exerciseService.postExercise(
+        title,
+        description,
+        req.user.id,
+        categories,
+      );
+
+      res.status(201).json({ status: "success", data: newExercise });
+    },
+  ),
 );
 
 router.put(
   "/exercise",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const { id, title, description, categories } = req.body;
-    const userId = req.user.id;
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<any, any, UpdateExerciseBody>,
+      res: Response<ApiSuccessResponse>,
+    ) => {
+      const { id, title, description, categories } =
+        updateExerciseBodySchema.parse(req.body);
 
-    if (isNaN(id)) {
-      throw new BadRequestError("Ungültige Übungs-ID.");
-    }
+      const result = await exerciseService.putUserExercise(
+        id,
+        title,
+        description,
+        req.user.id,
+        categories,
+      );
 
-    if (!title || typeof title !== "string" || title.trim() === "") {
-      throw new BadRequestError("Titel darf nicht leer sein.");
-    }
-
-    const result = await exerciseService.putUserExercise(
-      id,
-      title,
-      description,
-      userId,
-      categories,
-    );
-    res.status(200).json({ message: result.message });
-  }),
+      res.status(200).json({ status: "success", message: result.message });
+    },
+  ),
 );
 
 router.put(
   "/exercise/:id",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const { id, title, description, categories } = req.params;
-    const userId = req.user.id;
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<{ id: string }, any, CreateExerciseBody>,
+      res: Response<ApiSuccessResponse>,
+    ) => {
+      // Zod validiert die URL-Parameter und konvertiert id zu einer Zahl
+      const { id } = exerciseIdParamSchema.parse(req.params);
 
-    if (isNaN(parseInt(id))) {
-      throw new BadRequestError("Ungültige Übungs-ID.");
-    }
+      const { title, description, categories } = createExerciseBodySchema.parse(
+        req.body,
+      );
 
-    if (!title || typeof title !== "string" || title.trim() === "") {
-      throw new BadRequestError("Titel darf nicht leer sein.");
-    }
+      const result = await exerciseService.putUserExercise(
+        id,
+        title,
+        description,
+        req.user.id,
+        categories,
+      );
 
-    const result = await exerciseService.putUserExercise(
-      parseInt(id),
-      title,
-      description,
-      userId,
-      categories,
-    );
-    res.status(200).json({ message: result.message });
-  }),
-);
-
-router.put(
-  "/exercise/:id",
-  isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const { id, title, description, categories } = req.params;
-    const userId = req.user.id;
-
-    if (isNaN(parseInt(id))) {
-      throw new BadRequestError("Ungültige Übungs-ID.");
-    }
-
-    if (!title || typeof title !== "string" || title.trim() === "") {
-      throw new BadRequestError("Titel darf nicht leer sein.");
-    }
-
-    const result = await exerciseService.putUserExercise(
-      parseInt(id),
-      title,
-      description,
-      userId,
-      categories,
-    );
-    res.status(200).json({ message: result.message });
-  }),
+      res.status(200).json({ status: "success", message: result.message });
+    },
+  ),
 );
 
 router.delete(
   "/exercise/:id",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const exerciseId = parseInt(req.params.id);
-    const userId = req.user.id;
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<{ id: string }, any, never>,
+      res: Response<ApiSuccessResponse>,
+    ) => {
+      // String aus URL sicher validieren und in Number konvertieren
+      const { id } = exerciseIdParamSchema.parse(req.params);
 
-    if (isNaN(exerciseId)) {
-      throw new BadRequestError("Ungültige Übungs-ID.");
-    }
+      const result = await exerciseService.deleteUserExercise(id, req.user.id);
 
-    const result = await exerciseService.deleteUserExercise(exerciseId, userId);
-    res.status(200).json({ message: result.message });
-  }),
+      res.status(200).json({ status: "success", message: result.message });
+    },
+  ),
 );
 
 export default router;

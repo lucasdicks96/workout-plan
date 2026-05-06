@@ -1,224 +1,243 @@
 import { Response, Router } from "express";
 import { isAuthenticated } from "../middlewares/isAuthenticated";
 import * as workoutService from "../services/workout.service";
-import { BadRequestError } from "../types/errors.types";
-import { CompletedWorkout, WorkoutExercise } from "../types/workout.types";
-import { authenticatedHandler } from "../utils/auth.utils";
+import { CompletedWorkout, Workout } from "../types/workout.types";
+import {
+  authenticatedHandler,
+  AuthenticatedRequest,
+} from "../utils/auth.utils";
+import { ApiSuccessResponse } from "@workout/shared";
+
+import {
+  workoutIdParamSchema,
+  stringIdParamSchema,
+  createWorkoutBodySchema,
+  CreateWorkoutBody,
+  postCompletedWorkoutBodySchema,
+  PostCompletedWorkoutBody,
+  putCompletedWorkoutBodySchema,
+  PutCompletedWorkoutBody,
+} from "../schemas/workout.schema";
 
 const router = Router();
 
 router.get(
   "/workouts",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const workouts = await workoutService.getAllWorkouts(req.user.id);
-    res.status(200).json({ workouts: workouts });
-  }),
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<any, any, never>,
+      res: Response<ApiSuccessResponse<Workout[]>>,
+    ) => {
+      const workouts = await workoutService.getAllWorkouts(req.user.id);
+      res.status(200).json({ status: "success", data: workouts });
+    },
+  ),
 );
 
 router.get(
   "/workout/:workoutId",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const workoutId = parseInt(req.params.workoutId);
-    const userId = req.user.id;
-    if (!workoutId || isNaN(workoutId)) {
-      throw new BadRequestError("Falsche Workout ID");
-    }
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<{ workoutId: string }, any, never>,
+      res: Response<ApiSuccessResponse<Workout>>,
+    ) => {
+      const { workoutId } = workoutIdParamSchema.parse(req.params);
 
-    const workoutData = await workoutService.getWorkoutById(workoutId, userId);
-    res.status(200).json({
-      message: "Workout Übungen erfolgreich übermittelt",
-      workout: workoutData,
-    });
-  }),
+      const workoutData = await workoutService.getWorkoutById(
+        workoutId,
+        req.user.id,
+      );
+
+      res.status(200).json({
+        status: "success",
+        data: workoutData,
+        message: "Workout Übungen erfolgreich übermittelt",
+      });
+    },
+  ),
 );
 
 router.get(
   "/last-workout/:workoutId",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const workoutId = parseInt(req.params.workoutId);
-    const userId = req.user.id;
-    if (!workoutId || isNaN(workoutId)) {
-      throw new BadRequestError("Falsche Workout ID");
-    }
-    const workoutData = await workoutService.getLastWorkout(workoutId, userId);
-    res.status(200).json({
-      message: "Workout erfolgreich übermittelt",
-      workout: workoutData,
-    });
-  }),
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<{ workoutId: string }, any, never>,
+      res: Response<ApiSuccessResponse<Workout>>,
+    ) => {
+      const { workoutId } = workoutIdParamSchema.parse(req.params);
+
+      const workoutData = await workoutService.getLastWorkout(
+        workoutId,
+        req.user.id,
+      );
+
+      res.status(200).json({
+        status: "success",
+        data: workoutData,
+        message: "Workout erfolgreich übermittelt",
+      });
+    },
+  ),
 );
 
 router.post(
   "/workout",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const { title, exercises } = req.body;
-    if (!title || !exercises) {
-      throw new BadRequestError("Fehlerhafte Daten gesendet.");
-    }
-    const userId = req.user.id;
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<any, any, CreateWorkoutBody>,
+      res: Response<ApiSuccessResponse>,
+    ) => {
+      const { title, exercises } = createWorkoutBodySchema.parse(req.body);
 
-    const result = await workoutService.createWorkoutPlan(
-      title,
-      userId,
-      exercises,
-    );
-    res.status(200).json({ message: result.message });
-  }),
+      const result = await workoutService.createWorkoutPlan(
+        title,
+        req.user.id,
+        exercises,
+      );
+
+      res.status(200).json({ status: "success", message: result.message });
+    },
+  ),
 );
 
 router.delete(
   "/workout/:workoutId",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const workoutId = parseInt(req.params.workoutId);
-    if (!workoutId || isNaN(workoutId)) {
-      throw new BadRequestError("Workout ID stimmt nicht überein.");
-    }
-    const result = await workoutService.deleteWorkout(workoutId, req.user.id);
-    res.status(200).json({ message: result.message });
-  }),
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<{ workoutId: string }, any, never>,
+      res: Response<ApiSuccessResponse>,
+    ) => {
+      const { workoutId } = workoutIdParamSchema.parse(req.params);
+
+      const result = await workoutService.deleteWorkout(workoutId, req.user.id);
+
+      res.status(200).json({ status: "success", message: result.message });
+    },
+  ),
 );
 
 router.post(
   "/completed-workout",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const {
-      workoutId,
-      startTime,
-      endTime,
-      pauseTime,
-      duration,
-      exercises,
-      title,
-    } = req.body;
-    if (!workoutId || isNaN(workoutId))
-      throw new BadRequestError("Workout ID fehlt");
-    if (!title) throw new BadRequestError("Workout Titel fehlt");
-    if (!exercises || exercises.length === 0)
-      throw new BadRequestError("Übungen fehlen");
-    if (!duration) throw new BadRequestError("Dauer des Workouts fehlt");
-    if (!startTime) throw new BadRequestError("Startzeit des Workouts fehlt");
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<any, any, PostCompletedWorkoutBody>,
+      res: Response<ApiSuccessResponse>,
+    ) => {
+      const {
+        workoutId,
+        startTime,
+        endTime,
+        pauseTime,
+        duration,
+        exercises,
+        title,
+      } = postCompletedWorkoutBodySchema.parse(req.body);
 
-    if (pauseTime === undefined || pauseTime === null)
-      throw new BadRequestError("Pausenzeit des Workouts fehlt");
+      const result = await workoutService.postCompletedWorkout(
+        workoutId,
+        req.user.id,
+        startTime,
+        endTime,
+        pauseTime,
+        duration,
+        exercises,
+        title,
+      );
 
-    if (!endTime) throw new BadRequestError("Endzeit des Workouts fehlt");
-
-    const result = await workoutService.postCompletedWorkout(
-      workoutId,
-      req.user.id,
-      startTime,
-      endTime,
-      pauseTime,
-      duration,
-      exercises,
-      title,
-    );
-    res.status(200).json({ message: result.message });
-  }),
+      res.status(200).json({ status: "success", message: result.message });
+    },
+  ),
 );
 
 router.get(
   "/completed-workouts",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const completedWorkouts = await workoutService.getCompletedWorkouts(
-      req.user.id,
-    );
-    res.status(200).json({
-      message: "Abgeschlossene Workouts erfolgreich abgefragt.",
-      workouts: completedWorkouts,
-    });
-  }),
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<any, any, never>,
+      res: Response<ApiSuccessResponse<CompletedWorkout[]>>,
+    ) => {
+      const completedWorkouts = await workoutService.getCompletedWorkouts(
+        req.user.id,
+      );
+
+      res.status(200).json({
+        status: "success",
+        data: completedWorkouts,
+        message: "Abgeschlossene Workouts erfolgreich abgefragt.",
+      });
+    },
+  ),
 );
 
 router.get(
   "/completed-workout/:workoutId",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const workoutId = req.params.workoutId;
-    if (!workoutId) {
-      throw new BadRequestError("Workout ID fehtl.");
-    }
-    const workoutData = await workoutService.getCompletedWorkout(
-      req.user.id,
-      workoutId,
-    );
-    res.status(200).json({
-      message: "Abgeschlossenes Workout erfolgreich abgefragt.",
-      workout: workoutData,
-    });
-  }),
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<{ workoutId: string }, any, never>,
+      res: Response<ApiSuccessResponse<CompletedWorkout>>,
+    ) => {
+      const { workoutId } = stringIdParamSchema.parse(req.params);
+
+      const workoutData = await workoutService.getCompletedWorkout(
+        req.user.id,
+        workoutId,
+      );
+
+      res.status(200).json({
+        status: "success",
+        data: workoutData,
+        message: "Abgeschlossenes Workout erfolgreich abgefragt.",
+      });
+    },
+  ),
 );
 
 router.put(
   "/workout/:workoutId",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const workoutId = parseInt(req.params.workoutId);
-    const title: string = req.body.title;
-    const exercises: WorkoutExercise[] = req.body.exercises;
-    if (!workoutId || isNaN(workoutId)) {
-      throw new BadRequestError("Workout ID fehlerhaft.");
-    }
-    if (!title || !exercises || exercises.length === 0) {
-      throw new BadRequestError(
-        "Es müssen der Title und mindestens eine Übung vorhanden sein.",
-      );
-    }
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<{ workoutId: string }, any, CreateWorkoutBody>,
+      res: Response<ApiSuccessResponse>,
+    ) => {
+      // Parameter parsen UND Body parsen
+      const { workoutId } = workoutIdParamSchema.parse(req.params);
+      const { title, exercises } = createWorkoutBodySchema.parse(req.body);
 
-    const result = await workoutService.putWorkout(
-      workoutId,
-      req.user.id,
-      title,
-      exercises,
-    );
-    res.status(200).json({ message: result.message });
-  }),
+      const result = await workoutService.putWorkout(
+        workoutId,
+        req.user.id,
+        title,
+        exercises,
+      );
+
+      res.status(200).json({ status: "success", message: result.message });
+    },
+  ),
 );
 
 router.put(
   "/completed-workout",
   isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const { workout }: { workout: CompletedWorkout } = req.body;
-    console.log(workout);
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<any, any, PutCompletedWorkoutBody>,
+      res: Response<ApiSuccessResponse>,
+    ) => {
+      const { workout } = putCompletedWorkoutBodySchema.parse(req.body);
 
-    if (
-      !workout ||
-      workout.exercises.length === 0 ||
-      workout.title.length === 0
-    ) {
-      throw new BadRequestError(
-        "Es müssen der Title und mindestens eine Übung vorhanden sein.",
-      );
-    }
-
-    if (!workout.workoutId) {
-      throw new BadRequestError("Workout ID fehlerhaft.");
-    }
-
-    const result = await workoutService.putCompletedWorkout(workout);
-    res.status(200).json({ message: result.message });
-  }),
-);
-
-router.delete(
-  "/workout/:workoutId",
-  isAuthenticated,
-  authenticatedHandler(async (req, res: Response) => {
-    const workoutId = parseInt(req.params.workoutId);
-    if (!workoutId || isNaN(workoutId)) {
-      throw new BadRequestError("Workout ID stimmt nicht überein.");
-    }
-    const result = await workoutService.deleteWorkout(workoutId, req.user.id);
-    res.status(200).json({ message: result.message });
-  }),
+      const result = await workoutService.putCompletedWorkout(workout);
+      res.status(200).json({ status: "success", message: result.message });
+    },
+  ),
 );
 
 export default router;

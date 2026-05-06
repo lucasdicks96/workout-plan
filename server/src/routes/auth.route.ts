@@ -1,141 +1,138 @@
+import { ApiFailResponse, ApiSuccessResponse } from "@workout/shared";
 import { NextFunction, Request, Response, Router } from "express";
 import passport from "passport";
 import { isAuthenticated } from "../middlewares/isAuthenticated";
 import * as userService from "../services/user.service";
+import { InternalServerError, UnauthorizedError } from "../types/errors.types";
+import { UserWithoutPassword } from "../types/user.types";
+
 import {
-  BadRequestError,
-  ConflictError,
-  InternalServerError,
-  UnauthorizedError,
-} from "../types/errors.types";
+  authCredentialsSchema,
+  AuthCredentialsBody,
+} from "../schemas/user.schema";
 
 const router = Router();
 
+const logInAsync = (req: Request, user: Express.User) =>
+  new Promise<void>((resolve, reject) => {
+    req.logIn(user, (err) => (err ? reject(err) : resolve()));
+  });
+
 router.post(
   "/register",
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (
+    req: Request<any, any, AuthCredentialsBody>,
+    res: Response<ApiSuccessResponse | ApiFailResponse>,
+    next: NextFunction,
+  ) => {
     try {
-      const { email, password } = req.body;
-      if (!email || !password) {
-        throw new BadRequestError("Email und Passwort sind erforderlich");
-      }
-      const newUser = await userService.createUser(email, password);
+      const { email, password } = authCredentialsSchema.parse(req.body);
 
-      req.logIn(newUser, (err) => {
-        if (err) {
-          return next(err);
-        }
+      const user = await userService.createUser(email, password);
 
-        res.status(201).json({
-          message: "Benutzer erstellt und eingeloggt",
-        });
+      await logInAsync(req, user);
+
+      res.status(201).json({
+        status: "success",
+        message: "Benutzer erstellt und eingeloggt",
       });
     } catch (error) {
-      if (error instanceof ConflictError) {
-        return res.status(409).json({ message: error.message });
-      }
       next(error);
     }
   },
 );
-router.post("/login", (req: Request, res: Response, next: NextFunction) => {
-  passport.authenticate("local", (err: any, user: any, info: any) => {
-    if (err) {
-      return next(err);
-    }
-    if (!user) {
-      return res
-        .status(401)
-        .json({ message: info?.message || "Ungültige Anmeldedaten." });
+
+router.post(
+  "/login",
+  (
+    req: Request<any, any, AuthCredentialsBody>,
+    res: Response<ApiSuccessResponse<UserWithoutPassword> | ApiFailResponse>,
+    next: NextFunction,
+  ) => {
+    // 3. Pre-Validierung vor Passport!
+    try {
+      authCredentialsSchema.parse(req.body);
+    } catch (error) {
+      // Wirft sofort den sauberen 400 Bad Request über deinen Error-Handler
+      return next(error);
     }
 
-    req.logIn(user, (err) => {
-      if (err) {
-        return next(err);
-      }
-      // Session ID regenerieren, um Session Fixation zu verhindern
-      req.session.regenerate((err) => {
+    passport.authenticate("local", async (err: any, user: any, info: any) => {
+      try {
         if (err) {
           return next(err);
         }
+        if (!user) {
+          return res.status(401).json({
+            status: "fail",
+            message: info?.message || "Ungültige Anmeldedaten.",
+          });
+        }
+
+        await logInAsync(req, user);
+
+        return res.status(200).json({
+          status: "success",
+          data: req.user as UserWithoutPassword,
+          message: "Login erfolgreich",
+        });
+      } catch (err) {
+        return next(err);
+      }
+    })(req, res, next);
+  },
+);
+
+router.get(
+  "/status",
+  isAuthenticated,
+  (req: Request, res: Response<ApiSuccessResponse<UserWithoutPassword>>) => {
+    if (!req.user) {
+      throw new UnauthorizedError("Nicht autorisiert.");
+    }
+    return res.status(200).json({
+      status: "success",
+      data: req.user as UserWithoutPassword,
+    });
+  },
+);
+
+router.post(
+  "/logout",
+  async (
+    req: Request,
+    res: Response<ApiSuccessResponse>,
+    next: NextFunction,
+  ) => {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        req.logout((err) =>
+          err
+            ? reject(new InternalServerError("Logout fehlgeschlagen"))
+            : resolve(),
+        );
       });
+
+      await new Promise<void>((resolve, reject) => {
+        req.session.destroy((err) =>
+          err
+            ? reject(
+                new InternalServerError("Session konnte nicht beendet werden"),
+              )
+            : resolve(),
+        );
+      });
+
+      res.clearCookie("connect.sid", { path: "/" });
 
       return res.status(200).json({
-        message: "Login erfolgreich",
-        user: req.user,
+        status: "success",
+        message: "Logout erfolgreich",
       });
-    });
-  })(req, res, next);
-});
-
-router.get("/status", isAuthenticated, (req: Request, res: Response) => {
-  const userWithoutPassword = req.user;
-  if (!req.user) {
-    throw new UnauthorizedError("Nicht autorisiert.");
-  }
-  return res.status(200).json({ user: userWithoutPassword });
-});
-
-router.post("/logout", (req: Request, res: Response, next: NextFunction) => {
-  req.logout((err) => {
-    if (err) {
-      return next(err);
+    } catch (error) {
+      next(error);
     }
-    req.session.regenerate((err) => {
-      if (err) return next(err);
-
-      req.session.destroy((err) => {
-        if (err) {
-          throw new InternalServerError("Logout fehlgeschlagen");
-        }
-        res.clearCookie("connect.sid", { path: "/" });
-        return res.status(200).json({ message: "Logout erfolgreich" });
-      });
-    });
-  });
-});
-
-// router.post(
-//   "/logout",
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     try {
-//       // Call passport's logout if available (passport@0.6 requires a callback)
-//       if (typeof (req as any).logout === "function") {
-//         await new Promise<void>((resolve, reject) => {
-//           (req as any).logout((err: any) => {
-//             if (err) return reject(err);
-//             resolve();
-//           });
-//         });
-//       }
-
-//       // Regenerate a fresh session id (helps prevent session fixation)
-//       if (req.session) {
-//         await new Promise<void>((resolve, reject) => {
-//           req.session.regenerate((err: any) => {
-//             if (err) return reject(err);
-//             resolve();
-//           });
-//         });
-//       }
-
-//       // Destroy session data server-side
-//       if (req.session) {
-//         await new Promise<void>((resolve, reject) => {
-//           req.session.destroy((err: any) => {
-//             if (err) return reject(err);
-//             resolve();
-//           });
-//         });
-//       }
-
-//       // Clear client cookie and return success
-//       res.clearCookie("connect.sid", { path: "/" });
-//       return res.status(200).json({ message: "Logout erfolgreich" });
-//     } catch (err) {
-//       return next(err instanceof Error ? err : new InternalServerError("Logout fehlgeschlagen"));
-//     }
-//   }
-// );
+  },
+);
 
 export default router;
