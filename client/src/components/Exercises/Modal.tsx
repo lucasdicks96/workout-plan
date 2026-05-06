@@ -66,15 +66,12 @@ export default function Modal({
     const deleteId = id ?? formState.id;
     console.log(`Deleting exercise: ${deleteId}`);
     try {
-      const response = await apiService.deleteExercise(deleteId);
+      await apiService.deleteExercise(deleteId);
 
-      popupRef.current?.show(response.data.message, response.status);
+      popupRef.current?.show("Übung erfolgreich gelöscht");
     } catch (error: unknown) {
       if (error instanceof Error) {
-        popupRef.current?.show(
-          error.message || "Ein Fehler ist aufgetreten",
-          500,
-        );
+        popupRef.current?.show(error.message || "Ein Fehler ist aufgetreten");
       }
     }
   };
@@ -89,20 +86,17 @@ export default function Modal({
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const response = await apiService.putExercise(
-        formState.id,
-        formState.title,
-        formState.description,
-        selectedCategories,
-      );
+      await apiService.putExercise({
+        id: formState.id,
+        title: formState.title,
+        description: formState.description,
+        categories: selectedCategories,
+      });
 
-      popupRef.current?.show(response.data.message, response.status);
+      popupRef.current?.show("Übung erfolgreich aktualisiert");
     } catch (error: unknown) {
       if (error instanceof Error) {
-        popupRef.current?.show(
-          error.message || "Ein Fehler ist aufgetreten",
-          500,
-        );
+        popupRef.current?.show(error.message || "Ein Fehler ist aufgetreten");
       }
     }
   };

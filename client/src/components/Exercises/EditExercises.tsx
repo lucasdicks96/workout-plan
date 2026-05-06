@@ -17,9 +17,8 @@ export default function EditExercise() {
     try {
       const response = await apiService.getUserExercises();
 
-      if (response.status === 200) {
-        setUserExercisesList(response.data.exercises);
-        console.log("RESPONSE DATA EXERCISES: ", response.data.exercises);
+      if (response.status === "success") {
+        setUserExercisesList(response.data);
       } else {
         setUserExercisesList([]);
       }

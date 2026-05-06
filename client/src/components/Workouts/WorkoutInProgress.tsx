@@ -42,7 +42,6 @@ export default function WorkoutInProgress() {
         if (!isNaN(parsedId) && parsedId > 0) {
           startedWorkoutId.current = parsedId;
           setWorkoutId(parsedId);
-          console.log("Workout ID aus localStorage gesetzt:", parsedId);
         } else {
           console.error("Ungültige Workout ID aus localStorage:", temp);
         }
@@ -59,17 +58,13 @@ export default function WorkoutInProgress() {
         return console.error("Keine Workout ID gefunden");
       }
       const response = await apiService.getLastWorkout(id);
-      console.log(response.data);
-      if (
-        !response.data ||
-        !response.data.workout.exercises ||
-        !response.data.workout.title
-      ) {
+
+      if (!response.data || !response.data.exercises || !response.data.title) {
         return console.error("Keine Übungen im Trainingsplan gefunden.");
       }
-      console.log("WORKOUTDATA: ", response.data);
-      setWorkoutList(response.data.workout.exercises);
-      setWorkoutName(response.data.workout.title);
+
+      setWorkoutList(response.data.exercises);
+      setWorkoutName(response.data.title);
     } catch (error) {
       setWorkoutList([]);
       console.error("Fehler beim Laden des Trainingsplans", error);
@@ -88,7 +83,6 @@ export default function WorkoutInProgress() {
           if (parsedSavedId) {
             startedWorkoutId.current = parsedSavedId;
             setWorkoutId(parsedSavedId);
-            console.log("Workout ID aus savedState gesetzt:", parsedSavedId);
           }
         }
 
@@ -171,7 +165,6 @@ export default function WorkoutInProgress() {
           return;
         }
         startedWorkoutId.current = workoutId;
-        console.log("Workout ID beim ersten Start gesetzt:", startedWorkoutId.current);
       }
       setStartTime(now);
       setIsRunning(true);
@@ -180,7 +173,6 @@ export default function WorkoutInProgress() {
     }
     if (isRunning) {
       setPauseTime(now);
-      console.log("Timer pausiert:", totalPausedDuration / 1000);
       setIsRunning(false);
     } else if (pauseTime) {
       const pauseDuration = now - pauseTime;
@@ -215,16 +207,16 @@ export default function WorkoutInProgress() {
         console.error("Keine gültige Workout ID zum Speichern gefunden.");
         return;
       }
-      const response = await apiService.postCompletedWorkout(
-        startedWorkoutId.current,
+      await apiService.postCompletedWorkout({
+        workoutId: startedWorkoutId.current,
         startTime,
         endTime,
-        totalPausedDuration,
-        elapsedTime,
-        workoutList,
-        workoutName,
-      );
-      console.log(response.data);
+        pauseTime: totalPausedDuration,
+        duration: elapsedTime,
+        exercises: workoutList,
+        title: workoutName,
+      });
+
       localStorage.removeItem(WORKOUT_IN_PROGRESS_KEY);
       localStorage.removeItem("startWorkoutId");
       navigate("/workouts");

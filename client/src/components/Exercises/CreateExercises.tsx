@@ -32,13 +32,12 @@ export default function CreateExercise() {
     e.preventDefault();
 
     try {
-      await apiService.postExercise(
-        formState.title,
-        formState.description,
-        selectedCategories,
-      );
+      await apiService.postExercise({
+        title: formState.title,
+        description: formState.description,
+        categories: selectedCategories,
+      });
       navigate("/exercises", { replace: true });
-      console.log("Exercise created successfully!");
     } catch (error) {
       console.error("Error creating exercise:", error);
     }

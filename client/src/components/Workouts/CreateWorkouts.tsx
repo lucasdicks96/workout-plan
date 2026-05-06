@@ -52,7 +52,7 @@ export default function CreateWorkout() {
   const loadAllExercises = useCallback(async () => {
     try {
       const response = await apiService.getExercises();
-      setAllExercises(response.data.exercises);
+      setAllExercises(response.data);
     } catch (error) {
       console.error("Fehler beim Abrufen der Übungen:", error);
     } finally {
@@ -75,10 +75,13 @@ export default function CreateWorkout() {
     }
 
     try {
-      await apiService.postWorkout(workoutName, workoutList);
-      popupRef.current?.show("Trainingsplan erstellt!", 200);
+      await apiService.postWorkout({
+        title: workoutName,
+        exercises: workoutList,
+      });
+      popupRef.current?.show("Trainingsplan erstellt!");
     } catch (error) {
-      popupRef.current?.show("Fehler beim Erstellen des Trainingsplans", 500);
+      popupRef.current?.show("Fehler beim Erstellen des Trainingsplans");
       console.error("Fehler beim Erstellen des Plans", error);
     } finally {
       localStorage.removeItem("createPlan");
