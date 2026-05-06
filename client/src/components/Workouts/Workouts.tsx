@@ -12,9 +12,9 @@ import PlayPauseButton from "../Buttons/PlayPauseButton";
 
 /**
  * Hauptkomponente: Workout
- * 
+ *
  * Diese Komponente dient als Übersicht aller verfügbaren Trainingspläne.
- * Sie lädt die Workouts beim Mounten und bietet Navigationsmöglichkeiten zum 
+ * Sie lädt die Workouts beim Mounten und bietet Navigationsmöglichkeiten zum
  * Erstellen oder Bearbeiten von Plänen.
  */
 export default function Workout() {
@@ -33,7 +33,7 @@ export default function Workout() {
   const loadAllWorkouts = useCallback(async () => {
     try {
       const response = await apiService.getWorkouts();
-      setWorkoutList(response.data.workouts);
+      setWorkoutList(response.data);
     } catch (error) {
       setWorkoutList([]);
       console.error("Fehler beim Abrufen der Workouts:", error);
@@ -51,7 +51,7 @@ export default function Workout() {
       <div className={styles.exerciseList}>
         <WorkoutList isLoading={isLoading} workoutList={workoutList} />
       </div>
-      
+
       {/* Aktionsleiste zum Bearbeiten und Hinzufügen von Plänen */}
       <div className={stylesButton.buttonContainer}>
         <EditButton
@@ -66,7 +66,7 @@ export default function Workout() {
 
 /**
  * Unterkomponente: WorkoutList
- * 
+ *
  * Übernimmt das Mapping der Workout-Daten auf einzelne Karten.
  * Behandelt Ladezustände und Leerzustände.
  */
@@ -82,11 +82,11 @@ export function WorkoutList({
   onDelete?: (workoutId: number) => void;
 }) {
   if (isLoading) {
-    return <p>Lade Workouts...</p>;
+    return <p className={styles.loadingText}>Lade Workouts...</p>;
   }
 
   if (workoutList.length === 0) {
-    return <p>Keine Workouts verfügbar.</p>;
+    return <p className={styles.loadingText}>Keine Workouts verfügbar.</p>;
   }
 
   return (
@@ -106,7 +106,7 @@ export function WorkoutList({
 
 /**
  * Unterkomponente: WorkoutCard
- * 
+ *
  * Repräsentiert einen einzelnen Trainingsplan als Karte.
  * Enthält die Logik für:
  * 1. Anzeige (Titel, Status "In Arbeit")
@@ -126,12 +126,12 @@ function WorkoutCard({
 }) {
   const navigate = useNavigate();
   const location = window.location.pathname;
-  
+
   // Kontext-Variablen für UI-Zustände
   const isEditPage: boolean = location.includes("edit-workouts");
   const isInProgress = localStorage.getItem("workoutInProgressState");
   const startedWorkoutId = localStorage.getItem("startWorkoutId");
-  
+
   // Konvertierung der ID aus dem Speicher
   const startedId = parseInt(JSON.parse(startedWorkoutId || "null"));
 
@@ -158,7 +158,7 @@ function WorkoutCard({
       // Falls die ID des laufenden Workouts von der aktuellen Karte abweicht
       if (progressId !== workoutId) {
         const confirmNew = window.confirm(
-          "Es ist bereits ein Workout im Gange. Wenn du ein neues startest, gehen die Daten des aktuellen Workouts verloren. Möchtest du wirklich ein neues Workout starten?"
+          "Es ist bereits ein Workout im Gange. Wenn du ein neues startest, gehen die Daten des aktuellen Workouts verloren. Möchtest du wirklich ein neues Workout starten?",
         );
         if (!confirmNew) {
           return;
@@ -181,7 +181,7 @@ function WorkoutCard({
   return (
     <div className={styles.card}>
       <h3 className={styles.workoutCardTitle}>{title}</h3>
-      
+
       {/* Ansicht für die Bearbeitungsseite */}
       {isEditPage && (
         <div className={stylesButton.buttonContainerNonRelative}>

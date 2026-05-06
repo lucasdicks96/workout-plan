@@ -10,7 +10,7 @@ type Theme = "dark" | "light";
 
 /**
  * Definition des AuthContext-Inhalts.
- * Bietet Zugriff auf den Benutzerstatus, Theme-Einstellungen und 
+ * Bietet Zugriff auf den Benutzerstatus, Theme-Einstellungen und
  * Authentifizierungsmethoden wie Login, Register und Logout.
  */
 export interface AuthContextType {
@@ -29,7 +29,7 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 /**
  * AuthProvider
- * 
+ *
  * Der zentrale State-Provider für die Authentifizierung. Er umschließt die gesamte App
  * und stellt sicher, dass der User-Status sowie das Theme über alle Komponenten hinweg
  * synchron bleiben.
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const checkAuthStatus = async () => {
       try {
         const response = await apiService.getStatus();
-        setUser(response.user);
+        setUser(response.data);
       } catch (error) {
         if (axios.isAxiosError(error)) {
           // Ein 401 Fehler bedeutet lediglich, dass keine aktive Session vorliegt.
@@ -81,11 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Bei Erfolg wird das User-Objekt im State gespeichert.
    */
   const login = async (email: string, password: string): Promise<void> => {
-    console.log("Login attempt for:", email);
     try {
-      const response = await apiService.login(email, password);
-      console.log("Login successful, user:", response.user);
-      setUser(response.user);
+      const response = await apiService.login({ email, password });
+
+      setUser(response.data);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const message =
@@ -103,11 +102,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Registriert einen neuen Benutzer und loggt diesen bei Erfolg sofort ein.
    */
   const register = async (email: string, password: string): Promise<void> => {
-    console.log("Register attempt for:", email);
     try {
-      const response = await apiService.register(email, password);
-      console.log("Registrierung erfolgreich, user:", response.user);
-      setUser(response.user);
+      const response = await apiService.register({ email, password });
+
+      setUser(response.data);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const message =
@@ -131,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async (): Promise<void> => {
     try {
       await apiService.logout();
-      console.log("Logout erfolgreich");
+
       setUser(null);
     } catch (error) {
       console.error("Logout fehlgeschlagen:", error);
