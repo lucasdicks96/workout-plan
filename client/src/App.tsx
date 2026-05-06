@@ -12,8 +12,11 @@ import EditWorkouts from "./components/Workouts/EditWorkouts";
 import History from "./components/Workouts/History";
 import WorkoutInProgress from "./components/Workouts/WorkoutInProgress";
 import Workout from "./components/Workouts/Workouts";
-import { useAuth } from "./hooks/useAuth";
 import EditHistoryWorkout from "./components/Workouts/EditHistoryWorkout";
+import ProfileEdit from "./components/Profile/ProfileEdit";
+import ProfileView from "./components/Profile/ProfileView";
+import { useAuth } from "./hooks/useAuth";
+import AnalyseWorkouts from "./components/Workouts/AnalyseWorkouts";
 
 const NotFound = () => (
   <div>
@@ -30,7 +33,7 @@ function App() {
 
   return (
     <div className={`app-container ${theme}`}>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_relativeSplatPath: true }}>
         <Routes>
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Layout />}>
@@ -60,6 +63,7 @@ function App() {
                 path="/history/edit/:id"
                 element={<EditHistoryWorkout />}
               />
+              <Route path="/analyse" element={<AnalyseWorkouts />} />
               <Route path="/profile" element={<ProfileView />} />
               <Route path="/profile/edit" element={<ProfileEdit />} />
             </Route>
