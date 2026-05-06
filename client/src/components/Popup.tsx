@@ -10,7 +10,7 @@ interface PopupProps {
 }
 
 interface PopupRef {
-  show: (message: string, status: number) => void;
+  show: (message: string) => void;
   hide: () => void;
 }
 
@@ -21,7 +21,7 @@ interface PopupRef {
  *
  * @example
  * const popupRef = useRef<PopupRef>(null);
- * popupRef.current?.show("Erfolg!", 200);
+ * popupRef.current?.show("Erfolg!", "success");
  *
  * @param duration - Auto-Schließdauer in Millisekunden
  * @param className - Zusätzliche Klassen
@@ -41,21 +41,18 @@ const Popup = forwardRef<PopupRef, PopupProps>(
     const [internalState, setInternalState] = useState<{
       message: string;
       isOpen: boolean;
-      status: number;
-    }>({ message: "", isOpen: false, status: 0 });
+      status: string;
+    }>({ message: "", isOpen: false, status: "fail" });
 
     useImperativeHandle(
       ref,
       () => ({
-        show: (message: string, status: number) => {
+        show: (message: string) => {
           if (typeof message !== "string" || !message.trim()) {
             console.warn("Popup: Message muss ein nicht-leerer String sein.");
             return;
           }
-          if (typeof status !== "number") {
-            console.warn("Popup: Status muss eine Zahl sein.");
-            return;
-          }
+
           setInternalState({ message, isOpen: true, status });
         },
         hide: () => {
@@ -80,7 +77,7 @@ const Popup = forwardRef<PopupRef, PopupProps>(
       return null;
     }
 
-    const isSuccess = internalState.status.toString().startsWith("2");
+    const isSuccess = internalState.status === "success";
     const popupStyle = {
       position: "absolute" as const,
       top: "50%",
