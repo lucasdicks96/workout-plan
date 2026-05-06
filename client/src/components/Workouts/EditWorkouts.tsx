@@ -20,7 +20,7 @@ import { WorkoutList as WorkoutPlans } from "./Workouts";
 
 /**
  * EditWorkouts
- * 
+ *
  * Diese Komponente verwaltet das Bearbeiten und Löschen von Trainingsplänen.
  * Sie besitzt zwei visuelle Hauptzustände:
  * 1. Listenansicht: Zeigt alle verfügbaren Pläne an (Auswählen oder Löschen).
@@ -37,15 +37,19 @@ export default function EditWorkouts() {
   // --- State-Management ---
   // Daten für die Listenansicht
   const [workoutPlans, setWorkoutPlans] = useState<Workout[]>([]);
-  
+
   // Stammdaten: Alle existierenden Übungen (werden an den Editor weitergereicht)
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
-  
+
   // Steuert, welcher View angezeigt wird. Null = Liste, Nummer = Editor für diese ID
-  const [selectedWorkoutId, setSelectedWorkoutId] = useState<number | null>(null);
+  const [selectedWorkoutId, setSelectedWorkoutId] = useState<number | null>(
+    null,
+  );
 
   // Spezifische Daten des aktuell ausgewählten Workouts
-  const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercisesType[]>([]);
+  const [workoutExercises, setWorkoutExercises] = useState<
+    WorkoutExercisesType[]
+  >([]);
   const [workoutName, setWorkoutName] = useState("");
 
   const [isLoading, setIsLoading] = useState(true);
@@ -60,7 +64,7 @@ export default function EditWorkouts() {
     const fetchAllExercises = async () => {
       try {
         const response = await apiService.getExercises();
-        setAllExercises(response.data.exercises);
+        setAllExercises(response.data);
       } catch (error) {
         console.error("Fehler beim Abrufen aller Übungen:", error);
       }
@@ -70,14 +74,14 @@ export default function EditWorkouts() {
 
   /**
    * Lädt die Liste aller Trainingspläne des Nutzers.
-   * Mit useCallback gewrappt, damit sie als sichere Abhängigkeit im useEffect genutzt 
+   * Mit useCallback gewrappt, damit sie als sichere Abhängigkeit im useEffect genutzt
    * und nach einem Speichervorgang manuell wieder aufgerufen werden kann.
    */
   const loadAllWorkouts = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await apiService.getWorkouts();
-      setWorkoutPlans(response.data.workouts);
+      setWorkoutPlans(response.data);
     } catch (error) {
       console.error("Fehler beim Abrufen der Workouts:", error);
     } finally {
@@ -99,8 +103,8 @@ export default function EditWorkouts() {
     setIsLoading(true);
     try {
       const response = await apiService.getWorkout(selectedWorkoutId);
-      setWorkoutExercises(response.data.workout.exercises);
-      setWorkoutName(response.data.workout.title);
+      setWorkoutExercises(response.data.exercises);
+      setWorkoutName(response.data.title);
     } catch (error) {
       console.error("Fehler beim Laden der Workout-Übungen:", error);
     } finally {
@@ -129,18 +133,18 @@ export default function EditWorkouts() {
   ) => {
     try {
       if (selectedWorkoutId === null) throw new Error();
-      
-      const response = await apiService.putWorkout(
+
+      const response = await apiService.putWorkout({
         title,
-        selectedWorkoutId,
+        workoutId: selectedWorkoutId,
         exercises,
-      );
-      
-      if (response.status === 200) {
-        popupRef.current?.show("Trainingsplan erfolgreich gespeichert!", 200);
+      });
+
+      if (response.status === "success") {
+        popupRef.current?.show("Trainingsplan erfolgreich gespeichert!");
       }
     } catch (error) {
-      popupRef.current?.show("Fehler beim Speichern des Trainingsplans", 500);
+      popupRef.current?.show("Fehler beim Speichern des Trainingsplans");
     }
   };
 
@@ -173,11 +177,11 @@ export default function EditWorkouts() {
   const handleDelete = async (workoutId: number) => {
     try {
       await apiService.deleteWorkout(workoutId);
-      popupRef.current?.show("Trainingsplan erfolgreich gelöscht!", 200);
+      popupRef.current?.show("Trainingsplan erfolgreich gelöscht!");
       // Fallback, falls wir gerade den Plan löschen, der evtl. noch im State hing
-      setSelectedWorkoutId(null); 
+      setSelectedWorkoutId(null);
     } catch (error) {
-      popupRef.current?.show("Fehler beim Löschen des Plans", 500);
+      popupRef.current?.show("Fehler beim Löschen des Plans");
       console.error("Fehler beim Löschen des Plans", error);
     }
   };
@@ -203,7 +207,6 @@ export default function EditWorkouts() {
 
       {/* Bedingtes Rendern: Editor-Ansicht ODER Listen-Ansicht */}
       {selectedWorkoutId ? (
-        
         /* --- ANSICHT 1: Der Editor (wird nur gezeigt, wenn Daten fertig geladen sind) --- */
         !isLoading && (
           <SharedWorkoutEditor
@@ -215,7 +218,6 @@ export default function EditWorkouts() {
           />
         )
       ) : (
-        
         /* --- ANSICHT 2: Die Listenübersicht --- */
         <>
           <div className={styles.exerciseList}>
@@ -224,10 +226,10 @@ export default function EditWorkouts() {
               isLoading={isLoading}
               workoutList={workoutPlans}
               onClick={handlePlanSelect} // Klick auf die Karte -> Öffne Editor
-              onDelete={handleDelete}    // Klick auf Löschen -> API Delete
+              onDelete={handleDelete} // Klick auf Löschen -> API Delete
             />
           </div>
-          
+
           <div className={stylesButton.buttonContainerNonRelative}>
             {/* Button verlässt die "Bearbeiten"-Ansicht komplett und geht zurück zum Hub */}
             <ReturnButton

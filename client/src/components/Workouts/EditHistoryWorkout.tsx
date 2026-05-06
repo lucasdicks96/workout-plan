@@ -13,21 +13,22 @@ import SharedWorkoutEditor from "./SharedWorkoutEditor";
 
 /**
  * EditHistoryWorkout
- * 
- * Diese Komponente dient dazu, ein bereits in der Vergangenheit absolviertes 
+ *
+ * Diese Komponente dient dazu, ein bereits in der Vergangenheit absolviertes
  * Workout (aus dem Verlauf/History) nachträglich zu bearbeiten.
  * Sie lädt die spezifischen Workout-Daten anhand der URL-ID, holt parallel
- * alle verfügbaren Übungen für den Editor und reicht diese an den 
+ * alle verfügbaren Übungen für den Editor und reicht diese an den
  * `SharedWorkoutEditor` weiter.
  */
 export default function EditHistoryWorkout() {
   // Extrahiert die History-ID direkt aus der URL (z.B. /history/edit/123)
-  const { id } = useParams<{ id: string }>(); 
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const popupRef = useRef<PopupRef>(null);
 
   // --- State-Management ---
-  const [completedWorkout, setCompletedWorkout] = useState<CompletedWorkout | null>(null);
+  const [completedWorkout, setCompletedWorkout] =
+    useState<CompletedWorkout | null>(null);
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -38,7 +39,7 @@ export default function EditHistoryWorkout() {
   useEffect(() => {
     const fetchAllExercises = async () => {
       const response = await apiService.getExercises();
-      setAllExercises(response.data.exercises);
+      setAllExercises(response.data);
     };
     fetchAllExercises();
   }, []);
@@ -51,7 +52,7 @@ export default function EditHistoryWorkout() {
       if (!id) return;
       try {
         const response = await apiService.getCompletedWorkout(id);
-        setCompletedWorkout(response.data.workout);
+        setCompletedWorkout(response.data);
       } catch (error) {
         console.error("Fehler beim Laden des Verlaufs:", error);
       } finally {
@@ -65,7 +66,7 @@ export default function EditHistoryWorkout() {
   /**
    * handleSave
    * Wird vom `SharedWorkoutEditor` aufgerufen, wenn der Nutzer auf "Speichern" klickt.
-   * Führt die geänderten Daten (Titel und Sätze/Übungen) mit den unveränderlichen 
+   * Führt die geänderten Daten (Titel und Sätze/Übungen) mit den unveränderlichen
    * Historien-Daten (wie Dauer oder Startzeit) zusammen und sendet sie an die API.
    *
    * @param title Der (potenziell) geänderte Name des Workouts
@@ -83,11 +84,11 @@ export default function EditHistoryWorkout() {
       };
 
       await apiService.putCompletedWorkout(updatedWorkout);
-      
+
       // Zeigt Erfolgsmeldung; Navigation zurück zur Historie erfolgt über onClose des Popups
-      popupRef.current?.show("Verlauf erfolgreich aktualisiert!", 200);
+      popupRef.current?.show("Verlauf erfolgreich aktualisiert!");
     } catch (error) {
-      popupRef.current?.show("Fehler beim Aktualisieren", 500);
+      popupRef.current?.show("Fehler beim Aktualisieren");
     }
   };
 
@@ -97,7 +98,7 @@ export default function EditHistoryWorkout() {
   if (!completedWorkout) return <p>Workout nicht gefunden.</p>;
 
   // --- Haupt-Render ---
-  
+
   return (
     <>
       <Popup
@@ -107,7 +108,7 @@ export default function EditHistoryWorkout() {
         onClose={() => navigate("/history")}
         showBackdrop={true}
       />
-      
+
       {/* 
         Der SharedWorkoutEditor ist eine generische Komponente, die sowohl für das 
         Erstellen von Plänen als auch für das Editieren von Historien-Einträgen genutzt wird.
@@ -118,7 +119,7 @@ export default function EditHistoryWorkout() {
         allExercises={allExercises}
         onSave={handleSave}
         // Wenn der Nutzer abbricht, geht es direkt zurück zur Verlauf-Seite
-        onCancel={() => navigate("/history")} 
+        onCancel={() => navigate("/history")}
       />
     </>
   );

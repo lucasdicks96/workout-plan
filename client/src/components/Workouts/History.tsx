@@ -11,7 +11,7 @@ import EditButton from "../Buttons/EditButton";
 
 /**
  * Hauptkomponente: History
- * 
+ *
  * Diese Seite zeigt eine chronologische Liste aller vom Benutzer absolvierten Workouts an.
  * Sie lädt die Daten beim Mounten über den apiService und behandelt potenzielle
  * Netzwerkfehler spezifisch für Axios oder allgemeine Serverfehler.
@@ -26,17 +26,15 @@ export default function History() {
 
   /**
    * Lädt die Workout-Historie vom Server.
-   * useCallback stellt sicher, dass die Funktion nur neu erstellt wird, 
+   * useCallback stellt sicher, dass die Funktion nur neu erstellt wird,
    * wenn sich das User-Objekt ändert.
    */
   const loadWorkout = useCallback(async () => {
     try {
       if (!user) return;
       const response = await apiService.getCompletedWorkouts();
-      
-      // Debug-Log für die empfangenen Daten
-      console.log("Response Data History ", response.data);
-      setWorkouts(response.data.workouts);
+
+      setWorkouts(response.data);
     } catch (error) {
       // Spezifische Fehlerbehandlung für Axios-Requests
       if (isAxiosError(error)) {
@@ -80,26 +78,27 @@ export default function History() {
 
 /**
  * Hilfskomponente: HistoryItem
- * 
+ *
  * Repräsentiert eine einzelne Karte im Verlauf.
  * Zeigt den Titel des Workouts sowie das formatierte Datum und die Uhrzeit an.
  * Ermöglicht die Navigation zur Bearbeitungsseite des spezifischen Verlaufs-Eintrags.
- * 
+ *
  * @param workout Das Objekt des abgeschlossenen Workouts
  */
 const HistoryItem = ({ workout }: { workout: CompletedWorkout }) => {
   const navigate = useNavigate();
-  
+
   // Konvertierung des ISO-Zeitstempels in ein JavaScript Date-Objekt
   const date = new Date(workout.startTime);
 
   return (
     <div className={styles.card}>
       <h3 className={styles.workoutCardTitle}>{workout.title}</h3>
-      
+
       {/* Anzeige von lokalisiertem Datum und Uhrzeit */}
       <div className={styles.historyDate}>
-        {date.toLocaleDateString()} - {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        {date.toLocaleDateString()} -{" "}
+        {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
       </div>
 
       {/* Navigiert zum Editor für diesen spezifischen Historien-Eintrag */}

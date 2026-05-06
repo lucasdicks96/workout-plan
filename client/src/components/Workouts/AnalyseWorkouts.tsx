@@ -71,13 +71,17 @@ export default function AnalyseWorkouts() {
   useSetTitle("Analyse Workouts");
 
   // --- State-Management ---
-  const [completedWorkouts, setCompletedWorkouts] = useState<CompletedWorkout[]>([]);
-  
+  const [completedWorkouts, setCompletedWorkouts] = useState<
+    CompletedWorkout[]
+  >([]);
+
   // Filter-States
-  const [selectedWorkoutTitle, setSelectedWorkoutTitle] = useState<string>("ALL");
-  const [selectedExerciseTitle, setSelectedExerciseTitle] = useState<string>("ALL");
+  const [selectedWorkoutTitle, setSelectedWorkoutTitle] =
+    useState<string>("ALL");
+  const [selectedExerciseTitle, setSelectedExerciseTitle] =
+    useState<string>("ALL");
   const [timeRangeDays, setTimeRangeDays] = useState<number>(30); // 0 = Gesamter Zeitraum
-  
+
   // Chart-Darstellungs-States
   const [chartMetric, setChartMetric] = useState<ChartMetricType>("VOLUMEN");
   const [viewMode, setViewMode] = useState<ViewModeType>("SET");
@@ -86,7 +90,7 @@ export default function AnalyseWorkouts() {
   useEffect(() => {
     const fetchCompletedWorkouts = async () => {
       const response = await apiService.getCompletedWorkouts();
-      setCompletedWorkouts(response.data.workouts);
+      setCompletedWorkouts(response.data);
     };
     fetchCompletedWorkouts();
   }, []);
@@ -107,7 +111,10 @@ export default function AnalyseWorkouts() {
   const availableExercises = useMemo(() => {
     const exerciseNames = new Set<string>();
     completedWorkouts.forEach((workout) => {
-      if (selectedWorkoutTitle === "ALL" || workout.title === selectedWorkoutTitle) {
+      if (
+        selectedWorkoutTitle === "ALL" ||
+        workout.title === selectedWorkoutTitle
+      ) {
         workout.exercises.forEach((ex) => exerciseNames.add(ex.title));
       }
     });
@@ -155,8 +162,10 @@ export default function AnalyseWorkouts() {
     if (arr.length > 1) {
       const last = arr[arr.length - 1];
       const previousArr = arr.slice(0, -1);
-      const prevAvg = previousArr.reduce((a, b) => a + b, 0) / previousArr.length;
-      if (last > prevAvg * 1.02) trend = 1; // Mehr als 2% Steigerung
+      const prevAvg =
+        previousArr.reduce((a, b) => a + b, 0) / previousArr.length;
+      if (last > prevAvg * 1.02)
+        trend = 1; // Mehr als 2% Steigerung
       else if (last < prevAvg * 0.98) trend = -1; // Mehr als 2% Abfall
     }
 
@@ -174,14 +183,17 @@ export default function AnalyseWorkouts() {
 
     // 2. Workouts nach Datum und Workout-Titel filtern
     const filteredWorkouts = completedWorkouts.filter((w) => {
-      const isWithinDate = timeRangeDays === 0 || new Date(w.startTime) >= cutoffDate;
-      const isMatchingWorkout = selectedWorkoutTitle === "ALL" || w.title === selectedWorkoutTitle;
+      const isWithinDate =
+        timeRangeDays === 0 || new Date(w.startTime) >= cutoffDate;
+      const isMatchingWorkout =
+        selectedWorkoutTitle === "ALL" || w.title === selectedWorkoutTitle;
       return isWithinDate && isMatchingWorkout;
     });
 
     // 3. Chronologisch sortieren (älteste zuerst, für einen logischen Chart-Verlauf)
     const sortedWorkouts = [...filteredWorkouts].sort(
-      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+      (a, b) =>
+        new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
     );
 
     const generatedChartData: ChartDataPoint[] = [];
@@ -200,14 +212,20 @@ export default function AnalyseWorkouts() {
       let sessionReps = 0;
       let sessionSets = 0;
       let hasMatchingData = false;
-      const formattedDate = new Date(workout.startTime).toLocaleDateString("de-DE", {
-        day: "2-digit",
-        month: "2-digit",
-      });
+      const formattedDate = new Date(workout.startTime).toLocaleDateString(
+        "de-DE",
+        {
+          day: "2-digit",
+          month: "2-digit",
+        },
+      );
 
       workout.exercises.forEach((exercise) => {
         // Filtern nach spezifischer Übung
-        if (selectedExerciseTitle === "ALL" || exercise.title === selectedExerciseTitle) {
+        if (
+          selectedExerciseTitle === "ALL" ||
+          exercise.title === selectedExerciseTitle
+        ) {
           exercise.sets.forEach((set, index) => {
             hasMatchingData = true;
             const w = Number(set.weight) || 0;
@@ -288,7 +306,11 @@ export default function AnalyseWorkouts() {
       case "WEIGHT":
         return { dataKey: "gewicht", label: "Gewicht (kg)", color: "#16a34a" };
       case "REPS":
-        return { dataKey: "wiederholungen", label: "Wiederholungen", color: "#d97706" };
+        return {
+          dataKey: "wiederholungen",
+          label: "Wiederholungen",
+          color: "#d97706",
+        };
       case "VOLUMEN":
       default:
         return { dataKey: "volumen", label: "Volumen (kg)", color: "#2563eb" };
@@ -301,10 +323,25 @@ export default function AnalyseWorkouts() {
    * Rendert einen kleinen visuellen Indikator (Pfeil) basierend auf dem Trend.
    */
   const renderTrend = (trendVal: number) => {
-    if (workoutCount < 2) return <span className={styles["trend-neutral"]}>-</span>;
-    if (trendVal === 1) return <span className={styles["trend-up"]} title="Steigend">▲</span>;
-    if (trendVal === -1) return <span className={styles["trend-down"]} title="Sinkend">▼</span>;
-    return <span className={styles["trend-neutral"]} title="Stabil">−</span>;
+    if (workoutCount < 2)
+      return <span className={styles["trend-neutral"]}>-</span>;
+    if (trendVal === 1)
+      return (
+        <span className={styles["trend-up"]} title="Steigend">
+          ▲
+        </span>
+      );
+    if (trendVal === -1)
+      return (
+        <span className={styles["trend-down"]} title="Sinkend">
+          ▼
+        </span>
+      );
+    return (
+      <span className={styles["trend-neutral"]} title="Stabil">
+        −
+      </span>
+    );
   };
 
   /**
@@ -316,26 +353,45 @@ export default function AnalyseWorkouts() {
   const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       // Bereinigt das unsichtbare Suffix, das wir für unique Recharts-Keys brauchten
-      const cleanLabel = typeof label === "string" ? label.split("___")[0] : label;
+      const cleanLabel =
+        typeof label === "string" ? label.split("___")[0] : label;
 
       return (
-        <div style={{
-          backgroundColor: "var(--c-surface)",
-          padding: "10px",
-          border: "1px solid var(--c-border)",
-          borderRadius: "5px",
-        }}>
-          <p style={{ fontWeight: "bold", margin: "0 0 5px 0", color: "var(--c-text-primary)" }}>
+        <div
+          style={{
+            backgroundColor: "var(--c-surface)",
+            padding: "10px",
+            border: "1px solid var(--c-border)",
+            borderRadius: "5px",
+          }}
+        >
+          <p
+            style={{
+              fontWeight: "bold",
+              margin: "0 0 5px 0",
+              color: "var(--c-text-primary)",
+            }}
+          >
             {cleanLabel}
           </p>
           {/* Zeige Übungsname, falls vorhanden (nur im SET-Modus relevant) */}
           {payload[0]?.payload?.exerciseName && (
-            <p style={{ margin: "0 0 5px 0", fontSize: "12px", color: "var(--c-text-primary)", opacity: 0.8 }}>
+            <p
+              style={{
+                margin: "0 0 5px 0",
+                fontSize: "12px",
+                color: "var(--c-text-primary)",
+                opacity: 0.8,
+              }}
+            >
               {payload[0].payload.exerciseName}
             </p>
           )}
           {payload.map((entry: TooltipPayload, index: number) => (
-            <p key={`item-${index}`} style={{ color: entry.color, margin: "2px 0" }}>
+            <p
+              key={`item-${index}`}
+              style={{ color: entry.color, margin: "2px 0" }}
+            >
               {entry.name}: {entry.value}
             </p>
           ))}
@@ -348,11 +404,12 @@ export default function AnalyseWorkouts() {
   // --- Render ---
   return (
     <div className={styles["analyse-container"]}>
-      
       {/* 1. Sektion: Globale Filter */}
       <div className={styles["filter-section"]}>
         <div className={styles["filter-group"]}>
-          <label htmlFor="workoutPlan" className={styles["filter-label"]}>Workout Plan:</label>
+          <label htmlFor="workoutPlan" className={styles["filter-label"]}>
+            Workout Plan:
+          </label>
           <select
             id="workoutPlan"
             value={selectedWorkoutTitle}
@@ -361,13 +418,17 @@ export default function AnalyseWorkouts() {
           >
             <option value="ALL">Alle Workouts</option>
             {availableWorkouts.map((title) => (
-              <option key={`workout-${title}`} value={title}>{title}</option>
+              <option key={`workout-${title}`} value={title}>
+                {title}
+              </option>
             ))}
           </select>
         </div>
 
         <div className={styles["filter-group"]}>
-          <label htmlFor="exercise" className={styles["filter-label"]}>Übung:</label>
+          <label htmlFor="exercise" className={styles["filter-label"]}>
+            Übung:
+          </label>
           <select
             id="exercise"
             value={selectedExerciseTitle}
@@ -376,13 +437,17 @@ export default function AnalyseWorkouts() {
           >
             <option value="ALL">Alle Übungen</option>
             {availableExercises.map((title) => (
-              <option key={`exercise-${title}`} value={title}>{title}</option>
+              <option key={`exercise-${title}`} value={title}>
+                {title}
+              </option>
             ))}
           </select>
         </div>
 
         <div className={styles["filter-group"]}>
-          <label htmlFor="timeRange" className={styles["filter-label"]}>Zeitraum:</label>
+          <label htmlFor="timeRange" className={styles["filter-label"]}>
+            Zeitraum:
+          </label>
           <select
             id="timeRange"
             value={timeRangeDays}
@@ -407,7 +472,9 @@ export default function AnalyseWorkouts() {
           {/* Steuerelemente für das Diagramm */}
           <div className={styles["chart-controls"]}>
             <div className={styles["filter-group"]}>
-              <label htmlFor="viewMode" className={styles["filter-label"]}>Detaillierung:</label>
+              <label htmlFor="viewMode" className={styles["filter-label"]}>
+                Detaillierung:
+              </label>
               <select
                 id="viewMode"
                 value={viewMode}
@@ -420,11 +487,15 @@ export default function AnalyseWorkouts() {
             </div>
 
             <div className={styles["filter-group"]}>
-              <label htmlFor="chartMetric" className={styles["filter-label"]}>Anzeigen:</label>
+              <label htmlFor="chartMetric" className={styles["filter-label"]}>
+                Anzeigen:
+              </label>
               <select
                 id="chartMetric"
                 value={chartMetric}
-                onChange={(e) => setChartMetric(e.target.value as ChartMetricType)}
+                onChange={(e) =>
+                  setChartMetric(e.target.value as ChartMetricType)
+                }
                 className={styles["filter-select"]}
               >
                 <option value="COMBO">Kombi: Wdh. & Gewicht</option>
@@ -442,59 +513,132 @@ export default function AnalyseWorkouts() {
               Absoluter Wrapper um Recharts: Verhindert, dass ResponsiveContainer
               bei Layout-Änderungen ausbricht oder ins Unendliche wächst.
             */}
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
+            >
               <ResponsiveContainer width="100%" height={320} debounce={50}>
                 {chartMetric === "COMBO" ? (
                   // Kombinierter Chart (Bar = Wdh, Line = Gewicht)
-                  <ComposedChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+                  <ComposedChart
+                    data={chartData}
+                    margin={{ top: 5, right: 10, bottom: 5, left: 0 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     {/* X-Achse: Filtert Suffixe für eine saubere Anzeige */}
                     <XAxis
                       dataKey="name"
-                      tickFormatter={(value) => typeof value === "string" ? value.split("___")[0] : value}
+                      tickFormatter={(value) =>
+                        typeof value === "string"
+                          ? value.split("___")[0]
+                          : value
+                      }
                       tick={{ fontSize: 12, fill: "var(--c-text-primary)" }}
                       tickMargin={10}
                     />
                     <YAxis
                       yAxisId="left"
                       tick={{ fontSize: 12, fill: "var(--c-text-primary)" }}
-                      label={{ value: "Wiederholungen", angle: -90, position: "insideLeft", style: { fontSize: "12px", fill: "var(--c-text-primary)" } }}
+                      label={{
+                        value: "Wiederholungen",
+                        angle: -90,
+                        position: "insideLeft",
+                        style: {
+                          fontSize: "12px",
+                          fill: "var(--c-text-primary)",
+                        },
+                      }}
                     />
                     <YAxis
                       yAxisId="right"
                       orientation="right"
                       tick={{ fontSize: 12, fill: "var(--c-text-primary)" }}
-                      label={{ value: "Gewicht (kg)", angle: 90, position: "insideRight", style: { fontSize: "12px", fill: "var(--c-text-primary)" } }}
+                      label={{
+                        value: "Gewicht (kg)",
+                        angle: 90,
+                        position: "insideRight",
+                        style: {
+                          fontSize: "12px",
+                          fill: "var(--c-text-primary)",
+                        },
+                      }}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ paddingTop: "15px" }} />
-                    <Bar yAxisId="left" dataKey="wiederholungen" name="Wiederholungen" fill="#d97706" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                    <Line yAxisId="right" type="monotone" dataKey="gewicht" name="Gewicht (kg)" stroke="#16a34a" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    <Bar
+                      yAxisId="left"
+                      dataKey="wiederholungen"
+                      name="Wiederholungen"
+                      fill="#d97706"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={40}
+                    />
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="gewicht"
+                      name="Gewicht (kg)"
+                      stroke="#16a34a"
+                      strokeWidth={3}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
                   </ComposedChart>
                 ) : (
                   // Normaler LineChart für einzelne Metriken (Volumen, Reps, Weight)
-                  <LineChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+                  <LineChart
+                    data={chartData}
+                    margin={{ top: 5, right: 10, bottom: 5, left: 0 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis
                       dataKey="name"
-                      tickFormatter={(value) => typeof value === "string" ? value.split("___")[0] : value}
+                      tickFormatter={(value) =>
+                        typeof value === "string"
+                          ? value.split("___")[0]
+                          : value
+                      }
                       tick={{ fontSize: 12, fill: "var(--c-text-primary)" }}
                       tickMargin={10}
                     />
                     <YAxis
                       width={60}
                       tick={{ fontSize: 12, fill: "var(--c-text-primary)" }}
-                      label={{ value: currentConfig.label, angle: -90, position: "insideLeft", style: { textAnchor: "middle", fontSize: "12px", fill: "var(--c-text-primary)" } }}
+                      label={{
+                        value: currentConfig.label,
+                        angle: -90,
+                        position: "insideLeft",
+                        style: {
+                          textAnchor: "middle",
+                          fontSize: "12px",
+                          fill: "var(--c-text-primary)",
+                        },
+                      }}
                     />
                     <Tooltip content={<CustomTooltip />} />
-                    <Line type="monotone" dataKey={currentConfig.dataKey} name={currentConfig.label} stroke={currentConfig.color} strokeWidth={3} activeDot={{ r: 6 }} animationDuration={500} />
+                    <Line
+                      type="monotone"
+                      dataKey={currentConfig.dataKey}
+                      name={currentConfig.label}
+                      stroke={currentConfig.color}
+                      strokeWidth={3}
+                      activeDot={{ r: 6 }}
+                      animationDuration={500}
+                    />
                   </LineChart>
                 )}
               </ResponsiveContainer>
             </div>
           </div>
         ) : (
-          <div className="chart-empty">Keine Daten für die gewählten Filter verfügbar.</div>
+          <div className="chart-empty">
+            Keine Daten für die gewählten Filter verfügbar.
+          </div>
         )}
       </div>
 
@@ -518,7 +662,9 @@ export default function AnalyseWorkouts() {
                 <td>{tableData.volume.sum.toLocaleString("de-DE")} kg</td>
                 <td>{tableData.volume.max.toLocaleString("de-DE")} kg</td>
                 <td>{tableData.volume.min.toLocaleString("de-DE")} kg</td>
-                <td>{Math.round(tableData.volume.avg).toLocaleString("de-DE")} kg</td>
+                <td>
+                  {Math.round(tableData.volume.avg).toLocaleString("de-DE")} kg
+                </td>
                 <td>{renderTrend(tableData.volume.trend)}</td>
               </tr>
               <tr>
