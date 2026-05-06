@@ -209,8 +209,6 @@ export async function getLastCompletedWorkout(
   }
   const lastWorkoutID: string = planIdResult.rows[0].id;
 
-  console.log("LAST WORKOUT ID: ", lastWorkoutID);
-
   const result = await pool.query(
     `WITH     unique_plan_exercises 
       AS (
@@ -249,8 +247,8 @@ export async function postCompletedWorkout(
   userId: string,
   workoutId: number,
   title: string,
-  startTime: string,
-  endTime: string,
+  startTime: Date,
+  endTime: Date,
   duration: number,
   pauseTime: number,
   exercises: WorkoutExercise[],
