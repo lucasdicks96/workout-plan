@@ -22,7 +22,7 @@ router.post(
   "/register",
   async (
     req: Request<any, any, AuthCredentialsBody>,
-    res: Response<ApiSuccessResponse | ApiFailResponse>,
+    res: Response<ApiSuccessResponse<UserWithoutPassword> | ApiFailResponse>,
     next: NextFunction,
   ) => {
     try {
@@ -34,6 +34,7 @@ router.post(
 
       res.status(201).json({
         status: "success",
+        data: user,
         message: "Benutzer erstellt und eingeloggt",
       });
     } catch (error) {
@@ -49,7 +50,7 @@ router.post(
     res: Response<ApiSuccessResponse<UserWithoutPassword> | ApiFailResponse>,
     next: NextFunction,
   ) => {
-    // 3. Pre-Validierung vor Passport!
+    // Pre-Validierung vor Passport!
     try {
       authCredentialsSchema.parse(req.body);
     } catch (error) {
@@ -86,7 +87,10 @@ router.post(
 router.get(
   "/status",
   isAuthenticated,
-  (req: Request, res: Response<ApiSuccessResponse<UserWithoutPassword>>) => {
+  (
+    req: Request,
+    res: Response<ApiSuccessResponse<UserWithoutPassword> | ApiFailResponse>,
+  ) => {
     if (!req.user) {
       throw new UnauthorizedError("Nicht autorisiert.");
     }

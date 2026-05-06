@@ -70,6 +70,7 @@ router.post(
       req: AuthenticatedRequest<any, any, CreateExerciseBody>,
       res: Response<ApiSuccessResponse<Exercise>>,
     ) => {
+      // Wenn etwas fehlt oder falsch ist, wirft Zod hier automatisch einen Fehler!
       const { title, description, categories } = createExerciseBodySchema.parse(
         req.body,
       );
@@ -115,10 +116,9 @@ router.put(
   isAuthenticated,
   authenticatedHandler(
     async (
-      req: AuthenticatedRequest<{ id: string }, any, CreateExerciseBody>,
+      req: AuthenticatedRequest<any, any, CreateExerciseBody>,
       res: Response<ApiSuccessResponse>,
     ) => {
-      // Zod validiert die URL-Parameter und konvertiert id zu einer Zahl
       const { id } = exerciseIdParamSchema.parse(req.params);
 
       const { title, description, categories } = createExerciseBodySchema.parse(
@@ -143,7 +143,7 @@ router.delete(
   isAuthenticated,
   authenticatedHandler(
     async (
-      req: AuthenticatedRequest<{ id: string }, any, never>,
+      req: AuthenticatedRequest<any, any, never>,
       res: Response<ApiSuccessResponse>,
     ) => {
       // String aus URL sicher validieren und in Number konvertieren

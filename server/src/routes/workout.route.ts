@@ -8,6 +8,7 @@ import {
 } from "../utils/auth.utils";
 import { ApiSuccessResponse } from "@workout/shared";
 
+// Zod Schemas importieren
 import {
   workoutIdParamSchema,
   stringIdParamSchema,
@@ -40,9 +41,10 @@ router.get(
   isAuthenticated,
   authenticatedHandler(
     async (
-      req: AuthenticatedRequest<{ workoutId: string }, any, never>,
+      req: AuthenticatedRequest<any, any, never>,
       res: Response<ApiSuccessResponse<Workout>>,
     ) => {
+      // Validiert den Parameter und transformiert ihn in eine Zahl
       const { workoutId } = workoutIdParamSchema.parse(req.params);
 
       const workoutData = await workoutService.getWorkoutById(
@@ -64,7 +66,7 @@ router.get(
   isAuthenticated,
   authenticatedHandler(
     async (
-      req: AuthenticatedRequest<{ workoutId: string }, any, never>,
+      req: AuthenticatedRequest<any, any, never>,
       res: Response<ApiSuccessResponse<Workout>>,
     ) => {
       const { workoutId } = workoutIdParamSchema.parse(req.params);
@@ -91,6 +93,7 @@ router.post(
       req: AuthenticatedRequest<any, any, CreateWorkoutBody>,
       res: Response<ApiSuccessResponse>,
     ) => {
+      // Body sicher parsen
       const { title, exercises } = createWorkoutBodySchema.parse(req.body);
 
       const result = await workoutService.createWorkoutPlan(
@@ -109,7 +112,7 @@ router.delete(
   isAuthenticated,
   authenticatedHandler(
     async (
-      req: AuthenticatedRequest<{ workoutId: string }, any, never>,
+      req: AuthenticatedRequest<any, any, never>,
       res: Response<ApiSuccessResponse>,
     ) => {
       const { workoutId } = workoutIdParamSchema.parse(req.params);
@@ -129,6 +132,7 @@ router.post(
       req: AuthenticatedRequest<any, any, PostCompletedWorkoutBody>,
       res: Response<ApiSuccessResponse>,
     ) => {
+      // Zod extrahiert uns alle Werte sauber und typsicher
       const {
         workoutId,
         startTime,
@@ -181,9 +185,10 @@ router.get(
   isAuthenticated,
   authenticatedHandler(
     async (
-      req: AuthenticatedRequest<{ workoutId: string }, any, never>,
+      req: AuthenticatedRequest<any, any, never>,
       res: Response<ApiSuccessResponse<CompletedWorkout>>,
     ) => {
+      // Hier nutzen wir das Schema für String-IDs
       const { workoutId } = stringIdParamSchema.parse(req.params);
 
       const workoutData = await workoutService.getCompletedWorkout(
@@ -205,7 +210,7 @@ router.put(
   isAuthenticated,
   authenticatedHandler(
     async (
-      req: AuthenticatedRequest<{ workoutId: string }, any, CreateWorkoutBody>,
+      req: AuthenticatedRequest<any, any, CreateWorkoutBody>,
       res: Response<ApiSuccessResponse>,
     ) => {
       // Parameter parsen UND Body parsen
