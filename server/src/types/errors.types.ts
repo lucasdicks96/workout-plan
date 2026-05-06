@@ -1,44 +1,40 @@
-export class NotFoundError extends Error {
-  statusCode: number;
-  constructor(message: string) {
+export class AppError extends Error {
+  constructor(
+    public message: string,
+    public statusCode: number,
+  ) {
     super(message);
-    this.name = "NotFoundError";
-    this.statusCode = 404;
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
   }
 }
 
-export class BadRequestError extends Error {
-  statusCode: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "BadRequestError";
-    this.statusCode = 400;
+export class NotFoundError extends AppError {
+  constructor(message: string = "Nicht gefunden") {
+    super(message, 404);
   }
 }
 
-export class UnauthorizedError extends Error {
-  statusCode: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "UnauthorizedError";
-    this.statusCode = 401;
+export class BadRequestError extends AppError {
+  constructor(message: string = "Ungültige Anfrage") {
+    super(message, 400);
   }
 }
 
-export class InternalServerError extends Error {
-  statusCode: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "InternalServerError";
-    this.statusCode = 500;
+export class UnauthorizedError extends AppError {
+  constructor(message: string = "Nicht autorisiert") {
+    super(message, 401);
   }
 }
 
-export class ConflictError extends Error {
-  statusCode: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "ConflictError";
-    this.statusCode = 409;
+export class InternalServerError extends AppError {
+  constructor(message: string = "Interner Serverfehler") {
+    super(message, 500);
+  }
+}
+
+export class ConflictError extends AppError {
+  constructor(message: string = "Konflikt") {
+    super(message, 409);
   }
 }
