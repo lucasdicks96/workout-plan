@@ -20,9 +20,7 @@ export async function getUserExercises(userId: string): Promise<Exercise[]> {
     exerciseRepository.getUserExercises(userId),
     getCategoryTree(),
   ]);
-  // if (!userExercises) {
-  //   throw new Error("Fehler beim Laden der Übungen.");
-  // }
+
   if (!userExercises || userExercises.length === 0) {
     return [];
   }

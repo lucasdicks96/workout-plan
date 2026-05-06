@@ -141,7 +141,7 @@ export async function getLastWorkout(
   newWorkout.exercises = Array.from(exerciseMap.values()).sort(
     (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0),
   );
-  console.log("GET LAST WORKOUT DATA: ", workoutData);
+
   return newWorkout;
 }
 
@@ -220,7 +220,7 @@ export async function getCompletedWorkouts(
   completedWorkouts.sort(
     (a, b) => b.startTime.getTime() - a.startTime.getTime(),
   );
-  console.log("completed workouts: ", completedWorkouts[0]);
+
   return completedWorkouts;
 }
 
@@ -312,15 +312,13 @@ export async function getCompletedWorkout(
 export async function postCompletedWorkout(
   workoutId: number,
   userId: string,
-  startTime: number,
-  endTime: number,
+  startTime: Date,
+  endTime: Date,
   pauseTime: number,
   duration: number,
   exercises: WorkoutExercise[],
   title: string,
 ) {
-  const pgStartTime = convertMsToPgTimestamp(startTime);
-  const pgEndTime = convertMsToPgTimestamp(endTime);
   const durationInSeconds = Math.floor(duration / 1000);
   const pauseTimeInSeconds = Math.floor(pauseTime / 1000);
 
@@ -328,12 +326,13 @@ export async function postCompletedWorkout(
     userId,
     workoutId,
     title,
-    pgStartTime,
-    pgEndTime,
+    startTime,
+    endTime,
     durationInSeconds,
     pauseTimeInSeconds,
     exercises,
   );
+
   if (!result)
     throw new InternalServerError(
       "Fehler beim Speichern des abgeschlossenen Workouts",
@@ -344,7 +343,7 @@ export async function postCompletedWorkout(
 export async function deleteWorkout(workoutId: number, userId: string) {
   const owner = await workoutRepository.ownerCheck(workoutId, userId);
   if (!owner)
-    throw new Error(
+    throw new UnauthorizedError(
       "Benutzer hat nicht die Rechte, dieses Workout zu bearbeiten.",
     );
 
@@ -372,8 +371,8 @@ export async function putWorkout(
   return result;
 }
 
-export async function putCompletedWorkout(exercises: CompletedWorkout) {
-  const result = await workoutRepository.putCompletedWorkout(exercises);
+export async function putCompletedWorkout(workout: CompletedWorkout) {
+  const result = await workoutRepository.putCompletedWorkout(workout);
 
   if (!result)
     throw new InternalServerError("Fehler beim Aktualisieren des Workouts");
@@ -404,15 +403,3 @@ export async function getWorkoutProgress(
   );
   return progress;
 }
-
-// Konvertierungs-Hilfsfunktion
-const convertMsToPgTimestamp = (ms: number) => {
-  if (!ms || isNaN(ms)) {
-    throw new BadRequestError("Ungültiger Timestamp (ms): " + ms);
-  }
-  const date = new Date(ms); // Erstellt UTC-Date-Objekt
-  if (isNaN(date.getTime())) {
-    throw new BadRequestError("Ungültiges Date-Objekt aus ms: " + ms);
-  }
-  return date.toISOString(); // 'YYYY-MM-DDTHH:MM:SS.mmmZ' – PostgreSQL-kompatibel
-};
