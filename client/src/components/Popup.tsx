@@ -10,7 +10,7 @@ interface PopupProps {
 }
 
 interface PopupRef {
-  show: (message: string) => void;
+  show: (message: string, status?: string) => void;
   hide: () => void;
 }
 
@@ -47,7 +47,7 @@ const Popup = forwardRef<PopupRef, PopupProps>(
     useImperativeHandle(
       ref,
       () => ({
-        show: (message: string) => {
+        show: (message: string, status: string = "fail") => {
           if (typeof message !== "string" || !message.trim()) {
             console.warn("Popup: Message muss ein nicht-leerer String sein.");
             return;
