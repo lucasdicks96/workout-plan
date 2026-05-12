@@ -70,18 +70,30 @@ function WorkoutExercises({
     return <p>Dieses Workout enthält keine Übungen.</p>;
   }
 
-  const handleValueChange = (amount: number) => {
-    if (!activeInput || !onUpdate) return;
+  const handleValueChange = (
+    exerciseKey: number,
+    setIndex: number,
+    amount: number,
+  ) => {
+    if (!onUpdate) return;
 
-    const { exerciseKey, setIndex, field } = activeInput;
+    let targetField: keyof WorkoutExerciseSets = "repetitions";
+
+    if (
+      activeInput &&
+      activeInput.exerciseKey === exerciseKey &&
+      activeInput.setIndex === setIndex
+    ) {
+      targetField = activeInput.field;
+    }
 
     const exercise = workoutList.find((ex) => ex.id === exerciseKey);
-    const currentValue = exercise?.sets[setIndex]?.[field];
+    const currentValue = exercise?.sets[setIndex]?.[targetField];
 
     if (currentValue !== undefined) {
       const newValue = Number(currentValue) + amount;
       if (newValue >= 0) {
-        onUpdate(exerciseKey, setIndex, field, String(newValue));
+        onUpdate(exerciseKey, setIndex, targetField, String(newValue));
       }
     }
   };
@@ -118,9 +130,7 @@ function WorkoutExercises({
               <>
                 <h3>{exercise.title}</h3>
 
-                <div
-                  className={stylesWorkoutExercises.cardContentItem}
-                >
+                <div className={stylesWorkoutExercises.cardContentItem}>
                   <span className={`${stylesWorkoutExercises.cardSpan}`}>
                     Sätze
                   </span>
@@ -197,23 +207,13 @@ function WorkoutExercises({
                     </span>
                     <button
                       className="button sm rounded"
-                      onClick={() => handleValueChange(-1)}
-                      disabled={
-                        !activeInput ||
-                        activeInput.exerciseKey !== exercise.id ||
-                        activeInput.setIndex !== setIdx
-                      }
+                      onClick={() => handleValueChange(exercise.id, setIdx, -1)}
                     >
                       -
                     </button>
                     <button
                       className="button sm rounded"
-                      onClick={() => handleValueChange(1)}
-                      disabled={
-                        !activeInput ||
-                        activeInput.exerciseKey !== exercise.id ||
-                        activeInput.setIndex !== setIdx
-                      }
+                      onClick={() => handleValueChange(exercise.id, setIdx, 1)}
                     >
                       +
                     </button>
