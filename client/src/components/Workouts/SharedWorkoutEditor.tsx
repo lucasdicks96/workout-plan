@@ -37,9 +37,9 @@ interface SharedWorkoutEditorProps {
 
 /**
  * SharedWorkoutEditor
- * 
- * Das visuelle Herzstück für die Workout-Bearbeitung. 
- * Kapselt die UI für die Eingabe des Namens, das Auflisten der Übungen (inkl. Sätze, Reps, Gewicht), 
+ *
+ * Das visuelle Herzstück für die Workout-Bearbeitung.
+ * Kapselt die UI für die Eingabe des Namens, das Auflisten der Übungen (inkl. Sätze, Reps, Gewicht),
  * die Validierung vor dem Speichern und das Umschalten zur Übungsauswahl.
  */
 export default function SharedWorkoutEditor({
@@ -71,7 +71,7 @@ export default function SharedWorkoutEditor({
 
   /**
    * handleConfirm
-   * Prüft die Benutzereingaben auf Gültigkeit, bevor die Daten an die 
+   * Prüft die Benutzereingaben auf Gültigkeit, bevor die Daten an die
    * Eltern-Komponente (`onSave`) übergeben werden.
    */
   const handleConfirm = async () => {
@@ -79,12 +79,12 @@ export default function SharedWorkoutEditor({
     if (workoutName.trim().length === 0) {
       return setError("Trainingsname darf nicht leer sein.");
     }
-    
+
     // 2. Validierung: Wurden überhaupt Übungen hinzugefügt?
     if (workoutList.length === 0) {
       return setError("Trainingsplan muss mindestens eine Übung enthalten.");
     }
-    
+
     // 3. Validierung: Haben alle hinzugefügten Übungen mindestens einen Satz?
     if (workoutList.some((ex) => ex.sets.length === 0)) {
       return setError("Jede Übung muss mindestens einen Satz enthalten.");
@@ -146,7 +146,7 @@ export default function SharedWorkoutEditor({
       />
 
       {/* Aktionsleiste am unteren Rand */}
-      <div className={stylesButton.buttonContainer}>
+      <div className={stylesButton["button-container"]}>
         <ReturnButton
           onBack={onCancel}
           className={`${stylesButton.left} ${stylesButton.button}`}

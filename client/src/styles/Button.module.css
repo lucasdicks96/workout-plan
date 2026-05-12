@@ -1,4 +1,4 @@
-.buttonRounded {
+.button-rounded {
   display: flex;
   position: absolute;
   bottom: 1rem;
@@ -16,11 +16,11 @@
   touch-action: manipulation;
 }
 
-.buttonRounded:hover {
+.button-rounded:hover {
   background-color: var(--c-primary-hover);
 }
 
-.buttonRounded:active {
+.button-rounded:active {
   transform: scale(0.95);
 }
 
@@ -60,12 +60,12 @@
   transform: scale(0.98);
 }
 
-.deleteWrapper {
+.delete-wrapper {
   position: relative;
   display: inline-block;
 }
 
-.deleteButton {
+.delete-button {
   background-color: transparent;
   border: none;
   cursor: pointer;
@@ -74,11 +74,11 @@
   touch-action: manipulation;
 }
 
-.deleteButton:active {
+.delete-button:active {
   transform: scale(0.95);
 }
 
-.confirmModal {
+.confirm-modal {
   position: absolute;
   top: 2.5rem;
   right: 0;
@@ -91,27 +91,27 @@
   min-width: 200px;
 }
 
-.confirmButtonContainer {
+.confirm-button0-container {
   display: flex;
   justify-content: space-between;
   margin-top: 0.5rem;
   gap: 0.5rem;
 }
 
-.confirmButton {
+.confirm-button {
   background-color: var(--c-danger);
   color: white;
   min-height: 44px;
   min-width: 44px;
 }
 
-.cancelButton {
+.cancel-button {
   background-color: var(--c-neutral);
   min-height: 44px;
   min-width: 44px;
 }
 
-.buttonContainer {
+.button-container {
   display: flex;
   position: relative;
   flex-direction: row;
@@ -122,7 +122,7 @@
   gap: 0.5rem;
 }
 
-.buttonContainerNonRelative {
+.button-container-nonRelative {
   display: flex;
   flex-direction: row;
   flex: 0.1;
@@ -140,7 +140,7 @@
     font-size: 0.875rem;
   }
   
-  .buttonRounded {
+  .button-rounded {
     height: 40px;
     min-height: 40px;
     width: 40px;

@@ -185,7 +185,7 @@ function NavItem({ icon, label, path, onClick }: NavItemProps) {
       to={path}
       onClick={onClick}
       className={({ isActive }) =>
-        `${styles.sidebarNavItem} ${isActive ? styles.active : ""}`
+        `${styles["sidebar-nav-item"]} ${isActive ? styles.active : ""}`
       }
     >
       {icon}
@@ -286,11 +286,11 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <header className={styles.sidebarHeader}>
+      <header className={styles["sidebar-header"]}>
         <ActivityPulseIcon /> Fitness Tracker
       </header>
 
-      <nav className={styles.sidebarNav}>
+      <nav className={styles["sidebar-nav"]}>
         <NavItem
           icon={<HomeIcon />}
           label="Dashboard"
@@ -323,9 +323,9 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
         />
       </nav>
 
-      <footer className={styles.sidebarFooter}>
-        <div className={styles.themeToggle}>
-          <button onClick={toggleTheme} className={styles.sidebarNavItem}>
+      <footer className={styles["sidebar-footer"]}>
+        <div className={styles["theme-toggle"]}>
+          <button onClick={toggleTheme} className={styles["sidebar-nav-item"]}>
             {theme === "dark" ? <SunIcon /> : <MoonIcon />}
             <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
           </button>
@@ -334,7 +334,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
               logout();
               onClose();
             }}
-            className={styles.sidebarNavItem}
+            className={styles["sidebar-nav-item"]}
           >
             <LogoutIcon />
             <span>Logout</span>

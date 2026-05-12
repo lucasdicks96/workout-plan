@@ -10,7 +10,7 @@
   position: relative;
 }
 
-.sidebarHeader {
+.sidebar-header {
   margin-bottom: 1.5rem;
   font-size: 1.25rem;
   font-weight: 700;
@@ -21,7 +21,7 @@
   flex-shrink: 0;
 }
 
-.sidebarNav {
+.sidebar-nav {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
@@ -29,7 +29,7 @@
   overflow-y: auto;
 }
 
-.sidebarNavItem {
+.sidebar-nav-item {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -48,26 +48,26 @@
   touch-action: manipulation;
 }
 
-.sidebarNavItem.active {
+.sidebar-nav-item.active {
   background-color: var(--c-primary);
   color: var(--c-primary-text-on);
 }
 
-.sidebarNavItem:hover:not(.active) {
+.sidebar-nav-item:hover:not(.active) {
   background-color: var(--c-border);
   color: var(--c-text-primary);
 }
 
-.sidebarNavItem:not(.active) {
+.sidebar-nav-item:not(.active) {
   color: var(--c-text-secondary);
 }
 
-.sidebarFooter {
+.sidebar-footer {
   flex-shrink: 0;
   margin-top: auto;
 }
 
-.themeToggle {
+.theme-toggle {
   width: 100%;
 }
 
@@ -84,7 +84,7 @@
   transition: opacity 0.3s ease-in-out;
 }
 
-.backdrop.backdropOpen {
+.backdrop.backdrop-open {
   opacity: 1;
   pointer-events: auto;
 }
@@ -108,7 +108,7 @@
     transform: translateX(0);
   }
 
-  .themeToggle {
+  .theme-toggle {
     /* Optional: Falls du das Theme-Toggle auf Mobile anzeigen willst, entferne display: none */
     display: flex; 
     flex-direction: column;
@@ -134,7 +134,7 @@
     transform: translateX(0);
   }
 
-  .themeToggle {
+  .theme-toggle {
     display: flex; 
     flex-direction: column;
   }

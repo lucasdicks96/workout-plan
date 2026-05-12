@@ -44,7 +44,7 @@ function ExerciseSelectionList({
           placeholder="Übung suchen..."
         />
       </div>
-      <div className={styles.exerciseList}>
+      <div className={styles["exercise-list"]}>
         {filteredExercises.map((exercise) => {
           const isAdded = exercisesInWorkout.has(exercise.id);
           return (
@@ -55,14 +55,14 @@ function ExerciseSelectionList({
             >
               {isAdded && (
                 <div
-                  className={stylesModal.closeButton}
+                  className={stylesModal["close-button"]}
                   style={{ position: "absolute" }}
                 >
                   +
                 </div>
               )}
               <h3>{exercise.title}</h3>
-              <div className={styles.exerciseCardDescription}>
+              <div className={styles["exercise-card-description"]}>
                 {exercise.description}
               </div>
             </div>

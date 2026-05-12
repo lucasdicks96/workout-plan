@@ -23,7 +23,7 @@ import Modal from "./Modal";
  */
 export default function Exercises() {
   const navigate = useNavigate();
-  
+
   // Setzt den globalen Seitentitel im Header (via TitleContext)
   useSetTitle("Übungen");
 
@@ -39,9 +39,9 @@ export default function Exercises() {
   } = useExercises();
 
   return (
-    <div className={styles.pageWrapper}>
+    <div className={styles["page-wrapper"]}>
       {/* Filter-Bereich: Dropdown für Kategorien und Texteingabe für die Suche */}
-      <div className={styles.filterContainer}>
+      <div className={styles["filter-container"]}>
         <CategoryDropdown
           selectedCategory={selectedCategory}
           onCategoryChange={(value) =>
@@ -63,7 +63,7 @@ export default function Exercises() {
       />
 
       {/* Globale Aktions-Buttons am unteren Ende */}
-      <div className={styles.buttonContainer}>
+      <div className={styles["button-container"]}>
         <EditButton onEdit={() => navigate("edit-exercises")} />
         <AddButton onAdd={() => navigate("create-exercises")} />
       </div>
@@ -93,9 +93,11 @@ export function ExerciseList({
   onUpdateSuccess,
 }: ExerciseProps) {
   // --- State-Management für das Modal ---
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
+    null,
+  );
   const [isOpen, setIsOpen] = useState(false);
-  
+
   // Prüft anhand der aktuellen URL, ob wir uns im Bearbeitungsmodus befinden
   const location = window.location.pathname;
   const isEditPage = location.includes("edit-exercises");
@@ -103,7 +105,7 @@ export function ExerciseList({
   /**
    * handleCardClick
    * Wird aufgerufen, wenn auf eine Übungskarte geklickt wird.
-   * Das Modal wird NUR geöffnet, wenn wir auf der Editier-Seite sind 
+   * Das Modal wird NUR geöffnet, wenn wir auf der Editier-Seite sind
    * UND die Übung vom Nutzer selbst erstellt wurde (userId !== null).
    */
   const handleCardClick = useCallback(
@@ -130,7 +132,7 @@ export function ExerciseList({
     <>
       {/* Bedingtes Rendern: Entweder zeigen wir das Modal ODER die Liste */}
       {isOpen ? (
-        <div className={styles.modalContainer}>
+        <div className={styles["modal-container"]}>
           {selectedExercise && (
             <Modal
               isOpen={isOpen}
@@ -142,7 +144,7 @@ export function ExerciseList({
         </div>
       ) : (
         <>
-          <div className={styles.exerciseList}>
+          <div className={styles["exercise-list"]}>
             {exerciseList.map((item) => (
               <ExerciseCard
                 key={item.id}
@@ -173,7 +175,7 @@ type ExerciseCardProps = Exercise & {
 /**
  * ExerciseCard
  * Eine rein visuelle (Präsentations-) Komponente für eine einzelne Übung.
- * Mit `React.memo` optimiert, sodass sie nur neu gerendert wird, 
+ * Mit `React.memo` optimiert, sodass sie nur neu gerendert wird,
  * wenn sich ihre expliziten Props ändern.
  */
 const ExerciseCard = memo(
@@ -182,20 +184,20 @@ const ExerciseCard = memo(
       <div className={styles.card}>
         {/* Visueller Indikator (Badge) für selbst erstellte Übungen */}
         {typeof userId === "string" && (
-          <span className={styles.ownExerciseBadge}>Eigene Übung</span>
+          <span className={styles["own-exercise-badge"]}>Eigene Übung</span>
         )}
-        
+
         <h3>{title}</h3>
-        
+
         {/* Editier-Button wird nur eingeblendet, wenn wir uns im Edit-Modus befinden */}
         {isEditPage && (
           <EditButton
             onEdit={onClick}
-            className={`${stylesButton.buttonRounded}`}
+            className={`${stylesButton["button-rounded"]}`}
           />
         )}
-        
-        <div className={styles.exerciseCardDescription}>{description}</div>
+
+        <div className={styles["exercise-card-description"]}>{description}</div>
       </div>
     );
   },

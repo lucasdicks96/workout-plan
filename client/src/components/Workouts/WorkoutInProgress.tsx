@@ -272,7 +272,7 @@ export default function WorkoutInProgress() {
       >
         <span>{formatTime(elapsedTime)}</span>
       </div>
-      <div className={`${stylesButton.buttonContainer}`}>
+      <div className={`${stylesButton["button-container"]}`}>
         <ReturnButton onBack={handleCancel} />
         <PlayPauseButton
           isPlaying={isRunning}

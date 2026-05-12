@@ -141,10 +141,16 @@ export default function EditWorkouts() {
       });
 
       if (response.status === "success") {
-        popupRef.current?.show("Trainingsplan erfolgreich gespeichert!");
+        popupRef.current?.show(
+          "Trainingsplan erfolgreich gespeichert!",
+          "success",
+        );
       }
     } catch (error) {
-      popupRef.current?.show("Fehler beim Speichern des Trainingsplans");
+      popupRef.current?.show(
+        "Fehler beim Speichern des Trainingsplans",
+        "fail",
+      );
     }
   };
 
@@ -177,11 +183,11 @@ export default function EditWorkouts() {
   const handleDelete = async (workoutId: number) => {
     try {
       await apiService.deleteWorkout(workoutId);
-      popupRef.current?.show("Trainingsplan erfolgreich gelöscht!");
+      popupRef.current?.show("Trainingsplan erfolgreich gelöscht!", "success");
       // Fallback, falls wir gerade den Plan löschen, der evtl. noch im State hing
       setSelectedWorkoutId(null);
     } catch (error) {
-      popupRef.current?.show("Fehler beim Löschen des Plans");
+      popupRef.current?.show("Fehler beim Löschen des Plans", "fail");
       console.error("Fehler beim Löschen des Plans", error);
     }
   };

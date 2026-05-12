@@ -107,7 +107,7 @@ export default function Modal({
 
   return (
     <div
-      className={stylesExercises.exerciseList}
+      className={stylesExercises["exercise-list"]}
       style={{ position: "relative" }}
     >
       <div className={styles.backdrop} onClick={onClose} />

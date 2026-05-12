@@ -100,7 +100,7 @@ function WorkoutExercises({
 
   return (
     <>
-      <div className={styles.exerciseList}>
+      <div className={styles["exercise-list"]}>
         {workoutList.map((exercise, idx) => (
           <div
             key={exercise.id}
@@ -120,18 +120,18 @@ function WorkoutExercises({
           >
             {onRemove && (
               <button
-                className={stylesModal.closeButton}
+                className={stylesModal["close-button"]}
                 onClick={() => onRemove && onRemove(exercise.id)}
               >
                 &times;
               </button>
             )}
-            <div className={stylesWorkoutExercises.cardContentContainer}>
+            <div className={stylesWorkoutExercises["card-content-container"]}>
               <>
                 <h3>{exercise.title}</h3>
 
-                <div className={stylesWorkoutExercises.cardContentItem}>
-                  <span className={`${stylesWorkoutExercises.cardSpan}`}>
+                <div className={stylesWorkoutExercises["card-content-item"]}>
+                  <span className={`${stylesWorkoutExercises["card-span"]}`}>
                     Sätze
                   </span>
                   <span className={stylesWorkoutExercises.input}>
@@ -154,10 +154,10 @@ function WorkoutExercises({
               {exercise.sets.map((set, setIdx) => (
                 <div
                   key={setIdx}
-                  className={stylesWorkoutExercises.cardContentContainer}
+                  className={stylesWorkoutExercises["card-content-container"]}
                 >
-                  <div className={stylesWorkoutExercises.cardContentItem}>
-                    <span className={`${stylesWorkoutExercises.cardSpan}`}>
+                  <div className={stylesWorkoutExercises["card-content-item"]}>
+                    <span className={`${stylesWorkoutExercises["card-span"]}`}>
                       {setIdx + 1}
                     </span>
                     <input
@@ -182,7 +182,7 @@ function WorkoutExercises({
                         })
                       }
                     />
-                    <span className={`${stylesWorkoutExercises.cardSpan}`}>
+                    <span className={`${stylesWorkoutExercises["card-span"]}`}>
                       x
                     </span>
                     <input
@@ -202,7 +202,7 @@ function WorkoutExercises({
                         })
                       }
                     />
-                    <span className={`${stylesWorkoutExercises.cardSpan}`}>
+                    <span className={`${stylesWorkoutExercises["card-span"]}`}>
                       kg
                     </span>
                     <button

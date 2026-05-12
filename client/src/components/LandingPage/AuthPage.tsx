@@ -43,14 +43,14 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
   };
 
   return (
-    <div className={styles.authPage}>
-      <div className={styles.authBox}>
-        <h1 className={styles.authTitle}>Fitness Tracker</h1>
-        <div className={styles.authTabs}>
+    <div className={styles["auth-page"]}>
+      <div className={styles["auth-box"]}>
+        <h1 className={styles["auth-title"]}>Fitness Tracker</h1>
+        <div className={styles["auth-tabs"]}>
           <NavLink
             to="/login"
             className={({ isActive }) =>
-              `${styles.authTab} ${isActive ? styles.authTabActive : ""}`
+              `${styles["auth-tab"]} ${isActive ? styles["auth-tab-active"] : ""}`
             }
           >
             Login
@@ -58,15 +58,15 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
           <NavLink
             to="/register"
             className={({ isActive }) =>
-              `${styles.authTab} ${isActive ? styles.authTabActive : ""}`
+              `${styles["auth-tab"]} ${isActive ? styles["auth-tab-active"] : ""}`
             }
           >
             Registrieren
           </NavLink>
         </div>
-        <form onSubmit={handleAuth} className={styles.authForm}>
+        <form onSubmit={handleAuth} className={styles["auth-form"]}>
           <div>
-            <label className={styles.authLabel}>E-Mail</label>
+            <label className={styles["auth-label"]}>E-Mail</label>
             <input
               type="email"
               id="email"
@@ -77,7 +77,7 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
             />
           </div>
           <div>
-            <label className={styles.authLabel}>Passwort</label>
+            <label className={styles["auth-label"]}>Passwort</label>
             <input
               type="password"
               id="password"
@@ -87,7 +87,7 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
               required
             />
           </div>
-          {error && <p className={styles.authError}>{error}</p>}
+          {error && <p className={styles["auth-error"]}>{error}</p>}
           <div>
             <button type="submit" className="button">
               {isRegister ? "Konto erstellen" : "Einloggen"}

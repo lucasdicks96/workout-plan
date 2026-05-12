@@ -1,4 +1,4 @@
-.formContainer {
+.form-container {
   display: flex;
   flex-direction: column;
   height: 25vh;
@@ -11,7 +11,7 @@
   box-sizing: border-box;
 }
 
-.loginForm {
+.login-form {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -29,7 +29,7 @@ h2 {
   justify-content: flex-start;
 }
 
-.buttonGroup {
+.button-group {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -37,7 +37,7 @@ h2 {
   margin-top: 1rem;
 }
 
-.inputGroup {
+.input-group {
   display: flex;
   flex-direction: row;
   align-self: center;
@@ -68,7 +68,7 @@ label {
 }
 
 .button,
-.linkButton {
+.link-button {
   /* display: inline-block; */
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   background-color: #007bff;
@@ -96,18 +96,18 @@ label {
 }
 
 @media (max-width: 600px) {
-  .formContainer {
+  .form-container {
     width: 90%;
     min-width: unset;
     padding: 15px;
   }
 
-  .loginForm {
+  .login-form {
     width: 100%;
     padding: 10px;
   }
 
-  .inputGroup {
+  .input-group {
     flex-direction: column;
     align-items: center;
     width: 100%;
@@ -123,14 +123,14 @@ label {
     margin-bottom: 5px;
   }
 
-  .buttonGroup {
+  .button-group {
     flex-direction: column;
     width: 100%;
     align-items: center;
   }
 
   .button,
-  .linkButton {
+  .link-button {
     width: 75%;
     font-size: calc(14rem / 16);
     height: 40px;
@@ -138,7 +138,7 @@ label {
 }
 
 @media (max-width: 350px) {
-  .formContainer {
+  .form-container {
     padding: 10px;
   }
 
@@ -146,12 +146,12 @@ label {
     font-size: 24px;
   } */
 
-  .inputGroup {
+  .input-group {
     margin: 0.5rem 0;
   }
 
   .button,
-  .linkButton {
+  .link-button {
     width: 75%;
     margin-top: 8px;
     font-size: 12px;

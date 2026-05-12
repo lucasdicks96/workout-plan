@@ -76,7 +76,7 @@ function Layout() {
             Auf Mobile: Zeigt zusätzlich den Hamburger-Button zum Öffnen der Sidebar.
           */}
           <header className={styles.header}>
-            <button className={styles.menuButton} onClick={toggleSidebar}>
+            <button className={styles["menu-button"]} onClick={toggleSidebar}>
               <MenuIcon />
             </button>
             <h1 className={styles.title}>{title}</h1>

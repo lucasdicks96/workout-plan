@@ -1,5 +1,5 @@
 /* --- WRAPPER --- */
-.pageWrapper {
+.page-wrapper {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -9,7 +9,7 @@
   box-sizing: border-box;
 }
 
-.filterContainer {
+.filter-container {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
@@ -19,12 +19,12 @@
   width: 100%;
 }
 
-.filterContainer > * {
+.filter-container > * {
   /* Auf Desktop: Mindestens 250px breit, maximal so breit wie der Container */
   flex: 1 1 min(100%, 250px);
 }
 
-.buttonContainer {
+.button-container {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
@@ -34,7 +34,7 @@
   width: 100%;
 }
 
-.modalContainer {
+.modal-container {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -42,7 +42,7 @@
   padding: 1rem;
 }
 
-.loadingText {
+.loading-text {
   text-align: center;
   font-weight: 500;
   margin: 2rem 0;
@@ -50,7 +50,7 @@
 }
 
 /* --- LISTEN & GRID --- */
-.exerciseList {
+.exercise-list {
   display: grid;
   /* Klassischer, sicherer Ansatz ohne verschachteltes min() */
   grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
@@ -62,16 +62,16 @@
   box-sizing: border-box;
 }
 
-.exerciseList::-webkit-scrollbar {
+.exercise-list::-webkit-scrollbar {
   width: 0.5rem;
 }
 
-.exerciseList::-webkit-scrollbar-track {
+.exercise-list::-webkit-scrollbar-track {
   background: var(--c-surface);
   border-radius: 0.5rem;
 }
 
-.exerciseList::-webkit-scrollbar-thumb {
+.exercise-list::-webkit-scrollbar-thumb {
   background: var(--c-primary);
   border-radius: 0.5rem;
 }
@@ -103,7 +103,7 @@
   transform: translateY(0);
 }
 
-.ownExerciseBadge {
+.own-exercise-badge {
   color: green;
   align-self: flex-end;
   font-size: 0.75rem;
@@ -118,7 +118,7 @@
   overflow-wrap: break-word;
 }
 
-.exerciseCardDescription {
+.exercise-card-description {
   font-size: 0.875rem;
   color: var(--c-text-secondary);
   margin-top: auto; /* Drückt die Beschreibung nach unten, falls die Karte höher ist */
@@ -181,23 +181,23 @@ h2 {
 
 /* Mobile Optimizations */
 @media (max-width: 480px) {
-  .filterContainer {
+  .filter-container {
     flex-direction: column;
     align-items: stretch;
   }
   
-  .filterContainer > * {
+  .filter-container > * {
     /* WICHTIG: Überschreibt die 250px Basis, damit sie nicht zur Höhe wird! */
     flex: 0 0 auto; 
     width: 100%;
   }
 
-  .buttonContainer {
+  .button-container {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .exerciseList {
+  .exercise-list {
     gap: 1rem;
     grid-template-columns: 1fr;
     max-height: 55vh; 
@@ -221,7 +221,7 @@ h2 {
 
 /* Landscape Modus (z.B. Handy gedreht) */
 @media (max-height: 800px) and (orientation: landscape) {
-  .exerciseList {
+  .exercise-list {
     max-height: none; 
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); 
   }
@@ -230,7 +230,7 @@ h2 {
     min-height: 7rem; /* Etwas flacher, weil der Bildschirm quer ist */
   }
 
-  .filterContainer {
+  .filter-container {
     margin-bottom: 0.75rem;
   }
 }

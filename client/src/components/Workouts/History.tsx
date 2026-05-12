@@ -65,7 +65,7 @@ export default function History() {
       {!workouts || workouts.length === 0 ? (
         <div>Bisher wurden keine Workouts absolviert</div>
       ) : (
-        <div className={styles.exerciseList}>
+        <div className={styles["workout-list"]}>
           {/* Mappen der Workouts auf die HistoryItem-Komponente */}
           {workouts.map((workout) => (
             <HistoryItem key={workout.id} workout={workout} />
@@ -93,10 +93,10 @@ const HistoryItem = ({ workout }: { workout: CompletedWorkout }) => {
 
   return (
     <div className={styles.card}>
-      <h3 className={styles.workoutCardTitle}>{workout.title}</h3>
+      <h3 className={styles["workout-card-title"]}>{workout.title}</h3>
 
       {/* Anzeige von lokalisiertem Datum und Uhrzeit */}
-      <div className={styles.historyDate}>
+      <div className={styles["history-date"]}>
         {date.toLocaleDateString()} -{" "}
         {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
       </div>
@@ -104,7 +104,7 @@ const HistoryItem = ({ workout }: { workout: CompletedWorkout }) => {
       {/* Navigiert zum Editor für diesen spezifischen Historien-Eintrag */}
       <EditButton
         onEdit={() => navigate(`/history/edit/${workout.id}`)}
-        className={`${stylesButton} ${stylesButton.buttonRounded}`}
+        className={`${stylesButton} ${stylesButton["button-rounded"]}`}
       />
     </div>
   );

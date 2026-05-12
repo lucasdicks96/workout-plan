@@ -38,7 +38,7 @@
   width: 100%;
 }
 
-.menuButton {
+.menu-button {
   display: none; /* Auf großen Bildschirmen verstecken */
   background: none;
   border: none;
@@ -55,7 +55,7 @@
   flex-grow: 1;
 }
 
-.pageHeader {
+.page-header {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -67,7 +67,7 @@
   overflow-x: hidden;
 }
 
-.pageTitle {
+.page-title {
   font-size: clamp(1.5rem, 4vw, 2.5rem);
   font-weight: 700;
   padding-top: 1rem;
@@ -78,7 +78,7 @@
   overflow-x: hidden;
 }
 
-.gridContainer {
+.grid-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
@@ -87,7 +87,7 @@
   max-width: 100vw;
 }
 
-.dashboardGrid {
+.dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
@@ -98,7 +98,7 @@
 
 /* Responsive Layout */
 @media (max-width: 768px) {
-  .menuButton {
+  .menu-button {
     display: flex; /* Button auf Mobile anzeigen */
     align-items: center;
     justify-content: center;
@@ -113,29 +113,29 @@
     margin-top: 0.5rem;
   }
   
-  .pageTitle {
+  .page-title {
     font-size: 1.5rem;
     padding-top: 0.5rem;
   }
   
-  .gridContainer {
+  .grid-container {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
   
-  .dashboardGrid {
+  .dashboard-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
-  .gridContainer {
+  .grid-container {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   }
 }
 
 @media (min-width: 1025px) {
-  .gridContainer {
+  .grid-container {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 }

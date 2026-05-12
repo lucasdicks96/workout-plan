@@ -48,12 +48,12 @@ export default function Workout() {
 
   return (
     <>
-      <div className={styles.exerciseList}>
+      <div className={styles["exercise-list"]}>
         <WorkoutList isLoading={isLoading} workoutList={workoutList} />
       </div>
 
       {/* Aktionsleiste zum Bearbeiten und Hinzufügen von Plänen */}
-      <div className={stylesButton.buttonContainer}>
+      <div className={stylesButton["button-container"]}>
         <EditButton
           onEdit={() => navigate("edit-workouts")}
           className={`${stylesButton.left}, ${stylesButton.button}`}
@@ -82,11 +82,11 @@ export function WorkoutList({
   onDelete?: (workoutId: number) => void;
 }) {
   if (isLoading) {
-    return <p className={styles.loadingText}>Lade Workouts...</p>;
+    return <p className={styles["loading-text"]}>Lade Workouts...</p>;
   }
 
   if (workoutList.length === 0) {
-    return <p className={styles.loadingText}>Keine Workouts verfügbar.</p>;
+    return <p className={styles["loading-text"]}>Keine Workouts verfügbar.</p>;
   }
 
   return (
@@ -180,11 +180,11 @@ function WorkoutCard({
 
   return (
     <div className={styles.card}>
-      <h3 className={styles.workoutCardTitle}>{title}</h3>
+      <h3 className={styles["workout-card-title"]}>{title}</h3>
 
       {/* Ansicht für die Bearbeitungsseite */}
       {isEditPage && (
-        <div className={stylesButton.buttonContainerNonRelative}>
+        <div className={stylesButton["button-container-non-relative"]}>
           <DeleteButton
             isOpen={deleteIsOpen}
             onDelete={() => {
@@ -192,13 +192,13 @@ function WorkoutCard({
               setDeleteIsOpen(false);
             }}
             onToggleVisibility={setDeleteIsOpen}
-            className={`${stylesButton.buttonRounded}`}
+            className={`${stylesButton["button-rounded"]}`}
           />
 
           {!deleteIsOpen && (
             <EditButton
               onEdit={() => onClick?.(workoutId)}
-              className={`${stylesButton.buttonRounded}, ${stylesButton.left}`}
+              className={`${stylesButton["button-rounded"]}, ${stylesButton["left"]}`}
             />
           )}
         </div>
@@ -206,14 +206,14 @@ function WorkoutCard({
 
       {/* Statusanzeige: Wenn dieses spezielle Workout aktuell aktiv ist */}
       {!isEditPage && isInProgress && workoutId === startedId && (
-        <span className={styles.inProgressBadge}>In Arbeit</span>
+        <span className={styles["in-progress-badge"]}>In Arbeit</span>
       )}
 
       {/* Play-Button zum Starten/Fortsetzen (nur auf der Hauptübersicht) */}
       {!isEditPage && (
         <PlayPauseButton
           onStart={onStart}
-          className={`${stylesButton.buttonRounded}`}
+          className={`${stylesButton["button-rounded"]} ${stylesButton["start-button"]}`}
         />
       )}
     </div>
