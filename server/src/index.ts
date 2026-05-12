@@ -14,7 +14,17 @@ const port = parseInt(process.env.PORT || "5000");
 
 const app = express();
 
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://192.168.50.244:5173"],
+    credentials: true,
+  }),
+);
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
 app.use(
   session({
     secret: (process.env.SESSION_SECRET || "default secret") as string,
@@ -31,16 +41,6 @@ app.use(
 );
 app.use(passport.initialize());
 app.use(passport.session());
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.use(
-  cors({
-    origin: ["http://localhost:5173", "http://192.168.50.244:5173"],
-    credentials: true,
-  }),
-);
 
 app.use("/user", userRoute);
 app.use("/exercise", exerciseRoute);
