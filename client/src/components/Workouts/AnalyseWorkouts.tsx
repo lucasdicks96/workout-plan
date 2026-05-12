@@ -24,22 +24,17 @@ import styles from "../../styles/AnalyseWorkouts.module.css";
 type ChartMetricType = "VOLUMEN" | "WEIGHT" | "REPS" | "COMBO";
 type ViewModeType = "SESSION" | "SET";
 
-/**
- * Struktur für einen einzelnen Datenpunkt, der an Recharts übergeben wird.
- * Repräsentiert je nach viewMode entweder eine ganze Session oder einen einzelnen Satz.
- */
 interface ChartDataPoint {
   name: string;
+  dateStr: string; // Speichert nur das Datum für den Tooltip
+  setStr?: string; // Speichert die Satz-Info (z.B. "Satz 1")
   volumen: number;
   gewicht: number;
   wiederholungen: number;
   workoutName: string;
-  exerciseName?: string; // Ist optional, da es in der "SESSION"-Ansicht (auf Workout-Ebene) nicht existiert
+  exerciseName?: string;
 }
 
-/**
- * Typ für den Payload innerhalb des Recharts-Tooltips.
- */
 interface TooltipPayload {
   name: string;
   value: number;
@@ -47,9 +42,6 @@ interface TooltipPayload {
   payload: ChartDataPoint;
 }
 
-/**
- * Typ für die Props unserer Custom Tooltip Komponente.
- */
 interface CustomTooltipProps {
   active?: boolean;
   payload?: TooltipPayload[];
@@ -60,33 +52,20 @@ interface CustomTooltipProps {
 // Hauptkomponente: AnalyseWorkouts
 // ==========================================
 
-/**
- * AnalyseWorkouts
- * Ein umfangreiches Dashboard zur Visualisierung von Trainingsdaten.
- * Erlaubt das Filtern nach Zeiträumen, Workouts und spezifischen Übungen.
- * Bietet sowohl einen aggregierten Verlauf (Pro Session) als auch eine
- * detaillierte Satz-für-Satz Ansicht (Pro Satz) in Form von interaktiven Diagrammen.
- */
 export default function AnalyseWorkouts() {
   useSetTitle("Analyse Workouts");
 
-  // --- State-Management ---
   const [completedWorkouts, setCompletedWorkouts] = useState<
     CompletedWorkout[]
   >([]);
-
-  // Filter-States
   const [selectedWorkoutTitle, setSelectedWorkoutTitle] =
     useState<string>("ALL");
   const [selectedExerciseTitle, setSelectedExerciseTitle] =
     useState<string>("ALL");
-  const [timeRangeDays, setTimeRangeDays] = useState<number>(30); // 0 = Gesamter Zeitraum
-
-  // Chart-Darstellungs-States
+  const [timeRangeDays, setTimeRangeDays] = useState<number>(30);
   const [chartMetric, setChartMetric] = useState<ChartMetricType>("VOLUMEN");
   const [viewMode, setViewMode] = useState<ViewModeType>("SET");
 
-  // --- Daten abrufen ---
   useEffect(() => {
     const fetchCompletedWorkouts = async () => {
       const response = await apiService.getCompletedWorkouts();
@@ -95,19 +74,11 @@ export default function AnalyseWorkouts() {
     fetchCompletedWorkouts();
   }, []);
 
-  // --- Abgeleitete Daten (Memoized zur Performance-Optimierung) ---
-
-  /**
-   * Extrahiert alle einzigartigen Workout-Namen für das Filter-Dropdown.
-   */
   const availableWorkouts = useMemo(() => {
     const workoutNames = new Set(completedWorkouts.map((w) => w.title));
     return Array.from(workoutNames).sort();
   }, [completedWorkouts]);
 
-  /**
-   * Extrahiert alle einzigartigen Übungsnamen basierend auf dem aktuell gewählten Workout.
-   */
   const availableExercises = useMemo(() => {
     const exerciseNames = new Set<string>();
     completedWorkouts.forEach((workout) => {
@@ -121,8 +92,6 @@ export default function AnalyseWorkouts() {
     return Array.from(exerciseNames).sort();
   }, [completedWorkouts, selectedWorkoutTitle]);
 
-  // Setzt die ausgewählte Übung zurück auf "ALL", falls das Workout gewechselt wurde
-  // und die aktuell gewählte Übung im neuen Workout nicht existiert.
   useEffect(() => {
     if (
       selectedExerciseTitle !== "ALL" &&
@@ -132,11 +101,6 @@ export default function AnalyseWorkouts() {
     }
   }, [availableExercises, selectedExerciseTitle]);
 
-  // --- Hilfsfunktionen ---
-
-  /**
-   * Formatiert Sekunden in ein lesbares Format (z.B. "1h 15m").
-   */
   const formatTime = (seconds: number) => {
     if (seconds === 0) return "-";
     const m = Math.floor(seconds / 60);
@@ -145,43 +109,28 @@ export default function AnalyseWorkouts() {
     return `${h}h ${remainingM < 10 ? "0" : ""}${remainingM}m`;
   };
 
-  /**
-   * Berechnet statistische Werte (Summe, Max, Min, Durchschnitt, Trend) aus einem Array von Zahlen.
-   * Wird genutzt, um die Datentabelle unter dem Diagramm zu füllen.
-   */
   const calculateStats = (arr: number[]) => {
     if (arr.length === 0) return { sum: 0, max: 0, min: 0, avg: 0, trend: 0 };
-
     const sum = arr.reduce((a, b) => a + b, 0);
     const max = Math.max(...arr);
     const min = Math.min(...arr);
     const avg = sum / arr.length;
-
-    // Einfache Trend-Berechnung: Vergleicht den letzten Wert mit dem Durchschnitt aller vorherigen Werte.
     let trend = 0;
     if (arr.length > 1) {
       const last = arr[arr.length - 1];
       const previousArr = arr.slice(0, -1);
       const prevAvg =
         previousArr.reduce((a, b) => a + b, 0) / previousArr.length;
-      if (last > prevAvg * 1.02)
-        trend = 1; // Mehr als 2% Steigerung
-      else if (last < prevAvg * 0.98) trend = -1; // Mehr als 2% Abfall
+      if (last > prevAvg * 1.02) trend = 1;
+      else if (last < prevAvg * 0.98) trend = -1;
     }
-
     return { sum, max, min, avg, trend };
   };
 
-  /**
-   * Haupt-Datenprozessor: Filtert, sortiert und aggregiert die Workouts.
-   * Generiert die `chartData` (für Recharts) und `tableData` (für die Statistik-Tabelle).
-   */
   const { chartData, tableData, workoutCount } = useMemo(() => {
-    // 1. Datumsgrenze berechnen
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - timeRangeDays);
 
-    // 2. Workouts nach Datum und Workout-Titel filtern
     const filteredWorkouts = completedWorkouts.filter((w) => {
       const isWithinDate =
         timeRangeDays === 0 || new Date(w.startTime) >= cutoffDate;
@@ -190,22 +139,19 @@ export default function AnalyseWorkouts() {
       return isWithinDate && isMatchingWorkout;
     });
 
-    // 3. Chronologisch sortieren (älteste zuerst, für einen logischen Chart-Verlauf)
     const sortedWorkouts = [...filteredWorkouts].sort(
       (a, b) =>
         new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
     );
 
     const generatedChartData: ChartDataPoint[] = [];
-
-    // Arrays zum Sammeln von Werten für die calculateStats-Funktion
     const vols: number[] = [];
     const reps: number[] = [];
     const sets: number[] = [];
     const weights: number[] = [];
     const durations: number[] = [];
+    let currentDayForAxis = "";
 
-    // 4. Daten aggregieren
     sortedWorkouts.forEach((workout) => {
       let sessionVolume = 0;
       let sessionMaxWeight = 0;
@@ -214,14 +160,10 @@ export default function AnalyseWorkouts() {
       let hasMatchingData = false;
       const formattedDate = new Date(workout.startTime).toLocaleDateString(
         "de-DE",
-        {
-          day: "2-digit",
-          month: "2-digit",
-        },
+        { day: "2-digit", month: "2-digit" },
       );
 
       workout.exercises.forEach((exercise) => {
-        // Filtern nach spezifischer Übung
         if (
           selectedExerciseTitle === "ALL" ||
           exercise.title === selectedExerciseTitle
@@ -231,16 +173,24 @@ export default function AnalyseWorkouts() {
             const w = Number(set.weight) || 0;
             const r = Number(set.repetitions) || 0;
 
-            // Wenn wir die detaillierte Satz-Ansicht haben, pushen wir JEDEN Satz in den Chart
             if (viewMode === "SET") {
-              // Einzigartiger X-Achsen Name durch "___" Trenner. Recharts braucht unique Keys.
+              let isFirstOfDay = false;
+              if (formattedDate !== currentDayForAxis) {
+                isFirstOfDay = true;
+                currentDayForAxis = formattedDate;
+              }
+
+              const firstMarker = isFirstOfDay ? "___FIRST" : "";
               const axisName =
                 selectedExerciseTitle === "ALL"
-                  ? `${formattedDate} (S${index + 1})___${exercise.title}`
-                  : `${formattedDate} (S${index + 1})`;
+                  ? `${formattedDate} (S${index + 1})___${exercise.title}${firstMarker}`
+                  : `${formattedDate} (S${index + 1})${firstMarker}`;
 
+              // dateStr und setStr hinzugefügt für saubere Trennung von Datum und Satz-Info im Tooltip
               generatedChartData.push({
                 name: axisName,
+                dateStr: formattedDate,
+                setStr: `Satz ${index + 1}`,
                 volumen: w * r,
                 gewicht: w,
                 wiederholungen: r,
@@ -249,7 +199,6 @@ export default function AnalyseWorkouts() {
               });
             }
 
-            // Werte für die Session-Aggregation aufaddieren
             sessionVolume += w * r;
             sessionReps += r;
             sessionSets += 1;
@@ -258,11 +207,12 @@ export default function AnalyseWorkouts() {
         }
       });
 
-      // Wenn in dieser Session relevante Daten waren, füge sie der Session-Ansicht hinzu
       if (hasMatchingData) {
         if (viewMode === "SESSION") {
+          // dateStr hinzugefügt für sauberen Tooltip
           generatedChartData.push({
             name: formattedDate,
+            dateStr: formattedDate,
             volumen: sessionVolume,
             gewicht: sessionMaxWeight,
             wiederholungen: sessionReps,
@@ -270,7 +220,6 @@ export default function AnalyseWorkouts() {
           });
         }
 
-        // Statistik-Arrays für die Tabelle befüllen
         vols.push(sessionVolume);
         reps.push(sessionReps);
         sets.push(sessionSets);
@@ -298,9 +247,6 @@ export default function AnalyseWorkouts() {
     viewMode,
   ]);
 
-  /**
-   * Gibt die Konfiguration (Key, Farbe, Label) für den aktuell gewählten Chart-Modus zurück.
-   */
   const getChartConfig = () => {
     switch (chartMetric) {
       case "WEIGHT":
@@ -319,9 +265,6 @@ export default function AnalyseWorkouts() {
 
   const currentConfig = getChartConfig();
 
-  /**
-   * Rendert einen kleinen visuellen Indikator (Pfeil) basierend auf dem Trend.
-   */
   const renderTrend = (trendVal: number) => {
     if (workoutCount < 2)
       return <span className={styles["trend-neutral"]}>-</span>;
@@ -346,15 +289,14 @@ export default function AnalyseWorkouts() {
 
   /**
    * CustomTooltip
-   * Eine überschriebene Tooltip-Komponente für Recharts.
-   * Sorgt dafür, dass die intern genutzten "___"-Trenner im UI ausgeblendet werden
-   * und formatiert das Pop-up passend zum App-Theme.
+   * Vollständig benutzerdefinierter Tooltip, der Datum, Satz-Info, Übungsname und die Werte anzeigt. Verwendet die neuen dateStr und setStr Felder für saubere Trennung von Datum und Satz-Info.
+    - Zeigt das Datum immer an, aber die Satz-Info nur, wenn sie existiert (also in der Satz-Ansicht).
+    - Zeigt den Übungsnamen an, wenn ein spezifischer Übungstitel ausgewählt ist oder wenn in der Satz-Ansicht mehrere Übungen angezeigt werden.
+    - Listet alle Werte (Volumen, Gewicht, Wiederholungen) mit entsprechenden Farben auf, abhängig von der aktuellen Chart-Metrik.
    */
-  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
-      // Bereinigt das unsichtbare Suffix, das wir für unique Recharts-Keys brauchten
-      const cleanLabel =
-        typeof label === "string" ? label.split("___")[0] : label;
+      const data = payload[0].payload;
 
       return (
         <div
@@ -372,10 +314,9 @@ export default function AnalyseWorkouts() {
               color: "var(--c-text-primary)",
             }}
           >
-            {cleanLabel}
+            {data.dateStr} {data.setStr ? `| ${data.setStr}` : ""}
           </p>
-          {/* Zeige Übungsname, falls vorhanden (nur im SET-Modus relevant) */}
-          {payload[0]?.payload?.exerciseName && (
+          {data.exerciseName && (
             <p
               style={{
                 margin: "0 0 5px 0",
@@ -384,7 +325,7 @@ export default function AnalyseWorkouts() {
                 opacity: 0.8,
               }}
             >
-              {payload[0].payload.exerciseName}
+              {data.exerciseName}
             </p>
           )}
           {payload.map((entry: TooltipPayload, index: number) => (
@@ -401,7 +342,6 @@ export default function AnalyseWorkouts() {
     return null;
   };
 
-  // --- Render ---
   return (
     <div className={styles["analyse-container"]}>
       {/* 1. Sektion: Globale Filter */}
@@ -469,7 +409,6 @@ export default function AnalyseWorkouts() {
             Trendverlauf ({chartData.length} Datenpunkte)
           </h3>
 
-          {/* Steuerelemente für das Diagramm */}
           <div className={styles["chart-controls"]}>
             <div className={styles["filter-group"]}>
               <label htmlFor="viewMode" className={styles["filter-label"]}>
@@ -509,10 +448,6 @@ export default function AnalyseWorkouts() {
 
         {chartData.length > 0 ? (
           <div className={styles["chart-container"]}>
-            {/* 
-              Absoluter Wrapper um Recharts: Verhindert, dass ResponsiveContainer
-              bei Layout-Änderungen ausbricht oder ins Unendliche wächst.
-            */}
             <div
               style={{
                 position: "absolute",
@@ -524,21 +459,39 @@ export default function AnalyseWorkouts() {
             >
               <ResponsiveContainer width="100%" height={320} debounce={50}>
                 {chartMetric === "COMBO" ? (
-                  // Kombinierter Chart (Bar = Wdh, Line = Gewicht)
                   <ComposedChart
                     data={chartData}
                     margin={{ top: 5, right: 10, bottom: 5, left: 0 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    {/* X-Achse: Filtert Suffixe für eine saubere Anzeige */}
                     <XAxis
                       dataKey="name"
-                      tickFormatter={(value) =>
-                        typeof value === "string"
-                          ? value.split("___")[0]
-                          : value
-                      }
-                      tick={{ fontSize: 12, fill: "var(--c-text-primary)" }}
+                      interval={0}
+                      tickFormatter={(value) => {
+                        if (typeof value !== "string") return value;
+
+                        if (viewMode === "SESSION") {
+                          return value.split("___")[0];
+                        }
+
+                        // Logik für die Satz-Ansicht
+                        const isFirst = value.includes("___FIRST");
+
+                        if (isFirst) {
+                          // Wenn es der erste Satz des Tages ist, gib nur das Datum aus (z.B. "14.05")
+                          return value.split(" ")[0];
+                        } else {
+                          // Wenn nicht, gib nur die Satznummer aus (z.B. "S2")
+                          const match = value.match(/\((S\d+)\)/);
+                          return match ? match[1] : "";
+                        }
+                      }}
+                      tick={{
+                        fontSize: 12,
+                        fill: "var(--c-text-primary)",
+                        angle: -45,
+                        textAnchor: "middle",
+                      }}
                       tickMargin={10}
                     />
                     <YAxis
@@ -590,7 +543,6 @@ export default function AnalyseWorkouts() {
                     />
                   </ComposedChart>
                 ) : (
-                  // Normaler LineChart für einzelne Metriken (Volumen, Reps, Weight)
                   <LineChart
                     data={chartData}
                     margin={{ top: 5, right: 10, bottom: 5, left: 0 }}
@@ -598,12 +550,32 @@ export default function AnalyseWorkouts() {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis
                       dataKey="name"
-                      tickFormatter={(value) =>
-                        typeof value === "string"
-                          ? value.split("___")[0]
-                          : value
-                      }
-                      tick={{ fontSize: 12, fill: "var(--c-text-primary)" }}
+                      interval={0}
+                      tickFormatter={(value) => {
+                        if (typeof value !== "string") return value;
+
+                        if (viewMode === "SESSION") {
+                          return value.split("___")[0];
+                        }
+
+                        // Logik für die Satz-Ansicht
+                        const isFirst = value.includes("___FIRST");
+
+                        if (isFirst) {
+                          // Wenn es der erste Satz des Tages ist, gib nur das Datum aus (z.B. "14.05")
+                          return value.split(" ")[0];
+                        } else {
+                          // Wenn nicht, gib nur die Satznummer aus (z.B. "S2")
+                          const match = value.match(/\((S\d+)\)/);
+                          return match ? match[1] : "";
+                        }
+                      }}
+                      tick={{
+                        fontSize: 12,
+                        fill: "var(--c-text-primary)",
+                        angle: -45,
+                        textAnchor: "middle",
+                      }}
                       tickMargin={10}
                     />
                     <YAxis
