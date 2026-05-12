@@ -127,7 +127,7 @@ export const apiService = {
     title: string;
     workoutId: number;
     exercises: WorkoutExercises[];
-  }) => apiClient.put<typeof payload, ApiResponse>("/workout/workout", payload),
+  }) => apiClient.put<typeof payload, ApiResponse>(`/workout/workout/${payload.workoutId}`, payload),
   postCompletedWorkout: (payload: {
     workoutId: number;
     startTime: number;
