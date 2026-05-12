@@ -3,15 +3,15 @@ import { z } from "zod";
 // --- WIEDERVERWENDBARE SUB-SCHEMAS ---
 
 export const workoutExerciseSetsSchema = z.object({
-  setNumber: z.number().int().nonnegative(),
-  weight: z.number().nonnegative(),
-  repetitions: z.number().int().nonnegative(),
+  setNumber: z.coerce.number().int().nonnegative(),
+  weight: z.coerce.number().nonnegative(),
+  repetitions: z.coerce.number().int().nonnegative(),
 });
 
 export const workoutExerciseSchema = z.object({
-  id: z.number().int().positive(),
+  id: z.coerce.number().int().positive(),
   title: z.string().min(1, "Übungstitel darf nicht leer sein."),
-  displayOrder: z.number().int().nonnegative(),
+  displayOrder: z.coerce.number().int().nonnegative(),
   sets: z.array(workoutExerciseSetsSchema),
 });
 
@@ -43,12 +43,15 @@ export const createWorkoutBodySchema = z.object({
 export type CreateWorkoutBody = z.infer<typeof createWorkoutBodySchema>;
 
 export const postCompletedWorkoutBodySchema = z.object({
-  workoutId: z.number().int().positive("Workout ID fehlt oder ist ungültig"),
+  workoutId: z.coerce
+    .number()
+    .int()
+    .positive("Workout ID fehlt oder ist ungültig"),
   title: z.string().min(1, "Workout Titel fehlt"),
   startTime: z.coerce.date({ message: "Startzeit fehlt oder ist ungültig" }),
   endTime: z.coerce.date({ message: "Endzeit fehlt oder ist ungültig" }),
-  pauseTime: z.number({ message: "Pausenzeit fehlt oder ist ungültig" }),
-  duration: z.number({ message: "Dauer fehlt oder ist ungültig" }),
+  pauseTime: z.coerce.number({ message: "Pausenzeit fehlt oder ist ungültig" }),
+  duration: z.coerce.number({ message: "Dauer fehlt oder ist ungültig" }),
   exercises: z.array(workoutExerciseSchema).min(1, "Übungen fehlen"),
 });
 export type PostCompletedWorkoutBody = z.infer<
@@ -58,13 +61,13 @@ export type PostCompletedWorkoutBody = z.infer<
 export const completedWorkoutSchema = z.object({
   id: z.string().min(1, "ID fehlt"),
   userId: z.string(),
-  workoutId: z.number().int().positive("Workout ID fehlerhaft."),
+  workoutId: z.coerce.number().int().positive("Workout ID fehlerhaft."),
   title: z.string().min(1, "Titel darf nicht leer sein."),
-  duration: z.number(),
+  duration: z.coerce.number(),
   // coerce.date() nimmt den ISO-String aus dem JSON und macht ein echtes Date-Objekt daraus!
   startTime: z.coerce.date(),
   endTime: z.coerce.date(),
-  pauseTime: z.number(),
+  pauseTime: z.coerce.number(),
   exercises: z
     .array(workoutExerciseSchema)
     .min(1, "Es muss mindestens eine Übung vorhanden sein."),
