@@ -73,9 +73,4 @@ export const completedWorkoutSchema = z.object({
     .min(1, "Es muss mindestens eine Übung vorhanden sein."),
 });
 
-export const putCompletedWorkoutBodySchema = z.object({
-  workout: completedWorkoutSchema,
-});
-export type PutCompletedWorkoutBody = z.infer<
-  typeof putCompletedWorkoutBodySchema
->;
+export type PutCompletedWorkoutBody = z.infer<typeof completedWorkoutSchema>;
