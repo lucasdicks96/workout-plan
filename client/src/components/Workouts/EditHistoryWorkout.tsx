@@ -83,12 +83,14 @@ export default function EditHistoryWorkout() {
         exercises,
       };
 
-      await apiService.putCompletedWorkout(updatedWorkout);
+      const response = await apiService.putCompletedWorkout(updatedWorkout);
 
       // Zeigt Erfolgsmeldung; Navigation zurück zur Historie erfolgt über onClose des Popups
-      popupRef.current?.show("Verlauf erfolgreich aktualisiert!");
+      if (response.status === "success") {
+        popupRef.current?.show("Verlauf erfolgreich aktualisiert!", "success");
+      }
     } catch (error) {
-      popupRef.current?.show("Fehler beim Aktualisieren");
+      popupRef.current?.show("Fehler beim Aktualisieren", "error");
     }
   };
 
