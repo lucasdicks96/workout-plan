@@ -141,7 +141,7 @@ body {
 
 .sm {
   margin: 0rem 0.25rem;
-  padding: 0rem;
+  padding: 1rem;
   min-width: 1rem;
   width: 2rem;
   max-width: 3rem;
@@ -151,7 +151,7 @@ body {
 }
 
 .rounded {
-  border-radius: 1rem;
+  border-radius: 2rem;
 }
 .button-container {
   display: flex;
@@ -163,8 +163,8 @@ body {
 }
 .input {
   width: 100%;
-  padding: 0.75rem;
-  margin-top: 0.5rem;
+  padding: 0.5rem 1.5rem;
+  /* margin-top: 0.5rem; */
   background-color: var(--c-bg);
   border: 0.0625rem solid var(--c-border);
   border-radius: 0.5rem;
@@ -208,65 +208,3 @@ h3 {
   gap: 1rem;
   /* width: 100%; */
 }
-
-
-/* 
-@media (max-width: 400px) {
-
-
-  .button-container {
-    
-    width: 100%;
-    align-items: center;
-  }
-  h3 {
-    margin: 0.25rem 0rem;
-  }
-
-  .button {
-    padding: 0.5rem 1.5rem;
-  }
-
-}
-
-@media (max-width: 480px) {
-  .card {
-    width: 100%;
-    height: 6rem;
-    padding: 1rem 1rem;
-  }
-
-}
-
-@media (min-width: 481px) {
-  .card {
-    height: 8rem;
-    width: 12.5rem;
-    margin: 0.5rem;
-    padding: 0.75rem;
-  }
-
-}
-@media (min-width: 983px) {
-  .card {
-    min-width: 9.5rem;
-    min-height: 11rem;
-    padding: 1rem;
-    margin: 0.5rem;
-  }
-}
-@media (min-width: 1200px) {
-  .card {
-    min-height: 11rem;
-    min-width: 10rem;
-    width: 11rem;
-  }
-}
-
-@media (min-width: 1800px) {
-  .card {
-    height: 10rem;
-    min-width: 10rem;
-    width: 12rem;
-  }
-} */

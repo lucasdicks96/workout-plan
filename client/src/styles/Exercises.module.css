@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1920px;
   margin: 0 auto;
   padding: 1rem;
   box-sizing: border-box;
@@ -56,6 +56,7 @@
   grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
   gap: 1.5rem;
   width: 100%;
+  max-width: 1920px;
   max-height: 60vh;
   overflow-y: auto;
   padding: 0.5rem;
@@ -104,6 +105,9 @@
 }
 
 .own-exercise-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
   color: green;
   align-self: flex-end;
   font-size: 0.75rem;
@@ -223,7 +227,7 @@ h2 {
 @media (max-height: 800px) and (orientation: landscape) {
   .exercise-list {
     max-height: none; 
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); 
+    /* grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));  */
   }
 
   .card {
