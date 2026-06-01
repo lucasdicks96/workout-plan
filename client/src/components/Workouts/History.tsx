@@ -65,7 +65,7 @@ export default function History() {
       {!workouts || workouts.length === 0 ? (
         <div>Bisher wurden keine Workouts absolviert</div>
       ) : (
-        <div className={styles["workout-list"]}>
+        <div className={styles["exercise-list"]}>
           {/* Mappen der Workouts auf die HistoryItem-Komponente */}
           {workouts.map((workout) => (
             <HistoryItem key={workout.id} workout={workout} />
