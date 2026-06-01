@@ -1,3 +1,4 @@
+import { ApiSuccessResponse } from "@workout/shared";
 import { Response, Router } from "express";
 import { isAuthenticated } from "../middlewares/isAuthenticated";
 import * as workoutService from "../services/workout.service";
@@ -6,18 +7,17 @@ import {
   authenticatedHandler,
   AuthenticatedRequest,
 } from "../utils/auth.utils";
-import { ApiSuccessResponse } from "@workout/shared";
 
 // Zod Schemas importieren
 import {
-  workoutIdParamSchema,
-  stringIdParamSchema,
-  createWorkoutBodySchema,
   CreateWorkoutBody,
-  postCompletedWorkoutBodySchema,
+  createWorkoutBodySchema,
   PostCompletedWorkoutBody,
-  putCompletedWorkoutBodySchema,
+  postCompletedWorkoutBodySchema,
   PutCompletedWorkoutBody,
+  completedWorkoutSchema,
+  stringIdParamSchema,
+  workoutIdParamSchema,
 } from "../schemas/workout.schema";
 
 const router = Router();
@@ -237,7 +237,7 @@ router.put(
       req: AuthenticatedRequest<any, any, PutCompletedWorkoutBody>,
       res: Response<ApiSuccessResponse>,
     ) => {
-      const { workout } = putCompletedWorkoutBodySchema.parse(req.body);
+      const workout = completedWorkoutSchema.parse(req.body);
 
       const result = await workoutService.putCompletedWorkout(workout);
       res.status(200).json({ status: "success", message: result.message });
