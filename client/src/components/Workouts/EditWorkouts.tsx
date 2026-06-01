@@ -194,15 +194,7 @@ export default function EditWorkouts() {
 
   // --- Render ---
   return (
-    <div
-      style={{
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        width: "100%",
-      }}
-    >
+    <>
       {/* Globales Popup für Erfolgs- und Fehlermeldungen */}
       <Popup
         ref={popupRef}
@@ -226,7 +218,7 @@ export default function EditWorkouts() {
       ) : (
         /* --- ANSICHT 2: Die Listenübersicht --- */
         <>
-          <div className={styles.exerciseList}>
+          <div className={styles["exercise-list"]}>
             {/* WorkoutPlans rendert die Karten für jeden vorhandenen Plan */}
             <WorkoutPlans
               isLoading={isLoading}
@@ -236,7 +228,7 @@ export default function EditWorkouts() {
             />
           </div>
 
-          <div className={stylesButton.buttonContainerNonRelative}>
+          <div className={stylesButton["button-container-non-relative"]}>
             {/* Button verlässt die "Bearbeiten"-Ansicht komplett und geht zurück zum Hub */}
             <ReturnButton
               onBack={() => navigate("/workouts")}
@@ -245,6 +237,6 @@ export default function EditWorkouts() {
           </div>
         </>
       )}
-    </div>
+    </>
   );
 }
