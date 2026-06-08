@@ -1,34 +1,43 @@
+import pool from "../config/db";
 import * as exerciseRepository from "../repositories/exercise.repository";
-import { InternalServerError } from "../types/errors.types";
+import {
+  AppError,
+  InternalServerError,
+  NotFoundError,
+} from "../types/errors.types";
 import { Category, Exercise } from "../types/exercise.types";
 
 export async function getExercises(userId: string): Promise<Exercise[]> {
-  const [exercises, categoryTree] = await Promise.all([
-    exerciseRepository.getSystemExercises(userId),
-    getCategoryTree(),
-  ]);
+  try {
+    const [exercises, categoryTree] = await Promise.all([
+      exerciseRepository.getExercises(userId),
+      getCategoryTree(),
+    ]);
 
-  const transformedExercises = exercises.map((ex) =>
-    transformToCombined(ex, categoryTree),
-  );
-
-  return transformedExercises;
+    return exercises.map((ex) => transformToCombined(ex, categoryTree));
+  } catch (error) {
+    throw new InternalServerError("Fehler beim Abrufen der Übungen.", error);
+  }
 }
 
 export async function getUserExercises(userId: string): Promise<Exercise[]> {
-  const [userExercises, categoryTree] = await Promise.all([
-    exerciseRepository.getUserExercises(userId),
-    getCategoryTree(),
-  ]);
+  try {
+    const [userExercises, categoryTree] = await Promise.all([
+      exerciseRepository.getUserExercises(userId),
+      getCategoryTree(),
+    ]);
 
-  if (!userExercises || userExercises.length === 0) {
-    return [];
+    if (!userExercises || userExercises.length === 0) {
+      return [];
+    }
+
+    return userExercises.map((ex) => transformToCombined(ex, categoryTree));
+  } catch (error) {
+    throw new InternalServerError(
+      "Fehler beim Abrufen der Benutzer-Übungen.",
+      error,
+    );
   }
-  const transformedUserExercises = userExercises.map((ex) =>
-    transformToCombined(ex, categoryTree),
-  );
-
-  return transformedUserExercises;
 }
 
 export async function postExercise(
@@ -37,12 +46,41 @@ export async function postExercise(
   userId: string,
   categories: number[],
 ): Promise<Exercise> {
-  return await exerciseRepository.postExercise(
-    title,
-    description,
-    userId,
-    categories,
-  );
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // 1. Übung anlegen
+    const exData = await exerciseRepository.insertExercise(
+      client,
+      title,
+      description,
+      userId,
+    );
+
+    // 2. Kategorien verknüpfen
+    await exerciseRepository.insertExerciseCategories(
+      client,
+      exData.id,
+      categories,
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      id: exData.id,
+      userId: exData.user_id,
+      title: exData.title,
+      description: exData.description,
+      category: categories as any,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw new InternalServerError("Fehler beim Erstellen der Übung.", error);
+  } finally {
+    client.release();
+  }
 }
 
 export async function putUserExercise(
@@ -52,44 +90,91 @@ export async function putUserExercise(
   userId: string,
   categories: number[],
 ): Promise<{ message: string }> {
-  const updatedExercise = await exerciseRepository.putExercise(
-    id,
-    title,
-    description,
-    userId,
-    categories,
-  );
-  if (!updatedExercise) {
-    throw new Error("Übung nicht gefunden oder fehlende Berechtigung.");
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // 1. Übung updaten
+    const updatedExercise = await exerciseRepository.updateExercise(
+      client,
+      id,
+      title,
+      description,
+      userId,
+    );
+
+    if (!updatedExercise) {
+      await client.query("ROLLBACK");
+      throw new NotFoundError(
+        "Übung nicht gefunden oder fehlende Berechtigung.",
+      );
+    }
+
+    // 2. Alte Kategorien löschen
+    await exerciseRepository.deleteExerciseCategories(client, id);
+
+    // 3. Neue Kategorien setzen
+    await exerciseRepository.insertExerciseCategories(client, id, categories);
+
+    await client.query("COMMIT");
+    return { message: "Übung erfolgreich aktualisiert" };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    // Wenn es bereits unser eigener NotFoundError ist, werfen wir ihn unverändert weiter
+    if (error instanceof AppError) throw error;
+
+    throw new InternalServerError(
+      "Fehler beim Aktualisieren der Übung.",
+      error,
+    );
+  } finally {
+    client.release();
   }
-  return { message: "Übung erfolgreich aktualisiert" };
 }
 
 export async function deleteUserExercise(
   id: number,
   userId: string,
 ): Promise<{ message: string }> {
-  const deletedExercise = await exerciseRepository.softDeleteExercise(
-    id,
-    userId,
-  );
-  if (!deletedExercise) {
-    throw new Error("Übung nicht gefunden oder fehlende Berechtigung.");
+  try {
+    const deletedExercise = await exerciseRepository.softDeleteExercise(
+      id,
+      userId,
+    );
+    if (!deletedExercise) {
+      throw new NotFoundError(
+        "Übung nicht gefunden oder fehlende Berechtigung.",
+      );
+    }
+    return { message: "Löschen erfolgreich" };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new InternalServerError("Fehler beim Löschen der Übung.", error);
   }
-  return { message: "Löschen erfolgreich" };
 }
 
 export async function getCategories(): Promise<Category[]> {
-  const result = await exerciseRepository.categories();
-  if (!result)
-    throw new InternalServerError("Fehler beim Abrufen der Übungskategorien");
-  return result;
+  try {
+    return await exerciseRepository.categories();
+  } catch (error) {
+    throw new InternalServerError(
+      "Fehler beim Abrufen der Übungskategorien.",
+      error,
+    );
+  }
 }
 
 export async function getCategoryTree(): Promise<Category[]> {
-  const flatCategories = await getCategories();
-
-  return buildCategoryTree(flatCategories);
+  try {
+    const flatCategories = await getCategories();
+    return buildCategoryTree(flatCategories);
+  } catch (error) {
+    throw new InternalServerError(
+      "Fehler beim Erstellen des Kategorie-Baums.",
+      error,
+    );
+  }
 }
 
 export function transformToCombined(
@@ -109,6 +194,7 @@ export function transformToCombined(
     category: filteredCategories,
   };
 }
+
 function buildCategoryTree(categories: Category[]): Category[] {
   const map = new Map<number, Category>();
   const roots: Category[] = [];
@@ -128,6 +214,7 @@ function buildCategoryTree(categories: Category[]): Category[] {
 
   return roots;
 }
+
 function filterCategoryTreeByIds(tree: Category[], ids: number[]): Category[] {
   return tree
     .filter((cat) => ids.includes(cat.id))
