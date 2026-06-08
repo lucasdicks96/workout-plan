@@ -1,4 +1,3 @@
-import axios from "axios";
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
@@ -16,6 +15,7 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+
     try {
       if (isRegister) {
         await register(email, password);
@@ -24,20 +24,12 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
       }
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        if (err.response && err.response.data && err.response.data.message) {
-          setError(err.response.data.message);
-        } else {
-          setError("Interner Serverfehler.");
-          console.error(err.stack);
-        }
+      // Da der AuthContext bereits einen sauberen Error wirft,
+      // müssen wir hier nur noch die Message auslesen!
+      if (err instanceof Error) {
+        setError(err.message);
       } else {
-        console.error("Ein unerwarteter Fehler ist aufgetreten:", err);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Ein unerwarteter Fehler ist aufgetreten.",
-        );
+        setError("Ein unerwarteter Fehler ist aufgetreten.");
       }
     }
   };
