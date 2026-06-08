@@ -105,6 +105,10 @@
   min-width: 44px;
 }
 
+.confirm-button:hover {
+  background-color: var(--c-danger-hover);
+}
+
 .cancel-button {
   background-color: var(--c-neutral);
   min-height: 44px;

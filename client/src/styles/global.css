@@ -14,6 +14,7 @@
   --color-text-secondary-dark: #9ca3af;
   --color-border-dark: #374151;
   --color-danger-dark: #f87171;
+  --color-danger-hover-dark: #ff7c7c;
 
   /* Light Theme */
   --color-background-light: #f3f4f6;
@@ -24,6 +25,7 @@
   --color-text-secondary-light: #4b5563;
   --color-border-light: #d1d5db;
   --color-danger-light: #ef4444;
+  --color-danger-hover-light: #f87171;
 }
 
 /* Responsive Font Sizing */
@@ -44,6 +46,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   touch-action: manipulation;
+  
+  /* NEU HIERHER VERSCHOBEN: */
+  background-color: var(--c-bg);
+  color: var(--c-text-primary);
+  transition: background-color 0.3s, color 0.3s;
 }
 
 /* Touch-friendly tap highlight removal */
@@ -52,8 +59,6 @@ body {
 }
 
 .app-container {
-  background-color: var(--c-bg);
-  color: var(--c-text-primary);
   transition: background-color 0.3s, color 0.3s;
   min-height: 100vh;
   width: 100%;
@@ -61,7 +66,7 @@ body {
   overflow-x: hidden;
 }
 
-.app-container.dark {
+body.dark {
   --c-bg: var(--color-background-dark);
   --c-surface: var(--color-surface-dark);
   --c-primary: var(--color-primary-dark);
@@ -70,10 +75,11 @@ body {
   --c-text-secondary: var(--color-text-secondary-dark);
   --c-border: var(--color-border-dark);
   --c-danger: var(--color-danger-dark);
+  --c-danger-hover: var(--color-danger-hover-dark);
   --c-primary-text-on: #064e3b;
 }
 
-.app-container.light {
+body.light {
   --c-bg: var(--color-background-light);
   --c-surface: var(--color-surface-light);
   --c-primary: var(--color-primary-light);
@@ -82,6 +88,7 @@ body {
   --c-text-secondary: var(--color-text-secondary-light);
   --c-border: var(--color-border-light);
   --c-danger: var(--color-danger-light);
+  --c-danger-hover: var(--color-danger-hover-light);
   --c-primary-text-on: #ffffff;
 }
 
@@ -164,7 +171,7 @@ body {
 .input {
   width: 100%;
   padding: 0.5rem 1.5rem;
-  /* margin-top: 0.5rem; */
+  margin-top: 0.5rem;
   background-color: var(--c-bg);
   border: 0.0625rem solid var(--c-border);
   border-radius: 0.5rem;
