@@ -16,7 +16,7 @@ export async function createUser(email: string, password: string) {
         throw new ConflictError("Benutzer mit dieser E-Mail existiert bereits");
       }
     }
-    throw new InternalServerError("Fehler beim Erstellen des Benutzers");
+    throw new InternalServerError("Fehler beim Erstellen des Benutzers", error);
   }
 }
 
@@ -36,7 +36,10 @@ export async function updateUser(
         throw new ConflictError("Benutzer mit dieser E-Mail existiert bereits");
       }
     }
-    throw new InternalServerError("Fehler beim Aktualisieren des Benutzers");
+    throw new InternalServerError(
+      "Fehler beim Aktualisieren des Benutzers",
+      error,
+    );
   }
 }
 
@@ -45,7 +48,7 @@ export async function deleteUser(id: string): Promise<boolean> {
     const deleted = await userRepository.deleteUser(id);
     return deleted;
   } catch (error) {
-    throw new InternalServerError("Fehler beim Löschen des Benutzers");
+    throw new InternalServerError("Fehler beim Löschen des Benutzers", error);
   }
 }
 
@@ -60,6 +63,7 @@ export async function getUserStats(userId: string): Promise<{
   } catch (error) {
     throw new InternalServerError(
       "Fehler beim Abrufen der Benutzerstatistiken",
+      error,
     );
   }
 }
