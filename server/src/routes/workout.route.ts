@@ -1,4 +1,4 @@
-import { ApiSuccessResponse } from "@workout/shared";
+import { ApiResponse } from "@workout/shared"; // Geändert zu ApiResponse
 import { Response, Router } from "express";
 import { isAuthenticated } from "../middlewares/isAuthenticated";
 import * as workoutService from "../services/workout.service";
@@ -28,7 +28,7 @@ router.get(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, never>,
-      res: Response<ApiSuccessResponse<Workout[]>>,
+      res: Response<ApiResponse<Workout[]>>,
     ) => {
       const workouts = await workoutService.getAllWorkouts(req.user.id);
       res.status(200).json({ status: "success", data: workouts });
@@ -42,11 +42,9 @@ router.get(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, never>,
-      res: Response<ApiSuccessResponse<Workout>>,
+      res: Response<ApiResponse<Workout>>,
     ) => {
-      // Validiert den Parameter und transformiert ihn in eine Zahl
       const { workoutId } = workoutIdParamSchema.parse(req.params);
-
       const workoutData = await workoutService.getWorkoutById(
         workoutId,
         req.user.id,
@@ -67,10 +65,9 @@ router.get(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, never>,
-      res: Response<ApiSuccessResponse<Workout>>,
+      res: Response<ApiResponse<Workout>>,
     ) => {
       const { workoutId } = workoutIdParamSchema.parse(req.params);
-
       const workoutData = await workoutService.getLastWorkout(
         workoutId,
         req.user.id,
@@ -91,11 +88,9 @@ router.post(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, CreateWorkoutBody>,
-      res: Response<ApiSuccessResponse>,
+      res: Response<ApiResponse>, // Void, also kein data-Feld erwartet
     ) => {
-      // Body sicher parsen
       const { title, exercises } = createWorkoutBodySchema.parse(req.body);
-
       const result = await workoutService.createWorkoutPlan(
         title,
         req.user.id,
@@ -113,10 +108,9 @@ router.delete(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, never>,
-      res: Response<ApiSuccessResponse>,
+      res: Response<ApiResponse>,
     ) => {
       const { workoutId } = workoutIdParamSchema.parse(req.params);
-
       const result = await workoutService.deleteWorkout(workoutId, req.user.id);
 
       res.status(200).json({ status: "success", message: result.message });
@@ -130,9 +124,8 @@ router.post(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, PostCompletedWorkoutBody>,
-      res: Response<ApiSuccessResponse>,
+      res: Response<ApiResponse>,
     ) => {
-      // Zod extrahiert uns alle Werte sauber und typsicher
       const {
         workoutId,
         startTime,
@@ -165,7 +158,7 @@ router.get(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, never>,
-      res: Response<ApiSuccessResponse<CompletedWorkout[]>>,
+      res: Response<ApiResponse<CompletedWorkout[]>>,
     ) => {
       const completedWorkouts = await workoutService.getCompletedWorkouts(
         req.user.id,
@@ -186,11 +179,9 @@ router.get(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, never>,
-      res: Response<ApiSuccessResponse<CompletedWorkout>>,
+      res: Response<ApiResponse<CompletedWorkout>>,
     ) => {
-      // Hier nutzen wir das Schema für String-IDs
       const { workoutId } = stringIdParamSchema.parse(req.params);
-
       const workoutData = await workoutService.getCompletedWorkout(
         req.user.id,
         workoutId,
@@ -211,9 +202,8 @@ router.put(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, CreateWorkoutBody>,
-      res: Response<ApiSuccessResponse>,
+      res: Response<ApiResponse>,
     ) => {
-      // Parameter parsen UND Body parsen
       const { workoutId } = workoutIdParamSchema.parse(req.params);
       const { title, exercises } = createWorkoutBodySchema.parse(req.body);
 
@@ -235,11 +225,11 @@ router.put(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, PutCompletedWorkoutBody>,
-      res: Response<ApiSuccessResponse>,
+      res: Response<ApiResponse>,
     ) => {
       const workout = completedWorkoutSchema.parse(req.body);
-
       const result = await workoutService.putCompletedWorkout(workout);
+
       res.status(200).json({ status: "success", message: result.message });
     },
   ),
