@@ -34,7 +34,7 @@ export default function ConfirmButton({
 const CompleteIcon: React.FC = () => {
   return (
     <svg
-      width="2.5rem"
+      width="1.5rem"
       height="1.5rem"
       viewBox="0 0 32 24"
       fill="var(--c-bg)"
