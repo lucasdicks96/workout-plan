@@ -1,3 +1,4 @@
+import { ApiResponse } from "@workout/shared"; // Geändert zu ApiResponse
 import { Response, Router } from "express";
 import { isAuthenticated } from "../middlewares/isAuthenticated";
 import * as exerciseService from "../services/exercise.service";
@@ -5,7 +6,6 @@ import {
   authenticatedHandler,
   AuthenticatedRequest,
 } from "../utils/auth.utils";
-import { ApiSuccessResponse } from "@workout/shared";
 import { Category, Exercise } from "../types/exercise.types";
 
 import {
@@ -24,7 +24,7 @@ router.get(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, never>,
-      res: Response<ApiSuccessResponse<Exercise[]>>,
+      res: Response<ApiResponse<Exercise[]>>,
     ) => {
       const combinedExercises = await exerciseService.getExercises(req.user.id);
       res.status(200).json({ status: "success", data: combinedExercises });
@@ -38,7 +38,7 @@ router.get(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, never>,
-      res: Response<ApiSuccessResponse<Exercise[]>>,
+      res: Response<ApiResponse<Exercise[]>>,
     ) => {
       const combinedExercises = await exerciseService.getUserExercises(
         req.user.id,
@@ -54,7 +54,7 @@ router.get(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, never>,
-      res: Response<ApiSuccessResponse<Category[]>>,
+      res: Response<ApiResponse<Category[]>>,
     ) => {
       const categories = await exerciseService.getCategoryTree();
       res.status(200).json({ status: "success", data: categories });
@@ -68,7 +68,7 @@ router.post(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, CreateExerciseBody>,
-      res: Response<ApiSuccessResponse<Exercise>>,
+      res: Response<ApiResponse<Exercise>>,
     ) => {
       // Wenn etwas fehlt oder falsch ist, wirft Zod hier automatisch einen Fehler!
       const { title, description, categories } = createExerciseBodySchema.parse(
@@ -93,7 +93,7 @@ router.put(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, UpdateExerciseBody>,
-      res: Response<ApiSuccessResponse>,
+      res: Response<ApiResponse>, // Void erwartet kein data-Feld
     ) => {
       const { id, title, description, categories } =
         updateExerciseBodySchema.parse(req.body);
@@ -117,10 +117,9 @@ router.put(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, CreateExerciseBody>,
-      res: Response<ApiSuccessResponse>,
+      res: Response<ApiResponse>,
     ) => {
       const { id } = exerciseIdParamSchema.parse(req.params);
-
       const { title, description, categories } = createExerciseBodySchema.parse(
         req.body,
       );
@@ -144,7 +143,7 @@ router.delete(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, never>,
-      res: Response<ApiSuccessResponse>,
+      res: Response<ApiResponse>,
     ) => {
       // String aus URL sicher validieren und in Number konvertieren
       const { id } = exerciseIdParamSchema.parse(req.params);
