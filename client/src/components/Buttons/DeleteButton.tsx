@@ -33,7 +33,13 @@ export default function DeleteButton({
   const ConfirmDeletePopup = () => {
     return (
       <div>
-        <p style={{ textAlign: "center", fontWeight: "bolder" }}>
+        <p
+          style={{
+            textAlign: "center",
+            fontWeight: "bolder",
+            color: "var(--c-danger)",
+          }}
+        >
           Löschen bestätigen.
         </p>
         <ReturnButton
@@ -43,7 +49,7 @@ export default function DeleteButton({
         <ConfirmButton
           onConfirm={confirmDelete}
           btnType="button"
-          className={`${classNames}`}
+          className={`${classNames}, ${styles["confirm-button"]}, ${styles["confirm-button-hover"]}`}
         />
       </div>
     );
