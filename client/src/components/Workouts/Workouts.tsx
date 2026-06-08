@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
 import styles from "../../styles/Exercises.module.css";
@@ -125,10 +125,10 @@ function WorkoutCard({
   onDelete?: (workoutId: number) => void;
 }) {
   const navigate = useNavigate();
-  const location = window.location.pathname;
+  const location = useLocation();
 
   // Kontext-Variablen für UI-Zustände
-  const isEditPage: boolean = location.includes("edit-workouts");
+  const isEditPage: boolean = location.pathname.includes("edit-workouts");
   const isInProgress = localStorage.getItem("workoutInProgressState");
   const startedWorkoutId = localStorage.getItem("startWorkoutId");
 

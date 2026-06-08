@@ -1,5 +1,5 @@
 import { memo, useCallback, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useExercises } from "../../hooks/useExercises";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import stylesButton from "../../styles/Button.module.css";
@@ -99,8 +99,8 @@ export function ExerciseList({
   const [isOpen, setIsOpen] = useState(false);
 
   // Prüft anhand der aktuellen URL, ob wir uns im Bearbeitungsmodus befinden
-  const location = window.location.pathname;
-  const isEditPage = location.includes("edit-exercises");
+  const location = useLocation();
+  const isEditPage = location.pathname.includes("edit-exercises");
 
   /**
    * handleCardClick
