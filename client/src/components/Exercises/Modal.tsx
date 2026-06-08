@@ -1,5 +1,6 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useExercises } from "../../hooks/useExercises";
+import { useNotification } from "../../hooks/useNotification";
 import { apiService } from "../../services/apiService";
 import stylesExercises from "../../styles/Exercise.module.css";
 import styles from "../../styles/Modal.module.css";
@@ -7,7 +8,6 @@ import { Category, Exercise } from "../../types/exercises";
 import ConfirmButton from "../Buttons/ConfirmButton";
 import DeleteButton from "../Buttons/DeleteButton";
 import ReturnButton from "../Buttons/ReturnButton";
-import Popup, { PopupRef } from "../Popup";
 
 type ModalProps = {
   isOpen: boolean;
@@ -33,7 +33,7 @@ export default function Modal({
     id: 0,
   });
 
-  const popupRef = useRef<PopupRef>(null);
+  const { showNotification } = useNotification();
 
   const [deleteIsOpen, setDeleteIsOpen] = useState(false);
 
@@ -68,21 +68,27 @@ export default function Modal({
     try {
       await apiService.deleteExercise(deleteId);
 
-      popupRef.current?.show("Übung erfolgreich gelöscht");
+      showNotification("Übung erfolgreich gelöscht", "success");
+      onUpdateSuccess();
+      onClose();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        popupRef.current?.show(error.message || "Ein Fehler ist aufgetreten");
+        showNotification(
+          error.message || "Ein Fehler ist aufgetreten",
+          "error",
+        );
       }
     }
   };
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
+    const { name, value } = e.target;
     setFormState((prevState) => ({
       ...prevState,
-      [id]: value,
+      [name]: value,
     }));
   };
+
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
@@ -93,16 +99,17 @@ export default function Modal({
         categories: selectedCategories,
       });
 
-      popupRef.current?.show("Übung erfolgreich aktualisiert");
+      showNotification("Übung erfolgreich aktualisiert", "success");
+      onUpdateSuccess();
+      onClose();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        popupRef.current?.show(error.message || "Ein Fehler ist aufgetreten");
+        showNotification(
+          error.message || "Ein Fehler ist aufgetreten",
+          "error",
+        );
       }
     }
-  };
-  const handlePopupClose = () => {
-    onUpdateSuccess();
-    onClose();
   };
 
   return (
@@ -114,7 +121,6 @@ export default function Modal({
 
       <form className="form" onSubmit={onSubmit}>
         <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-          <Popup ref={popupRef} duration={1500} onClose={handlePopupClose} />
           <div>
             <input
               value={formState.title}
@@ -123,13 +129,15 @@ export default function Modal({
               name="title"
               onChange={onChange}
             />
-            <input
-              value={formState.description}
-              className="input"
-              type="text"
-              name="description"
-              onChange={onChange}
-            />
+            <div>
+              <input
+                value={formState.description}
+                className="input"
+                type="text"
+                name="description"
+                onChange={onChange}
+              />
+            </div>
           </div>
           <fieldset
             style={{

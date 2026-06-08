@@ -1,10 +1,10 @@
 // src/components/Workouts/EditHistoryWorkout.tsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useNotification } from "../../hooks/useNotification";
 import { apiService } from "../../services/apiService";
 import { Exercise } from "../../types/exercises";
 import { CompletedWorkout, WorkoutExercises } from "../../types/workouts";
-import Popup, { PopupRef } from "../Popup";
 import SharedWorkoutEditor from "./SharedWorkoutEditor";
 
 // ==========================================
@@ -24,7 +24,7 @@ export default function EditHistoryWorkout() {
   // Extrahiert die History-ID direkt aus der URL (z.B. /history/edit/123)
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const popupRef = useRef<PopupRef>(null);
+  const { showNotification } = useNotification();
 
   // --- State-Management ---
   const [completedWorkout, setCompletedWorkout] =
@@ -87,10 +87,11 @@ export default function EditHistoryWorkout() {
 
       // Zeigt Erfolgsmeldung; Navigation zurück zur Historie erfolgt über onClose des Popups
       if (response.status === "success") {
-        popupRef.current?.show("Verlauf erfolgreich aktualisiert!", "success");
+        showNotification("Verlauf erfolgreich aktualisiert!", "success");
+        navigate("/history"); // Direkt zurück zur Historie navigieren
       }
     } catch (error) {
-      popupRef.current?.show("Fehler beim Aktualisieren", "error");
+      showNotification("Fehler beim Aktualisieren", "error");
     }
   };
 
@@ -103,14 +104,6 @@ export default function EditHistoryWorkout() {
 
   return (
     <>
-      <Popup
-        ref={popupRef}
-        duration={1500}
-        // WICHTIG: Sobald das Erfolgs-Popup schließt, leiten wir den User zurück zur Übersicht
-        onClose={() => navigate("/history")}
-        showBackdrop={true}
-      />
-
       {/* 
         Der SharedWorkoutEditor ist eine generische Komponente, die sowohl für das 
         Erstellen von Plänen als auch für das Editieren von Historien-Einträgen genutzt wird.

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useNotification } from "../../hooks/useNotification";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
@@ -9,8 +10,8 @@ import AddButton from "../Buttons/AddButton";
 import ConfirmButton from "../Buttons/ConfirmButton";
 import ReturnButton from "../Buttons/ReturnButton";
 import ExerciseSelectionList from "../Exercises/ExerciseSelectionList";
-import { PopupRef } from "../Popup";
 import WorkoutExercises from "./WorkoutExercises";
+import { isAxiosError } from "axios";
 
 export default function CreateWorkout() {
   const {
@@ -34,7 +35,7 @@ export default function CreateWorkout() {
 
   useSetTitle("Plan erstellen");
 
-  const popupRef = useRef<PopupRef>(null);
+  const { showNotification } = useNotification();
 
   useEffect(() => {
     const savedList = localStorage.getItem("createPlan");
@@ -79,9 +80,23 @@ export default function CreateWorkout() {
         title: workoutName,
         exercises: workoutList,
       });
-      popupRef.current?.show("Trainingsplan erstellt!");
+      showNotification("Trainingsplan erstellt!", "success");
+      navigate("/workouts");
     } catch (error) {
-      popupRef.current?.show("Fehler beim Erstellen des Trainingsplans");
+      if (isAxiosError(error) && error.response) {
+        showNotification(
+          error.response.data?.message || "Fehler beim Erstellen des Plans",
+          "error",
+        );
+      } else if (error instanceof Error) {
+        showNotification(
+          error.message || "Fehler beim Erstellen des Plans",
+          "error",
+        );
+      } else {
+        showNotification("Ein unbekannter Fehler ist aufgetreten.", "error");
+      }
+
       console.error("Fehler beim Erstellen des Plans", error);
     } finally {
       localStorage.removeItem("createPlan");

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useNotification } from "../../hooks/useNotification";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
 import stylesButton from "../../styles/Button.module.css";
@@ -10,7 +11,6 @@ import {
   WorkoutExercises as WorkoutExercisesType,
 } from "../../types/workouts";
 import ReturnButton from "../Buttons/ReturnButton";
-import Popup, { PopupRef } from "../Popup";
 import SharedWorkoutEditor from "./SharedWorkoutEditor";
 import { WorkoutList as WorkoutPlans } from "./Workouts";
 
@@ -31,8 +31,7 @@ export default function EditWorkouts() {
   const navigate = useNavigate();
   useSetTitle("Trainingspläne bearbeiten");
 
-  // --- Refs ---
-  const popupRef = useRef<PopupRef>(null);
+  const { showNotification } = useNotification();
 
   // --- State-Management ---
   // Daten für die Listenansicht
@@ -141,16 +140,11 @@ export default function EditWorkouts() {
       });
 
       if (response.status === "success") {
-        popupRef.current?.show(
-          "Trainingsplan erfolgreich gespeichert!",
-          "success",
-        );
+        showNotification("Trainingsplan erfolgreich gespeichert!", "success");
+        handleClosePopup();
       }
     } catch (error) {
-      popupRef.current?.show(
-        "Fehler beim Speichern des Trainingsplans",
-        "fail",
-      );
+      showNotification("Fehler beim Speichern des Trainingsplans", "error");
     }
   };
 
@@ -183,12 +177,14 @@ export default function EditWorkouts() {
   const handleDelete = async (workoutId: number) => {
     try {
       await apiService.deleteWorkout(workoutId);
-      popupRef.current?.show("Trainingsplan erfolgreich gelöscht!", "success");
+      showNotification("Trainingsplan erfolgreich gelöscht!", "success");
       // Fallback, falls wir gerade den Plan löschen, der evtl. noch im State hing
       setSelectedWorkoutId(null);
+      handleClosePopup();
     } catch (error) {
-      popupRef.current?.show("Fehler beim Löschen des Plans", "fail");
+      showNotification("Fehler beim Löschen des Plans", "error");
       console.error("Fehler beim Löschen des Plans", error);
+      handleClosePopup();
     }
   };
 
@@ -196,12 +192,12 @@ export default function EditWorkouts() {
   return (
     <>
       {/* Globales Popup für Erfolgs- und Fehlermeldungen */}
-      <Popup
+      {/* <Popup
         ref={popupRef}
         duration={1500}
         onClose={handleClosePopup}
         showBackdrop={true}
-      />
+      /> */}
 
       {/* Bedingtes Rendern: Editor-Ansicht ODER Listen-Ansicht */}
       {selectedWorkoutId ? (
