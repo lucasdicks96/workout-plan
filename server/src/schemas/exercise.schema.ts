@@ -9,15 +9,24 @@ export const createExerciseBodySchema = z.object({
 
   description: z.string().optional().default(""),
 
-  categories: z.array(z.coerce.number().int().positive()).default([]),
+  categories: z
+    .array(
+      z.coerce
+        .number({
+          message: "Muss mindestens eine gültige Kategorie enthalten.",
+        })
+        .int()
+        .positive(),
+    )
+    .min(1),
 });
 
 export type CreateExerciseBody = z.infer<typeof createExerciseBodySchema>;
 
 // 2. Schema für das Updaten (PUT)
 export const updateExerciseBodySchema = createExerciseBodySchema.extend({
-  id: z
-    .coerce.number({ message: "ID ist erforderlich und muss eine Zahl sein." })
+  id: z.coerce
+    .number({ message: "ID ist erforderlich und muss eine Zahl sein." })
     .int()
     .positive("Ungültige Übungs-ID."),
 });
