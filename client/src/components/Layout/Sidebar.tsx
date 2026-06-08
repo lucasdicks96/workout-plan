@@ -1,6 +1,7 @@
-import { ReactNode, useRef, useEffect } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import useTheme from "../../hooks/useTheme";
 import styles from "../../styles/Sidebar.module.css";
 
 // ==========================================
@@ -167,6 +168,9 @@ const ChartIcon: React.FC = () => (
 // Komponenten
 // ==========================================
 
+/**
+ * Definition der Properties für ein einzelnes Navigationselement.
+ */
 type NavItemProps = {
   icon: ReactNode;
   label: string;
@@ -175,9 +179,13 @@ type NavItemProps = {
 };
 
 /**
- * NavItem
  * Wrappt den React Router NavLink, steuert die Hervorhebung der aktiven Seite
- * und führt optionale Klick-Events aus (z.B. um das Menü auf Mobile zu schließen).
+ * und führt optionale Klick-Events aus.
+ *
+ * @param icon - Das SVG-Icon, das links neben dem Label angezeigt wird.
+ * @param label - Der Text des Menüpunkts.
+ * @param path - Die Ziel-URL für das Routing.
+ * @param onClick - Optionaler Callback (z.B. um das Menü auf Mobile zu schließen).
  */
 function NavItem({ icon, label, path, onClick }: NavItemProps) {
   return (
@@ -194,35 +202,40 @@ function NavItem({ icon, label, path, onClick }: NavItemProps) {
   );
 }
 
+/**
+ * Definition der Properties für die Sidebar-Komponente.
+ */
 type SidebarProps = {
   isOpen: boolean;
   onClose: () => void;
 };
 
 /**
- * Sidebar
  * Die Hauptnavigationsleiste der App. Sie ist responsiv aufgebaut:
  * Sticky auf dem Desktop, Off-Canvas-Menü auf Mobile.
  * Beinhaltet Logik für "Click-Outside" und "Swipe-to-Close" auf Touch-Geräten.
+ *
+ * @param isOpen - Gibt an, ob die Sidebar im mobilen Viewport sichtbar ist.
+ * @param onClose - Funktion zum Schließen der Sidebar.
  */
 function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const { logout, toggleTheme, theme } = useAuth();
+  const { logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   // Referenz für das DOM-Element der Sidebar (benötigt für Click-Outside Erkennung)
   const sidebarRef = useRef<HTMLElement>(null);
 
-  // Referenzen für die Swipe-Berechnung
-  // Wir nutzen useRef statt useState, um unnötige Re-Renders während der Wischbewegung zu verhindern.
+  // Referenzen für die Swipe-Berechnung (verhindert Re-Renders während der Wischbewegung)
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
 
   /**
-   * Click-Outside-Erkennung
+   * Click-Outside-Erkennung:
    * Schließt die Sidebar, wenn der Benutzer auf mobilen Geräten neben das Menü klickt.
    */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      // Prüfen, ob Sidebar offen ist UND der Klick außerhalb des Sidebar-Elements stattfand
+      // Prüfen, ob Sidebar offen ist UND der Klick außerhalb stattfand
       if (
         isOpen &&
         sidebarRef.current &&
@@ -232,17 +245,15 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
       }
     };
 
-    // Event-Listener nur registrieren, wenn die Sidebar auch wirklich offen ist
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      // WICHTIG: setTimeout verhindert, dass der anfängliche Klick auf den Menü-Button
-      // sofort als "Klick außerhalb" gewertet und die Sidebar instant wieder geschlossen wird.
+      // setTimeout verhindert, dass der anfängliche Klick auf den Menü-Button
+      // sofort als "Klick außerhalb" gewertet wird.
       setTimeout(() => {
         document.addEventListener("touchstart", handleClickOutside);
       }, 0);
     }
 
-    // Cleanup-Funktion beim Unmounten oder Schließen
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("touchstart", handleClickOutside);
@@ -250,24 +261,28 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
   }, [isOpen, onClose]);
 
   /**
-   * Swipe-to-Close Logik (Touch Events)
-   * Erfasst Wischgesten nach links auf mobilen Geräten, um die Sidebar zu schließen.
+   * Speichert die Start-Koordinate bei einer Touch-Geste.
    */
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.targetTouches[0].clientX; // Startkoordinate auf der X-Achse merken
+    touchStartX.current = e.targetTouches[0].clientX;
   };
 
+  /**
+   * Aktualisiert die End-Koordinate während der Finger-Bewegung.
+   */
   const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.targetTouches[0].clientX; // Endkoordinate während der Finger-Bewegung updaten
+    touchEndX.current = e.targetTouches[0].clientX;
   };
 
+  /**
+   * Wertet den abgeschlossenen Swipe aus und schließt die Sidebar,
+   * falls weit genug nach links gewischt wurde.
+   */
   const handleTouchEnd = () => {
     if (!touchStartX.current || !touchEndX.current) return;
 
-    // Berechnung: Startpunkt minus Endpunkt.
-    // Ein positiver Wert bedeutet, der Finger hat sich nach links bewegt.
     const swipeDistance = touchStartX.current - touchEndX.current;
-    const minSwipeDistance = 50; // Schwellenwert: Ab 50px Wischen wird erst geschlossen
+    const minSwipeDistance = 50; // Schwellenwert in Pixeln
 
     if (swipeDistance > minSwipeDistance) {
       onClose();
