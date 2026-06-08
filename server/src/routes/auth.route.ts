@@ -1,14 +1,18 @@
-import { ApiFailResponse, ApiSuccessResponse } from "@workout/shared";
+import { ApiResponse } from "@workout/shared"; // Geändert zu ApiResponse
 import { NextFunction, Request, Response, Router } from "express";
 import passport from "passport";
 import { isAuthenticated } from "../middlewares/isAuthenticated";
 import * as userService from "../services/user.service";
 import { InternalServerError, UnauthorizedError } from "../types/errors.types";
 import { UserWithoutPassword } from "../types/user.types";
+import {
+  AuthenticatedRequest,
+  authenticatedHandler,
+} from "../utils/auth.utils";
 
 import {
-  authCredentialsSchema,
   AuthCredentialsBody,
+  authCredentialsSchema,
 } from "../schemas/user.schema";
 
 const router = Router();
@@ -22,17 +26,16 @@ router.post(
   "/register",
   async (
     req: Request<any, any, AuthCredentialsBody>,
-    res: Response<ApiSuccessResponse<UserWithoutPassword> | ApiFailResponse>,
+    res: Response<ApiResponse<UserWithoutPassword>>,
     next: NextFunction,
   ) => {
     try {
       const { email, password } = authCredentialsSchema.parse(req.body);
-
       const user = await userService.createUser(email, password);
 
       await logInAsync(req, user);
 
-      res.status(201).json({
+      return res.status(201).json({
         status: "success",
         data: user,
         message: "Benutzer erstellt und eingeloggt",
@@ -47,14 +50,13 @@ router.post(
   "/login",
   (
     req: Request<any, any, AuthCredentialsBody>,
-    res: Response<ApiSuccessResponse<UserWithoutPassword> | ApiFailResponse>,
+    res: Response<ApiResponse<UserWithoutPassword>>,
     next: NextFunction,
   ) => {
-    // Pre-Validierung vor Passport!
+    // Pre-Validierung vor Passport
     try {
       authCredentialsSchema.parse(req.body);
     } catch (error) {
-      // Wirft sofort den sauberen 400 Bad Request über deinen Error-Handler
       return next(error);
     }
 
@@ -87,27 +89,26 @@ router.post(
 router.get(
   "/status",
   isAuthenticated,
-  (
-    req: Request,
-    res: Response<ApiSuccessResponse<UserWithoutPassword> | ApiFailResponse>,
-  ) => {
-    if (!req.user) {
-      throw new UnauthorizedError("Nicht autorisiert.");
-    }
-    return res.status(200).json({
-      status: "success",
-      data: req.user as UserWithoutPassword,
-    });
-  },
+  authenticatedHandler(
+    async (
+      req: AuthenticatedRequest<any, ApiResponse<UserWithoutPassword>, never>,
+      res: Response<ApiResponse<UserWithoutPassword>>,
+    ) => {
+      if (!req.user) {
+        throw new UnauthorizedError("Nicht autorisiert.");
+      }
+
+      return res.status(200).json({
+        status: "success",
+        data: req.user,
+      });
+    },
+  ),
 );
 
 router.post(
   "/logout",
-  async (
-    req: Request,
-    res: Response<ApiSuccessResponse>,
-    next: NextFunction,
-  ) => {
+  async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
       await new Promise<void>((resolve, reject) => {
         req.logout((err) =>
