@@ -3,7 +3,11 @@ import { z } from "zod";
 // --- WIEDERVERWENDBARE SUB-SCHEMAS ---
 
 export const workoutExerciseSetsSchema = z.object({
-  setNumber: z.coerce.number().int().nonnegative(),
+  setNumber: z.coerce
+    .number()
+    .int()
+    .nonnegative()
+    .min(1, "Set-Nummer muss mindestens 1 sein."),
   weight: z.coerce.number().nonnegative(),
   repetitions: z.coerce.number().int().nonnegative(),
 });
