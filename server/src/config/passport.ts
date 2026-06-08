@@ -2,7 +2,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { getUserById } from "../repositories/user.repository";
 import * as authService from "../services/auth.service";
-import { BadRequestError } from "../types/errors.types";
+import { AppError } from "../types/errors.types";
 
 passport.use(
   "local",
@@ -17,7 +17,7 @@ passport.use(
 
         return done(null, user);
       } catch (err) {
-        if (err instanceof BadRequestError) {
+        if (err instanceof AppError) {
           return done(null, false, {
             message: err.message,
           });
