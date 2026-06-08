@@ -1,7 +1,7 @@
 import { RequestHandler, Request, Response } from "express";
 import { UserWithoutPassword } from "../types/user.types";
 
-// 1. Wir geben deinem Typen die gleichen Generics wie Express (P = Params, ResBody = Response, ReqBody = RequestBody, ReqQuery = Query)
+// Die gleichen Generics wie Express (P = Params, ResBody = Response, ReqBody = RequestBody, ReqQuery = Query)
 // Die = any sorgen dafür, dass sie optional sind, genau wie beim Original.
 export type AuthenticatedRequest<
   P = any,
@@ -10,7 +10,7 @@ export type AuthenticatedRequest<
   ReqQuery = any,
 > = Request<P, ResBody, ReqBody, ReqQuery> & { user: UserWithoutPassword };
 
-// 2. Wir machen die Wrapper-Funktion generisch, damit sie die Typen aus dem Controller "auffängt" und weiterleitet
+// Generische Wrapper-Funktion, damit die Typen aus dem Controller gecached und weiterleitet werden können
 export function authenticatedHandler<
   P = any,
   ResBody = any,
@@ -20,9 +20,10 @@ export function authenticatedHandler<
   handler: (
     req: AuthenticatedRequest<P, ResBody, ReqBody, ReqQuery>,
     res: Response<ResBody>,
-  ) => Promise<void>,
+  ) => Promise<any>,
 ): RequestHandler<P, ResBody, ReqBody, ReqQuery> {
   return async (req, res, next) => {
+    // Fängt Fehler aus dem async Handler ab und leitet sie an Express weiter, damit sie im Error Middleware landen
     try {
       await handler(
         req as AuthenticatedRequest<P, ResBody, ReqBody, ReqQuery>,
