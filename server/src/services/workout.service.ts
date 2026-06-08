@@ -1,5 +1,7 @@
+import pool from "../config/db";
 import * as workoutRepository from "../repositories/workout.repository";
 import {
+  AppError,
   BadRequestError,
   InternalServerError,
   UnauthorizedError,
@@ -16,212 +18,237 @@ export async function createWorkoutPlan(
   userId: string,
   exercises: WorkoutExercise[],
 ) {
-  if (!exercises || exercises.length === 0)
-    throw new BadRequestError("Workout Daten fehlen");
-  if (!userId) throw new UnauthorizedError("Benutzer ID fehlt");
-  if (!title) throw new BadRequestError("Workout Titel fehlt");
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-  const newWorkout = await workoutRepository.postWorkoutPlan(
-    title,
-    userId,
-    exercises,
-  );
-  return newWorkout;
+    const newWorkout = await workoutRepository.postWorkoutPlan(
+      client,
+      title,
+      userId,
+      exercises,
+    );
+
+    await client.query("COMMIT");
+    return newWorkout;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw new InternalServerError(
+      "Fehler bei der Erstellung des Workout-Plans.",
+      error,
+    );
+  } finally {
+    client.release();
+  }
 }
 
 export async function getAllWorkouts(userId: string) {
-  const workouts = await workoutRepository.getWorkouts(userId);
-  return workouts;
+  try {
+    return await workoutRepository.getWorkouts(userId);
+  } catch (error) {
+    throw new InternalServerError("Fehler beim Abrufen der Workouts.", error);
+  }
 }
 
 export async function getWorkoutById(
   workoutId: number,
   userId: string,
 ): Promise<Workout> {
-  if (!workoutId) throw new BadRequestError("Workout ID fehlt.");
+  try {
+    const owner = await workoutRepository.ownerCheck(workoutId, userId, pool);
+    if (!owner) throw new UnauthorizedError("Nicht berechtigt das zu tun.");
 
-  const owner = await workoutRepository.ownerCheck(workoutId, userId);
+    const workoutData = await workoutRepository.getWorkout(workoutId);
 
-  if (!owner) throw new UnauthorizedError("Nicht berechtigt das zu tun.");
-
-  const workoutData = await workoutRepository.getWorkout(workoutId);
-
-  if (!Array.isArray(workoutData) || workoutData.length === 0) {
-    throw new BadRequestError("Keine Workout-Daten gefunden.");
-  }
-
-  const { plan_title, plan_user_id } = workoutData[0];
-
-  const newWorkout: Workout = {
-    id: workoutId,
-    title: plan_title,
-    userId: plan_user_id,
-    exercises: [],
-  };
-
-  const exerciseMap = new Map<number, WorkoutExercise>();
-  workoutData.forEach((item) => {
-    const exerciseId = item.exercise_id;
-    let exercise = exerciseMap.get(exerciseId);
-
-    if (!exercise) {
-      exercise = {
-        id: exerciseId,
-        title: item.title,
-        displayOrder: item.display_order,
-        sets: [],
-      };
-      exerciseMap.set(exerciseId, exercise);
+    if (!Array.isArray(workoutData) || workoutData.length === 0) {
+      throw new BadRequestError("Keine Workout-Daten gefunden.");
     }
 
-    exercise.sets.push({
-      setNumber: item.set_number,
-      repetitions: item.repetitions,
-      weight: item.weight,
+    const { plan_title, plan_user_id } = workoutData[0];
+
+    const newWorkout: Workout = {
+      id: workoutId,
+      title: plan_title,
+      userId: plan_user_id,
+      exercises: [],
+    };
+
+    const exerciseMap = new Map<number, WorkoutExercise>();
+    workoutData.forEach((item) => {
+      const exerciseId = item.exercise_id;
+      let exercise = exerciseMap.get(exerciseId);
+
+      if (!exercise) {
+        exercise = {
+          id: exerciseId,
+          title: item.title,
+          displayOrder: item.display_order,
+          sets: [],
+        };
+        exerciseMap.set(exerciseId, exercise);
+      }
+
+      exercise.sets.push({
+        setNumber: item.set_number,
+        repetitions: item.repetitions,
+        weight: item.weight,
+      });
     });
-  });
 
-  newWorkout.exercises = Array.from(exerciseMap.values()).sort(
-    (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0),
-  );
+    newWorkout.exercises = Array.from(exerciseMap.values()).sort(
+      (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0),
+    );
 
-  return newWorkout;
+    return newWorkout;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new InternalServerError("Fehler beim Abrufen des Workouts.", error);
+  }
 }
 
 export async function getLastWorkout(
   workoutId: number,
   userId: string,
 ): Promise<Workout> {
-  if (!workoutId) throw new BadRequestError("Workout ID fehlt.");
+  try {
+    const owner = await workoutRepository.ownerCheck(workoutId, userId, pool);
+    if (!owner) throw new UnauthorizedError("Nicht berechtigt das zu tun.");
 
-  const owner = await workoutRepository.ownerCheck(workoutId, userId);
+    const workoutData: Workout =
+      await workoutRepository.getLastCompletedWorkout(workoutId, userId);
 
-  if (!owner) throw new UnauthorizedError("Nicht berechtigt das zu tun.");
-
-  const workoutData: Workout = await workoutRepository.getLastCompletedWorkout(
-    workoutId,
-    userId,
-  );
-
-  if (!Array.isArray(workoutData) || workoutData.length === 0) {
-    throw new BadRequestError("Keine Workout-Daten gefunden.");
-  }
-
-  const { plan_title, plan_user_id } = workoutData[0];
-
-  const newWorkout: Workout = {
-    id: workoutId,
-    title: plan_title,
-    userId: plan_user_id,
-    exercises: [],
-  };
-
-  const exerciseMap = new Map<number, WorkoutExercise>();
-  workoutData.forEach((item) => {
-    const exerciseId = item.exercise_id;
-    let exercise = exerciseMap.get(exerciseId);
-
-    if (!exercise) {
-      exercise = {
-        id: exerciseId,
-        title: item.title,
-        displayOrder: item.display_order,
-        sets: [],
-      };
-      exerciseMap.set(exerciseId, exercise);
+    if (!Array.isArray(workoutData) || workoutData.length === 0) {
+      throw new BadRequestError("Keine Workout-Daten gefunden.");
     }
 
-    exercise.sets.push({
-      setNumber: item.set_number,
-      repetitions: item.repetitions,
-      weight: item.weight,
+    const { plan_title, plan_user_id } = workoutData[0];
+
+    const newWorkout: Workout = {
+      id: workoutId,
+      title: plan_title,
+      userId: plan_user_id,
+      exercises: [],
+    };
+
+    const exerciseMap = new Map<number, WorkoutExercise>();
+    workoutData.forEach((item) => {
+      const exerciseId = item.exercise_id;
+      let exercise = exerciseMap.get(exerciseId);
+
+      if (!exercise) {
+        exercise = {
+          id: exerciseId,
+          title: item.title,
+          displayOrder: item.display_order,
+          sets: [],
+        };
+        exerciseMap.set(exerciseId, exercise);
+      }
+
+      exercise.sets.push({
+        setNumber: item.set_number,
+        repetitions: item.repetitions,
+        weight: item.weight,
+      });
     });
-  });
 
-  newWorkout.exercises = Array.from(exerciseMap.values()).sort(
-    (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0),
-  );
+    newWorkout.exercises = Array.from(exerciseMap.values()).sort(
+      (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0),
+    );
 
-  return newWorkout;
+    return newWorkout;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new InternalServerError(
+      "Fehler beim Abrufen des letzten Workouts.",
+      error,
+    );
+  }
 }
 
 export async function getCompletedWorkouts(
   userId: string,
 ): Promise<CompletedWorkout[]> {
-  const flatData = await workoutRepository.getCompletedWorkouts(userId);
+  try {
+    const flatData = await workoutRepository.getCompletedWorkouts(userId);
 
-  if (!Array.isArray(flatData) || flatData.length === 0) {
-    return [];
-  }
-
-  const workoutGroupMap = new Map<
-    string,
-    {
-      workout: CompletedWorkout;
-      exerciseMap: Map<number, WorkoutExercise>;
-    }
-  >();
-
-  flatData.forEach((item) => {
-    const completedWorkoutId = item.workout_id;
-
-    let workoutEntry = workoutGroupMap.get(completedWorkoutId);
-
-    if (!workoutEntry) {
-      workoutEntry = {
-        workout: {
-          id: completedWorkoutId,
-          userId: userId,
-          workoutId: item.workout_plan_id,
-          title: item.plan_title,
-          duration: item.duration_seconds,
-          startTime: item.start_time,
-          endTime: item.end_time,
-          pauseTime: item.pause_seconds,
-          exercises: [],
-        },
-        exerciseMap: new Map<number, WorkoutExercise>(),
-      };
-      workoutGroupMap.set(completedWorkoutId, workoutEntry);
+    if (!Array.isArray(flatData) || flatData.length === 0) {
+      return [];
     }
 
-    const exerciseId = item.exercise_id;
-    let exercise = workoutEntry.exerciseMap.get(exerciseId);
+    const workoutGroupMap = new Map<
+      string,
+      {
+        workout: CompletedWorkout;
+        exerciseMap: Map<number, WorkoutExercise>;
+      }
+    >();
 
-    if (!exercise) {
-      exercise = {
-        id: exerciseId,
-        title: item.title,
-        displayOrder: item.display_order,
-        sets: [],
-      };
-      workoutEntry.exerciseMap.set(exerciseId, exercise);
+    flatData.forEach((item) => {
+      const completedWorkoutId = item.workout_id;
+
+      let workoutEntry = workoutGroupMap.get(completedWorkoutId);
+
+      if (!workoutEntry) {
+        workoutEntry = {
+          workout: {
+            id: completedWorkoutId,
+            userId: userId,
+            workoutId: item.workout_plan_id,
+            title: item.plan_title,
+            duration: item.duration_seconds,
+            startTime: item.start_time,
+            endTime: item.end_time,
+            pauseTime: item.pause_seconds,
+            exercises: [],
+          },
+          exerciseMap: new Map<number, WorkoutExercise>(),
+        };
+        workoutGroupMap.set(completedWorkoutId, workoutEntry);
+      }
+
+      const exerciseId = item.exercise_id;
+      let exercise = workoutEntry.exerciseMap.get(exerciseId);
+
+      if (!exercise) {
+        exercise = {
+          id: exerciseId,
+          title: item.title,
+          displayOrder: item.display_order,
+          sets: [],
+        };
+        workoutEntry.exerciseMap.set(exerciseId, exercise);
+      }
+
+      if (item.set_number != null) {
+        exercise.sets.push({
+          setNumber: item.set_number,
+          weight: item.weight,
+          repetitions: item.repetitions,
+        });
+      }
+    });
+
+    const completedWorkouts: CompletedWorkout[] = [];
+
+    for (const { workout, exerciseMap } of workoutGroupMap.values()) {
+      workout.exercises = Array.from(exerciseMap.values()).sort(
+        (a, b) => a.displayOrder - b.displayOrder,
+      );
+      completedWorkouts.push(workout);
     }
 
-    if (item.set_number != null) {
-      exercise.sets.push({
-        setNumber: item.set_number,
-        weight: item.weight,
-        repetitions: item.repetitions,
-      });
-    }
-  });
-
-  const completedWorkouts: CompletedWorkout[] = [];
-
-  for (const { workout, exerciseMap } of workoutGroupMap.values()) {
-    workout.exercises = Array.from(exerciseMap.values()).sort(
-      (a, b) => a.displayOrder - b.displayOrder,
+    completedWorkouts.sort(
+      (a, b) => b.startTime.getTime() - a.startTime.getTime(),
     );
 
-    completedWorkouts.push(workout);
+    return completedWorkouts;
+  } catch (error) {
+    throw new InternalServerError(
+      "Fehler beim Abrufen der abgeschlossenen Workouts.",
+      error,
+    );
   }
-
-  completedWorkouts.sort(
-    (a, b) => b.startTime.getTime() - a.startTime.getTime(),
-  );
-
-  return completedWorkouts;
 }
 
 export async function getCompletedWorkout(
@@ -302,9 +329,10 @@ export async function getCompletedWorkout(
 
     return completedWorkouts;
   } catch (error) {
-    console.error("Fehler beim Abrufen des abgeschlossenen Workouts:", error);
+    if (error instanceof AppError) throw error;
     throw new InternalServerError(
       "Fehler beim Abrufen des abgeschlossenen Workouts",
+      error,
     );
   }
 }
@@ -322,35 +350,63 @@ export async function postCompletedWorkout(
   const durationInSeconds = Math.floor(duration / 1000);
   const pauseTimeInSeconds = Math.floor(pauseTime / 1000);
 
-  const result = await workoutRepository.postCompletedWorkout(
-    userId,
-    workoutId,
-    title,
-    startTime,
-    endTime,
-    durationInSeconds,
-    pauseTimeInSeconds,
-    exercises,
-  );
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-  if (!result)
+    const result = await workoutRepository.postCompletedWorkout(
+      client,
+      userId,
+      workoutId,
+      title,
+      startTime,
+      endTime,
+      durationInSeconds,
+      pauseTimeInSeconds,
+      exercises,
+    );
+
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
     throw new InternalServerError(
       "Fehler beim Speichern des abgeschlossenen Workouts",
+      error,
     );
-  return result;
+  } finally {
+    client.release();
+  }
 }
 
 export async function deleteWorkout(workoutId: number, userId: string) {
-  const owner = await workoutRepository.ownerCheck(workoutId, userId);
-  if (!owner)
-    throw new UnauthorizedError(
-      "Benutzer hat nicht die Rechte, dieses Workout zu bearbeiten.",
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Check nutzt denselben Client, damit es innerhalb der Transaktion sicher ist
+    const owner = await workoutRepository.ownerCheck(workoutId, userId, client);
+    if (!owner) {
+      throw new UnauthorizedError(
+        "Benutzer hat nicht die Rechte, dieses Workout zu bearbeiten.",
+      );
+    }
+
+    const result = await workoutRepository.deleteWorkout(
+      client,
+      workoutId,
+      userId,
     );
 
-  const result = await workoutRepository.deleteWorkout(workoutId, userId);
-  if (!result)
-    throw new InternalServerError("Fehler beim Löschen des Workouts");
-  return result;
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (error instanceof AppError) throw error;
+    throw new InternalServerError("Fehler beim Löschen des Workouts", error);
+  } finally {
+    client.release();
+  }
 }
 
 export async function putWorkout(
@@ -359,34 +415,87 @@ export async function putWorkout(
   title: string,
   exercises: WorkoutExercise[],
 ) {
-  const result = await workoutRepository.putWorkout(
-    workoutId,
-    userId,
-    title,
-    exercises,
-  );
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-  if (!result)
-    throw new InternalServerError("Fehler beim Aktualisieren des Workouts");
-  return result;
+    const isOwner = await workoutRepository.ownerCheck(
+      workoutId,
+      userId,
+      client,
+    );
+    if (!isOwner) {
+      throw new UnauthorizedError(
+        "Workout nicht gefunden oder Benutzer ist nicht autorisiert.",
+      );
+    }
+
+    const result = await workoutRepository.putWorkout(
+      client,
+      workoutId,
+      title,
+      exercises,
+    );
+
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (error instanceof AppError) throw error;
+    throw new InternalServerError(
+      "Fehler beim Aktualisieren des Workouts",
+      error,
+    );
+  } finally {
+    client.release();
+  }
 }
 
 export async function putCompletedWorkout(workout: CompletedWorkout) {
-  const result = await workoutRepository.putCompletedWorkout(workout);
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-  if (!result)
-    throw new InternalServerError("Fehler beim Aktualisieren des Workouts");
-  return result;
+    const isOwner = await workoutRepository.ownerCheck(
+      workout.workoutId,
+      workout.userId,
+      client,
+    );
+    if (!isOwner) {
+      throw new UnauthorizedError(
+        "Workout nicht gefunden oder Benutzer ist nicht autorisiert.",
+      );
+    }
+
+    const result = await workoutRepository.putCompletedWorkout(client, workout);
+
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (error instanceof AppError) throw error;
+    throw new InternalServerError(
+      "Fehler beim Aktualisieren des Workouts",
+      error,
+    );
+  } finally {
+    client.release();
+  }
 }
 
-// Fehlende Service-Methoden für Workouts
 export async function getWorkoutStats(userId: string): Promise<{
   totalPlans: number;
   completedWorkouts: number;
   activeWorkouts: number;
 }> {
-  const stats = await workoutRepository.getWorkoutStats(userId);
-  return stats;
+  try {
+    return await workoutRepository.getWorkoutStats(userId);
+  } catch (error) {
+    throw new InternalServerError(
+      "Fehler beim Abrufen der Workout-Statistiken.",
+      error,
+    );
+  }
 }
 
 export async function getWorkoutProgress(
@@ -397,9 +506,12 @@ export async function getWorkoutProgress(
   completedSets: number;
   progress: number;
 }> {
-  const progress = await workoutRepository.getWorkoutProgress(
-    workoutId,
-    userId,
-  );
-  return progress;
+  try {
+    return await workoutRepository.getWorkoutProgress(workoutId, userId);
+  } catch (error) {
+    throw new InternalServerError(
+      "Fehler beim Abrufen des Workout-Fortschritts.",
+      error,
+    );
+  }
 }
