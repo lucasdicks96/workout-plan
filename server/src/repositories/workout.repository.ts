@@ -9,15 +9,31 @@ import {
 // --- LESE-OPERATIONEN (Nutzen direkt den Pool oder einen Client) ---
 
 export async function ownerCheck(
-  workoutId: number,
+  workoutId: number | string,
   userId: string,
   db: typeof pool | PoolClient,
 ): Promise<boolean> {
-  const result = await db.query(
-    "SELECT user_id FROM workout_plans WHERE id = $1 AND user_id = $2",
-    [workoutId, userId],
-  );
-  return result.rowCount !== null && result.rowCount > 0;
+  // WICHTIG: Wir nutzen "typeof", um den Datentyp der Variable zu prüfen
+  switch (typeof workoutId) {
+    case "number": {
+      const result = await db.query(
+        "SELECT user_id FROM workout_plans WHERE id = $1 AND user_id = $2",
+        [workoutId, userId],
+      );
+      return result.rowCount !== null && result.rowCount > 0;
+    }
+
+    case "string": {
+      const result = await db.query(
+        "SELECT user_id FROM completed_workouts WHERE id = $1 AND user_id = $2",
+        [workoutId, userId],
+      );
+      return result.rowCount !== null && result.rowCount > 0;
+    }
+
+    default:
+      return false;
+  }
 }
 
 export async function getWorkouts(userId: string): Promise<Workout[]> {
