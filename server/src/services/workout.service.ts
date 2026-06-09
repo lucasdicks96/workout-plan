@@ -256,6 +256,9 @@ export async function getCompletedWorkout(
   workoutId: string,
 ): Promise<CompletedWorkout> {
   try {
+    const owner = await workoutRepository.ownerCheck(workoutId, userId, pool);
+    if (!owner) throw new UnauthorizedError("Nicht berechtigt das zu tun.");
+
     const flatData: FlattenedCompletedWorkout[] =
       await workoutRepository.getCompletedWorkout(userId, workoutId);
 
