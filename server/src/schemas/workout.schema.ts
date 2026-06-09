@@ -31,7 +31,7 @@ export const workoutIdParamSchema = z.object({
 
 export const stringIdParamSchema = z.object({
   // Für completed-workouts, die anscheinend einen String/UUID als ID nutzen
-  workoutId: z.string().min(1, "Workout ID fehlt."),
+  workoutId: z.uuid("Workout ID muss eine gültige UUID sein."),
 });
 
 // --- BODY SCHEMAS (Requests) ---
@@ -63,8 +63,8 @@ export type PostCompletedWorkoutBody = z.infer<
 >;
 
 export const completedWorkoutSchema = z.object({
-  id: z.string().min(1, "ID fehlt"),
-  userId: z.string(),
+  id: z.uuid("Ungültige ID"),
+  userId: z.uuid("Ungültige User ID"),
   workoutId: z.coerce.number().int().positive("Workout ID fehlerhaft."),
   title: z.string().min(1, "Titel darf nicht leer sein."),
   duration: z.coerce.number(),
