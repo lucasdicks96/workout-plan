@@ -1,4 +1,10 @@
+import dotenv from "dotenv";
 import pg from "pg";
+import path from "path";
+
+const envFile = process.env.NODE_ENV === "test" ? ".env.test" : ".env";
+
+dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
 const pool = new pg.Pool({
   user: process.env.PG_USER,
