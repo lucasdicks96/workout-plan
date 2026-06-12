@@ -357,6 +357,9 @@ export async function postCompletedWorkout(
   try {
     await client.query("BEGIN");
 
+    const owner = await workoutRepository.ownerCheck(workoutId, userId, client);
+    if (!owner) throw new UnauthorizedError("Nicht berechtigt das zu tun.");
+
     const result = await workoutRepository.postCompletedWorkout(
       client,
       userId,
@@ -373,6 +376,7 @@ export async function postCompletedWorkout(
     return result;
   } catch (error) {
     await client.query("ROLLBACK");
+    if (error instanceof AppError) throw error;
     throw new InternalServerError(
       "Fehler beim Speichern des abgeschlossenen Workouts",
       error,
