@@ -3,7 +3,11 @@ import crypto from "crypto"; // Für die Generierung von Test-IDs
 import request from "supertest";
 import pool from "../src/config/db";
 import app from "../src/index";
-import { createAndLoginTestUser } from "./testHelpers";
+import {
+  createAndLoginTestUser,
+  createTestCompletedWorkout,
+  createTestWorkoutPlan,
+} from "./testHelpers";
 
 describe("GET /workout/completed-workouts", () => {
   it("sollte 200 OK und eine Liste von Workouts zurückgeben, wenn der User eingeloggt ist", async () => {
@@ -107,10 +111,16 @@ describe("DELETE /workout/workout/:workoutId", () => {
     const workoutPlanId = crypto.randomInt(1, 10000);
 
     // Workout-Plan direkt in die DB einfügen, der diesem User gehört
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3) RETURNING *",
-      [workoutPlanId, userId, "Lösch-Mich-Training"],
-    );
+    await createTestWorkoutPlan({
+      workoutId: workoutPlanId,
+      userId: userId,
+      title: "Lösch mich Training",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 25,
+    });
 
     // 2. Act: DELETE-Request absenden
     const response = await request(app)
@@ -148,10 +158,16 @@ describe("DELETE /workout/workout/:workoutId", () => {
 
     const workoutPlanId = crypto.randomInt(1, 10000);
     // Das Workout gehört USER B!
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3)",
-      [workoutPlanId, userBId, "User Bs privates Workout"],
-    );
+    await createTestWorkoutPlan({
+      workoutId: workoutPlanId,
+      userId: userBId,
+      title: "User B",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 25,
+    });
 
     // Act: USER A versucht das Workout von USER B zu löschen
     const response = await request(app)
@@ -174,10 +190,16 @@ describe("PUT /workout/workout/:workoutId", () => {
     const { userId, cookie } = await createAndLoginTestUser();
     const workoutPlanId = crypto.randomInt(1, 10000);
 
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3)",
-      [workoutPlanId, userId, "Alter Name"],
-    );
+    await createTestWorkoutPlan({
+      workoutId: workoutPlanId,
+      userId: userId,
+      title: "Alter Name",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 25,
+    });
 
     // Die neuen Daten, die exakt deinem createWorkoutBodySchema entsprechen
     const updatedPayload = {
@@ -230,7 +252,7 @@ describe("PUT /workout/workout/:workoutId", () => {
     expect(response.body.status).toBe("fail"); // Oder "error", je nach deiner Logik
   });
 
-  it("sollte verhindern, dass ein User das Workout eines anderen Users aktualisiert", async () => {
+  it("sollte mit 404 verhindern, dass ein User das Workout eines anderen Users aktualisiert", async () => {
     const userA = await createAndLoginTestUser();
     const userBId = crypto.randomUUID();
 
@@ -253,10 +275,17 @@ describe("PUT /workout/workout/:workoutId", () => {
     };
 
     const workoutPlanId = crypto.randomInt(1, 10000);
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3)",
-      [workoutPlanId, userBId, "User Bs privates Workout"],
-    );
+
+    await createTestWorkoutPlan({
+      workoutId: workoutPlanId,
+      userId: userBId,
+      title: "User B Workout",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 25,
+    });
 
     // User A feuert PUT auf User Bs ID
     const response = await request(app)
@@ -264,31 +293,46 @@ describe("PUT /workout/workout/:workoutId", () => {
       .set("Cookie", userA.cookie)
       .send(updatedPayload);
 
-    expect(response.status).toBe(401); // Oder 403 / 404
+    expect(response.status).toBe(404); // Oder 403 / 404
   });
 });
 
 describe("GET /workout/workouts", () => {
   it("sollte alle Workout-Pläne des eingeloggten Users zurückgeben", async () => {
     const { userId, cookie } = await createAndLoginTestUser();
+    const planIdA = crypto.randomInt(1, 10000);
+    const planIdB = crypto.randomInt(10001, 20000);
 
     // Arrange: 2 Workout-Pläne für diesen User in die DB schreiben
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3), ($4, $5, $6)",
-      [
-        crypto.randomInt(1, 10000),
-        userId,
-        "Plan A",
-        crypto.randomInt(10001, 20000),
-        userId,
-        "Plan B",
-      ],
-    );
+
+    await createTestWorkoutPlan({
+      workoutId: planIdA,
+      userId: userId,
+      title: "Plan A",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 25,
+    });
+
+    await createTestWorkoutPlan({
+      workoutId: planIdB,
+      userId: userId,
+      title: "Plan B",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 25,
+    });
 
     // Act: Alle Pläne abfragen
     const response = await request(app)
       .get("/workout/workouts")
       .set("Cookie", cookie);
+
+    console.log("GET /workout/workouts ERROR: ", response.body.data);
 
     // Assert: Wir erwarten genau die 2 angelegten Pläne
     expect(response.status).toBe(200);
@@ -302,20 +346,16 @@ describe("GET /workout/workout/:workoutId", () => {
     const { userId, cookie } = await createAndLoginTestUser();
     const workoutPlanId = crypto.randomInt(1, 10000);
 
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3) RETURNING *",
-      [workoutPlanId, userId, "Spezifischer Plan"],
-    );
-
-    const planExRes = await pool.query(
-      "INSERT INTO plan_exercises (workout_plan_id, exercise_id, display_order) VALUES ($1, $2, $3) RETURNING *",
-      [workoutPlanId, 1, 1],
-    );
-
-    await pool.query(
-      "INSERT INTO plan_sets (plan_exercise_id, set_number, repetitions, weight) VALUES ($1, $2, $3, $4) RETURNING *",
-      [planExRes.rows[0].id, 1, 10, 10],
-    );
+    await createTestWorkoutPlan({
+      workoutId: workoutPlanId,
+      userId: userId,
+      title: "Spezifischer Plan",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 25,
+    });
 
     const response = await request(app)
       .get(`/workout/workout/${workoutPlanId}`)
@@ -328,21 +368,102 @@ describe("GET /workout/workout/:workoutId", () => {
     expect(response.status).toBe(200);
     expect(response.body.data.title).toBe("Spezifischer Plan"); // Nimmt an, dass dein Service den Plan direkt zurückgibt
   });
+
+  it("sollte 401 zurückgeben, wenn der Benutzer nicht authentifiziert ist", async () => {
+    const workoutPlanId = 1234;
+
+    const response = await request(app).get(
+      `/workout/workout/${workoutPlanId}`,
+    );
+    // WICHTIG: Kein .set("Cookie", ...) aufgerufen
+
+    expect(response.status).toBe(401);
+    expect(response.body.status).toBe("fail");
+  });
+
+  it("sollte 400 zurückgeben, wenn die workoutId keine gültige Zahl ist", async () => {
+    const { cookie } = await createAndLoginTestUser();
+    const invalidId = "keine-zahl-sondern-text";
+
+    const response = await request(app)
+      .get(`/workout/workout/${invalidId}`)
+      .set("Cookie", cookie);
+
+    // Hier sollte dein Zod-Schema (workoutIdParamSchema) den Request blockieren
+    expect(response.status).toBe(400);
+    expect(response.body.status).toBe("fail");
+  });
+
+  it("sollte 404 zurückgeben, wenn der angefragte Trainingsplan nicht existiert => ownerCheck mismatch. Kein Eintrag unter userId & workoutId in db", async () => {
+    const { cookie } = await createAndLoginTestUser();
+    const nonExistentId = 9999999; // Eine ID, die nicht in der Datenbank existiert
+
+    const response = await request(app)
+      .get(`/workout/workout/${nonExistentId}`)
+      .set("Cookie", cookie);
+
+    // Dein Service sollte hier merken, dass die Query leer zurückkommt, und einen Fehler werfen
+    expect(response.status).toBe(404); // Je nach Error-Handler anpassen (könnte auch 400 sein)
+    expect(response.body.status).toBe("fail");
+  });
+
+  it("sollte 404 zurückgeben, wenn der Plan einem anderen Benutzer gehört", async () => {
+    // 1. User A (Besitzer) erstellen und Plan anlegen
+    const userA = await createAndLoginTestUser();
+    const workoutPlanId = crypto.randomInt(1, 10000);
+
+    await createTestWorkoutPlan({
+      workoutId: workoutPlanId,
+      userId: userA.userId,
+      title: "Top Secret Trainingsplan",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 25,
+    });
+
+    // 2. User B (Angreifer) erstellen
+    const userB = await createAndLoginTestUser();
+
+    // 3. User B versucht, den Plan von User A abzurufen
+    const response = await request(app)
+      .get(`/workout/workout/${workoutPlanId}`)
+      .set("Cookie", userB.cookie); // WICHTIG: Request läuft über User B!
+
+    // Dein ownerCheck im Service muss diesen Zugriff blockieren
+    expect(response.status).toBe(404);
+    expect(response.body.status).toBe("fail");
+  });
 });
 
 describe("POST /workout/completed-workout", () => {
   it("sollte ein durchgeführtes Workout erfolgreich speichern", async () => {
-    const { userId, cookie } = await createAndLoginTestUser();
-    const workoutPlanId = crypto.randomInt(1, 10000);
+    const { cookie } = await createAndLoginTestUser();
 
     // Ein Plan muss existieren, auf den sich das Training bezieht
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3)",
-      [workoutPlanId, userId, "Bein Tag"],
-    );
+    const newWorkoutPayload = {
+      title: "Push Day (Test)",
+      exercises: [
+        {
+          // Nutze hier Test-Daten, die deine Zod-Validierung für Übungen erwartet
+          id: 1,
+          title: "Bankdrücken",
+          displayOrder: 1,
+          sets: [{ setNumber: 1, weight: 60, repetitions: 10 }],
+        },
+      ],
+    };
+
+    const res = await request(app)
+      .post("/workout/workout")
+      .set("Cookie", cookie)
+      .send(newWorkoutPayload);
+
+    console.log("Post /workout/completed-workout res body: ", res.body.data.id);
 
     const completedPayload = {
-      workoutId: workoutPlanId,
+      workoutId: res.body.data.id,
       title: "Bein Tag (Durchgeführt)",
       startTime: new Date().toISOString(),
       endTime: new Date(Date.now() + 3600000).toISOString(), // 1 Stunde später
@@ -351,9 +472,9 @@ describe("POST /workout/completed-workout", () => {
       exercises: [
         {
           id: 1,
-          title: "Kniebeugen",
+          title: "Bankdrücken",
           displayOrder: 1,
-          sets: [{ setNumber: 1, weight: 100, repetitions: 8 }], // Eventuell hast du hier noch ein 'completed: true' in deinem Schema
+          sets: [{ setNumber: 1, weight: 100, repetitions: 8 }],
         },
       ],
     };
@@ -374,10 +495,16 @@ describe("POST /workout/completed-workout", () => {
     const { userId, cookie } = await createAndLoginTestUser();
     const workoutPlanId = crypto.randomInt(1, 10000);
 
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3)",
-      [workoutPlanId, userId, "Bein Tag"],
-    );
+    await createTestWorkoutPlan({
+      workoutId: workoutPlanId,
+      userId: userId,
+      title: "Bein Tag",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 25,
+    });
 
     const completedPayload = {
       workoutId: workoutPlanId,
@@ -391,7 +518,7 @@ describe("POST /workout/completed-workout", () => {
           id: 1,
           title: "Kniebeugen",
           displayOrder: 1,
-          sets: [{ setNumber: 1, weight: 100, repetitions: 8 }], // Eventuell hast du hier noch ein 'completed: true' in deinem Schema
+          sets: [{ setNumber: 1, weight: 100, repetitions: 8 }],
         },
       ],
     };
@@ -436,7 +563,7 @@ describe("POST /workout/completed-workout", () => {
     expect(response.body.status).toBe("fail");
   });
 
-  it("sollte 401 zurückgeben, wenn der verknüpfte Trainingsplan gar nicht existiert => ownerCheck mismatch", async () => {
+  it("sollte 404 zurückgeben, wenn der verknüpfte Trainingsplan gar nicht existiert", async () => {
     const { cookie } = await createAndLoginTestUser();
     const nonExistentPlanId = 9999999; // Eine ID, die sicher nicht in der DB existiert
 
@@ -462,7 +589,7 @@ describe("POST /workout/completed-workout", () => {
       .set("Cookie", cookie)
       .send(payload);
 
-    if (response.body.status !== "error") {
+    if (response.body.status !== "fail") {
       console.log(
         "Post completed workout Error: ",
         response.body,
@@ -471,19 +598,25 @@ describe("POST /workout/completed-workout", () => {
     }
 
     // Da der Plan (workoutId) nicht existiert, sollte der Datenbank-Check fehlschlagen
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(404);
     expect(response.body.status).toBe("fail");
   });
 
-  it("sollte 403 (oder 401/404) zurückgeben, wenn der angegebene Plan einem anderen Benutzer gehört", async () => {
+  it("sollte 404 zurückgeben, wenn der angegebene Plan einem anderen Benutzer gehört", async () => {
     // 1. User A (Besitzer) erstellt einen Plan
     const userA = await createAndLoginTestUser();
     const workoutPlanId = crypto.randomInt(1, 10000);
 
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3)",
-      [workoutPlanId, userA.userId, "Plan von User A"],
-    );
+    await createTestWorkoutPlan({
+      workoutId: workoutPlanId,
+      userId: userA.userId,
+      title: "User A Plan",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 25,
+    });
 
     // 2. User B (Angreifer) wird erstellt und eingeloggt
     const userB = await createAndLoginTestUser();
@@ -512,7 +645,7 @@ describe("POST /workout/completed-workout", () => {
       .send(maliciousPayload);
 
     // Der ownerCheck in deinem Service sollte hier anschlagen und den Request blockieren
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(404);
     expect(response.body.status).toBe("fail");
   });
 });
@@ -520,44 +653,36 @@ describe("POST /workout/completed-workout", () => {
 describe("GET /workout/completed-workout/:workoutId", () => {
   it("sollte ein einzelnes durchgeführtes Workout anhand der UUID abrufen", async () => {
     const { userId, cookie } = await createAndLoginTestUser();
-    const completedWorkoutId = crypto.randomUUID();
+    // const completedWorkoutId = crypto.randomUUID();
     const workoutPlanId = crypto.randomInt(1, 10000);
 
-    // Ein Plan muss existieren, auf den sich das Training bezieht
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3)",
-      [workoutPlanId, userId, "Bein Tag"],
-    );
+    await createTestWorkoutPlan({
+      workoutId: workoutPlanId,
+      userId: userId,
+      title: "Bein Tag",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 10,
+    });
 
-    // Wir fügen ein simuliertes durchgeführtes Workout in die DB ein
-    const icp = await pool.query(
-      "INSERT INTO completed_workouts (user_id, workout_plan_id ,title, start_time, end_time, duration_seconds, pause_seconds) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
-      [
-        userId,
-        workoutPlanId,
-        "Gestern trainiert",
-        new Date(),
-        new Date(),
-        3600,
-        0,
-      ],
-    );
-
-    await pool.query(
-      `INSERT INTO plan_exercises (workout_plan_id, exercise_id, display_order) VALUES ($1, $2, $3)`,
-      [workoutPlanId, 1, 1],
-    );
-
-    const workoutId = icp.rows[0].id;
-
-    await pool.query(
-      `INSERT INTO completed_sets 
-          (completed_workout_id, exercise_id, set_number, repetitions, weight) VALUES ($1, $2, $3, $4, $5)`,
-      [workoutId, 1, 1, 10, 10],
-    );
+    const cwId = await createTestCompletedWorkout({
+      workoutId: workoutPlanId,
+      userId: userId,
+      title: "Gestern Trainiert",
+      startTime: new Date(),
+      endTime: new Date(),
+      duration: 1,
+      pause: 0,
+      exerciseId: 1,
+      setNumber: 1,
+      repetitions: 100,
+      weight: 30,
+    });
 
     const response = await request(app)
-      .get(`/workout/completed-workout/${workoutId}`)
+      .get(`/workout/completed-workout/${cwId}`)
       .set("Cookie", cookie);
 
     if (response.status !== 200) {
@@ -570,7 +695,7 @@ describe("GET /workout/completed-workout/:workoutId", () => {
     expect(response.status).toBe(200);
     expect(response.body.status).toBe("success");
     // Prüft, ob die UUID korrekt verarbeitet wurde
-    expect(response.body.data.id).toBe(workoutId);
+    expect(response.body.data.id).toBe(cwId);
   });
 
   it("sollte 401 zurückgeben, wenn der Benutzer nicht authentifiziert ist", async () => {
@@ -597,7 +722,7 @@ describe("GET /workout/completed-workout/:workoutId", () => {
     expect(response.body.status).toBe("fail");
   });
 
-  it("sollte 401 zurückgeben, wenn das Workout nicht existiert => mismatch im ownerCheck", async () => {
+  it("sollte 404 zurückgeben, wenn das Workout nicht existiert", async () => {
     const { cookie } = await createAndLoginTestUser();
     const nonExistentId = crypto.randomUUID(); // Gültiges Format, aber nicht in der DB
 
@@ -605,43 +730,54 @@ describe("GET /workout/completed-workout/:workoutId", () => {
       .get(`/workout/completed-workout/${nonExistentId}`)
       .set("Cookie", cookie);
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(404);
     expect(response.body.status).toBe("fail");
   });
 
-  it("sollte 403 (oder 401/404) zurückgeben, wenn das Workout einem anderen User gehört", async () => {
+  it("sollte 404 zurückgeben, wenn das Workout einem anderen User gehört", async () => {
     // 1. User A (Besitzer) erstellen und ein Workout für ihn anlegen
     const userA = await createAndLoginTestUser();
     const workoutPlanId = crypto.randomInt(1, 10000);
 
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3)",
-      [workoutPlanId, userA.userId, "Geheimer Plan"],
-    );
+    // await pool.query(
+    //   "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3)",
+    //   [workoutPlanId, userA.userId, "Geheimer Plan"],
+    // );
 
-    const icp = await pool.query(
-      "INSERT INTO completed_workouts (user_id, workout_plan_id, title, start_time, end_time, duration_seconds, pause_seconds) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
-      [
-        userA.userId,
-        workoutPlanId,
-        "User A Training",
-        new Date(),
-        new Date(),
-        3600,
-        0,
-      ],
-    );
-    const workoutId = icp.rows[0].id;
+    await createTestWorkoutPlan({
+      workoutId: workoutPlanId,
+      userId: userA.userId,
+      title: "Geheimer Plan",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 10,
+    });
+
+    const cwId = await createTestCompletedWorkout({
+      workoutId: workoutPlanId,
+      userId: userA.userId,
+      title: "User A Training",
+      startTime: new Date(),
+      endTime: new Date(),
+      duration: 3600,
+      pause: 1000,
+      exerciseId: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 100,
+    });
 
     // 2. User B (Angreifer) erstellen
     const userB = await createAndLoginTestUser();
 
     // 3. User B versucht, das Workout von User A abzurufen
     const response = await request(app)
-      .get(`/workout/completed-workout/${workoutId}`)
+      .get(`/workout/completed-workout/${cwId}`)
       .set("Cookie", userB.cookie); // WICHTIG: Cookie von User B!
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(404);
     expect(response.body.status).toBe("fail");
   });
 });
@@ -649,43 +785,56 @@ describe("GET /workout/completed-workout/:workoutId", () => {
 describe("PUT /workout/completed-workout", () => {
   it("sollte ein durchgeführtes Workout im Nachhinein aktualisieren können", async () => {
     const { userId, cookie } = await createAndLoginTestUser();
-    const completedWorkoutId = crypto.randomUUID();
-    const workoutId = crypto.randomInt(1, 10000);
 
-    // Ein Plan muss existieren, auf den sich das Training bezieht
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3)",
-      [workoutId, userId, "Bein Tag"],
-    );
-
-    const icw = await pool.query(
-      "INSERT INTO completed_workouts (id, user_id, workout_plan_id, title, start_time, end_time, duration_seconds, pause_seconds) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
-      [
-        completedWorkoutId,
-        userId,
-        workoutId,
-        "Falscher Name",
-        new Date(),
-        new Date(),
-        3600,
-        0,
+    const newWorkoutPayload = {
+      title: "Push Day (Test)",
+      exercises: [
+        {
+          id: 1,
+          title: "Bankdrücken",
+          displayOrder: 1,
+          sets: [{ setNumber: 1, weight: 60, repetitions: 10 }],
+        },
       ],
-    );
+    };
 
-    await pool.query(
-      `INSERT INTO completed_sets (completed_workout_id, exercise_id, set_number, repetitions, weight) VALUES ($1, $2, $3, $4, $5)`,
-      [completedWorkoutId, 1, 1, 10, 10],
-    );
+    const res = await request(app)
+      .post("/workout/workout")
+      .set("Cookie", cookie)
+      .send(newWorkoutPayload);
+
+    const cwPayload = {
+      workoutId: res.body.data.id,
+      startTime: new Date(),
+      endTime: new Date(),
+      pauseTime: 200,
+      duration: 3600,
+      exercises: [
+        {
+          id: 1,
+          title: "Bankdrücken",
+          displayOrder: 1,
+          sets: [{ setNumber: 1, weight: 60, repetitions: 12 }],
+        },
+      ],
+      title: "Push Day Test",
+    };
+
+    const cwResult = await request(app)
+      .post("/workout/completed-workout")
+      .set("Cookie", cookie)
+      .send(cwPayload);
 
     // Da deine Route die ID nicht in der URL (/workout/:id) erwartet,
     // muss die UUID zwingend im Body mitgeschickt werden!
+    const cwId = cwResult.body.data.id;
     const updatePayload = {
-      id: completedWorkoutId,
-      userId,
-      workoutId,
+      id: cwId,
+      userId: userId,
+      workoutId: res.body.data.id,
       title: "Korrigierter Name",
-      startTime: new Date().toISOString(),
-      endTime: new Date().toISOString(),
+      startTime: new Date(),
+      endTime: new Date(),
       pauseTime: 0,
       duration: 4000,
       exercises: [
@@ -705,6 +854,7 @@ describe("PUT /workout/completed-workout", () => {
 
     if (response.status !== 200)
       console.log("PUT Completed Error:", response.body);
+    console.log("PUT Completed  cwResult Error:", cwId);
 
     expect(response.status).toBe(200);
     expect(response.body.status).toBe("success");
@@ -795,30 +945,36 @@ describe("PUT /workout/completed-workout", () => {
     expect(response.body.status).toBe("fail");
   });
 
-  it("sollte 403 (oder 401/404) zurückgeben, wenn der Benutzer versucht, das Workout eines anderen zu ändern", async () => {
+  it("sollte 404 zurückgeben, wenn der Benutzer versucht, das Workout eines anderen zu ändern", async () => {
     // 1. User A (Besitzer) erstellen und ein Workout anlegen
     const userA = await createAndLoginTestUser();
     const completedWorkoutId = crypto.randomUUID();
-    const workoutPlanId = crypto.randomInt(1, 10000);
+    const workoutId = crypto.randomInt(1, 10000);
 
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3)",
-      [workoutPlanId, userA.userId, "User A Plan"],
-    );
+    await createTestWorkoutPlan({
+      workoutId: workoutId,
+      userId: userA.userId,
+      title: "User A Plan",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 25,
+    });
 
-    await pool.query(
-      "INSERT INTO completed_workouts (id, user_id, workout_plan_id, title, start_time, end_time, duration_seconds, pause_seconds) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-      [
-        completedWorkoutId,
-        userA.userId,
-        workoutPlanId,
-        "User A Training",
-        new Date(),
-        new Date(),
-        3600,
-        0,
-      ],
-    );
+    await createTestCompletedWorkout({
+      workoutId: workoutId,
+      userId: userA.userId,
+      title: "User A Training",
+      startTime: new Date(),
+      endTime: new Date(),
+      duration: 3600,
+      pause: 100,
+      exerciseId: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 100,
+    });
 
     // 2. User B (Angreifer) erstellen
     const userB = await createAndLoginTestUser();
@@ -827,7 +983,7 @@ describe("PUT /workout/completed-workout", () => {
     const maliciousPayload = {
       id: completedWorkoutId, // Die ID von User A's Workout
       userId: userB.userId, // User B schickt seine eigene User ID
-      workoutId: workoutPlanId,
+      workoutId: workoutId,
       title: "Gehacktes Workout!",
       startTime: new Date().toISOString(),
       endTime: new Date().toISOString(),
@@ -851,7 +1007,7 @@ describe("PUT /workout/completed-workout", () => {
     // Hier schlägt dein 'ownerCheck' aus dem Service an!
     expect(response.status).not.toBe(200);
     expect(response.body.status).toBe("fail");
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(404);
   });
 });
 
@@ -860,42 +1016,37 @@ describe("GET /workout/last-workout/:workoutId", () => {
     const { userId, cookie } = await createAndLoginTestUser();
     const workoutId = crypto.randomInt(1, 10000);
 
-    // 1. Plan erstellen
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3)",
-      [workoutId, userId, "Mein Stamm-Plan"],
-    );
+    await createTestWorkoutPlan({
+      workoutId: workoutId,
+      userId: userId,
+      title: "Mein Stamm-Plan",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 25,
+    });
 
-    await pool.query(
-      `INSERT INTO plan_exercises (workout_plan_id, exercise_id, display_order) VALUES ($1, $2, $3)`,
-      [workoutId, 1, 1],
-    );
-
-    const icw = await pool.query(
-      "INSERT INTO completed_workouts (id, user_id, workout_plan_id, title, start_time, end_time, duration_seconds, pause_seconds) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
-      [
-        crypto.randomUUID(),
-        userId,
-        workoutId,
-        "Letztes Mal",
-        new Date(),
-        new Date(),
-        3600,
-        0,
-      ],
-    );
-
-    await pool.query(
-      `INSERT INTO completed_sets (completed_workout_id, exercise_id, set_number, repetitions, weight) VALUES ($1, $2, $3, $4, $5)`,
-      [icw.rows[0].id, 1, 1, 10, 10],
-    );
+    await createTestCompletedWorkout({
+      workoutId: workoutId,
+      userId: userId,
+      title: "Letztes Mal",
+      startTime: new Date(),
+      endTime: new Date(),
+      duration: 3600,
+      pause: 100,
+      exerciseId: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 100,
+    });
 
     const response = await request(app)
       .get(`/workout/last-workout/${workoutId}`)
       .set("Cookie", cookie);
 
     if (response.status !== 200)
-      console.log("GET Last Workout Error:", response.body);
+      console.log("GET Last Workout Error:", response.body.data);
 
     expect(response.status).toBe(200);
     expect(response.body.status).toBe("success");
@@ -929,21 +1080,16 @@ describe("GET /workout/last-workout/:workoutId", () => {
     const { userId, cookie } = await createAndLoginTestUser();
     const workoutId = crypto.randomInt(1, 10000);
 
-    // 1. Wir erstellen NUR den Plan
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3)",
-      [workoutId, userId, "Plan ohne Training"],
-    );
-
-    const res = await pool.query(
-      `INSERT INTO plan_exercises (workout_plan_id, exercise_id, display_order) VALUES ($1, $2, $3) RETURNING id`,
-      [workoutId, 1, 1],
-    );
-
-    await pool.query(
-      `INSERT INTO plan_sets (plan_exercise_id, set_number, repetitions, weight) VALUES ($1, $2, $3, $4)`,
-      [res.rows[0].id, 1, 10, 10],
-    );
+    await createTestWorkoutPlan({
+      workoutId: workoutId,
+      userId: userId,
+      title: "Plan ohne Training",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 25,
+    });
 
     // 2. Wir erstellen KEIN completed_workout für diesen Plan.
 
@@ -958,31 +1104,35 @@ describe("GET /workout/last-workout/:workoutId", () => {
     expect(response.body.status).toBe("success");
   });
 
-  it("sollte 403 (oder 401/404) zurückgeben, wenn der Plan einem anderen Benutzer gehört", async () => {
+  it("sollte 404 zurückgeben, wenn der Plan einem anderen Benutzer gehört", async () => {
     // 1. User A (Besitzer) erstellen und Plan anlegen
     const userA = await createAndLoginTestUser();
     const workoutId = crypto.randomInt(1, 10000);
 
-    await pool.query(
-      "INSERT INTO workout_plans (id, user_id, title) VALUES ($1, $2, $3)",
-      [workoutId, userA.userId, "Mein streng geheimer Plan"],
-    );
+    await createTestWorkoutPlan({
+      workoutId: workoutId,
+      userId: userA.userId,
+      title: "Mein streng geheimer Plan",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 25,
+    });
 
-    // (Optional: Auch ein durchgeführtes Training für User A anlegen,
-    // um sicherzugehen, dass es wirklich am Owner-Check scheitert)
-    const icw = await pool.query(
-      "INSERT INTO completed_workouts (id, user_id, workout_plan_id, title, start_time, end_time, duration_seconds, pause_seconds) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
-      [
-        crypto.randomUUID(),
-        userA.userId,
-        workoutId,
-        "Geheimes Training",
-        new Date(),
-        new Date(),
-        3600,
-        0,
-      ],
-    );
+    await createTestCompletedWorkout({
+      workoutId: workoutId,
+      userId: userA.userId,
+      title: "Geheimes Training",
+      startTime: new Date(),
+      endTime: new Date(),
+      duration: 3600,
+      pause: 100,
+      exerciseId: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 100,
+    });
 
     // 2. User B (Angreifer) erstellen
     const userB = await createAndLoginTestUser();
@@ -993,7 +1143,7 @@ describe("GET /workout/last-workout/:workoutId", () => {
       .set("Cookie", userB.cookie); // WICHTIG: Cookie von User B!
 
     // Hier schlägt dein `ownerCheck` aus der getLastWorkout-Service-Funktion an!
-    expect(response.status).not.toBe(200);
+    expect(response.status).toBe(404);
     expect(response.body.status).toBe("fail");
   });
 });
