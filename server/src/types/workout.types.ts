@@ -31,10 +31,10 @@ export interface WorkoutExerciseSets {
   repetitions: number;
 }
 
-export interface FlattenedCompletedWorkout {
+export type FlatCompletedWorkoutRow = {
   workout_id: string;
-  user_id: string;
-  workout_plan_id: number;
+  plan_id: number;
+  plan_user_id: string;
   plan_title: string;
   duration_seconds: number;
   start_time: Date;
@@ -46,4 +46,28 @@ export interface FlattenedCompletedWorkout {
   set_number: number;
   weight: number;
   repetitions: number;
-}
+};
+
+export type FlatWorkoutRow = {
+  plan_title: string;
+  plan_user_id: string;
+  plan_id: number;
+  title: string;
+  exercise_id: number;
+  display_order: number;
+  set_number: number;
+  repetitions: number;
+  weight: number;
+};
+
+export type FlatAllWorkoutsRow = {
+  plan_id: number;
+  plan_title: string;
+  plan_user_id: string;
+  exercise_id: number;
+  title: string;
+  display_order: number;
+  set_number: number;
+  repetitions: number;
+  weight: number;
+};
