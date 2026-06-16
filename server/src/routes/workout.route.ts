@@ -31,7 +31,11 @@ router.get(
       res: Response<ApiResponse<Workout[]>>,
     ) => {
       const workouts = await workoutService.getAllWorkouts(req.user.id);
-      res.status(200).json({ status: "success", data: workouts });
+      res.status(200).json({
+        status: "success",
+        message: "Workout erfolgreich übermittelt",
+        data: workouts,
+      });
     },
   ),
 );
@@ -88,16 +92,20 @@ router.post(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, CreateWorkoutBody>,
-      res: Response<ApiResponse>, // Void, also kein data-Feld erwartet
+      res: Response<ApiResponse<Workout>>, // Void, also kein data-Feld erwartet
     ) => {
       const { title, exercises } = createWorkoutBodySchema.parse(req.body);
-      const result = await workoutService.createWorkoutPlan(
+      const workout = await workoutService.createWorkoutPlan(
         title,
         req.user.id,
         exercises,
       );
 
-      res.status(200).json({ status: "success", message: result.message });
+      res.status(200).json({
+        status: "success",
+        message: "Workout erfolgreich gespeichert",
+        data: workout,
+      });
     },
   ),
 );
@@ -124,7 +132,7 @@ router.post(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, PostCompletedWorkoutBody>,
-      res: Response<ApiResponse>,
+      res: Response<ApiResponse<CompletedWorkout>>,
     ) => {
       const {
         workoutId,
@@ -136,7 +144,7 @@ router.post(
         title,
       } = postCompletedWorkoutBodySchema.parse(req.body);
 
-      const result = await workoutService.postCompletedWorkout(
+      const completedWorkout = await workoutService.postCompletedWorkout(
         workoutId,
         req.user.id,
         startTime,
@@ -147,7 +155,11 @@ router.post(
         title,
       );
 
-      res.status(200).json({ status: "success", message: result.message });
+      res.status(200).json({
+        status: "success",
+        message: "Abgeschlossenes Workout erfolreich gespeichert",
+        data: completedWorkout,
+      });
     },
   ),
 );
@@ -202,19 +214,23 @@ router.put(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, CreateWorkoutBody>,
-      res: Response<ApiResponse>,
+      res: Response<ApiResponse<Workout>>,
     ) => {
       const { workoutId } = workoutIdParamSchema.parse(req.params);
       const { title, exercises } = createWorkoutBodySchema.parse(req.body);
 
-      const result = await workoutService.putWorkout(
+      const workout = await workoutService.putWorkout(
         workoutId,
         req.user.id,
         title,
         exercises,
       );
 
-      res.status(200).json({ status: "success", message: result.message });
+      res.status(200).json({
+        status: "success",
+        message: "Workoutplan erfolgreich aktualisiert",
+        data: workout,
+      });
     },
   ),
 );
@@ -225,12 +241,17 @@ router.put(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, PutCompletedWorkoutBody>,
-      res: Response<ApiResponse>,
+      res: Response<ApiResponse<CompletedWorkout>>,
     ) => {
       const workout = completedWorkoutSchema.parse(req.body);
-      const result = await workoutService.putCompletedWorkout(workout);
+      const completedWorkout =
+        await workoutService.putCompletedWorkout(workout);
 
-      res.status(200).json({ status: "success", message: result.message });
+      res.status(200).json({
+        status: "success",
+        message: "Abgeschlossenes Workout erfolgreich aktualisiert",
+        data: completedWorkout,
+      });
     },
   ),
 );
