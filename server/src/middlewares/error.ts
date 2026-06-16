@@ -1,7 +1,7 @@
 import { ErrorRequestHandler } from "express";
 import { z, ZodError } from "zod";
-import errorLogger from "./logger";
 import { AppError } from "../types/errors.types";
+import errorLogger from "./logger";
 
 const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   // 1. Zod v4 Error Handling (Ist sicher, betrifft nur Validierung)
