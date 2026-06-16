@@ -35,6 +35,12 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class ForbiddenError extends AppError {
+  constructor(message: string = "Nicht autorisiert", originalError?: unknown) {
+    super(message, 403, originalError);
+  }
+}
+
 export class InternalServerError extends AppError {
   constructor(
     message: string = "Interner Serverfehler",
