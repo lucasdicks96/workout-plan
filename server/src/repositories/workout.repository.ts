@@ -2,7 +2,8 @@ import { PoolClient } from "pg";
 import pool from "../config/db";
 import {
   CompletedWorkout,
-  Workout,
+  FlatCompletedWorkoutRow,
+  FlatWorkoutRow,
   WorkoutExercise,
 } from "../types/workout.types";
 
@@ -13,7 +14,6 @@ export async function ownerCheck(
   userId: string,
   db: typeof pool | PoolClient,
 ): Promise<boolean> {
-  // WICHTIG: Wir nutzen "typeof", um den Datentyp der Variable zu prüfen
   switch (typeof workoutId) {
     case "number": {
       const result = await db.query(
@@ -36,48 +36,65 @@ export async function ownerCheck(
   }
 }
 
-export async function getWorkouts(userId: string): Promise<Workout[]> {
+export async function getWorkouts(userId: string): Promise<FlatWorkoutRow[]> {
   const result = await pool.query(
-    "SELECT * FROM workout_plans WHERE user_id = $1 AND deleted_at IS NULL ORDER BY title ASC",
+    `SELECT workout_plans.title AS plan_title,
+            workout_plans.user_id AS plan_user_id,
+            workout_plans.id AS plan_id,
+            plan_exercises.display_order,
+            plan_sets.set_number,
+            plan_sets.repetitions,
+            plan_sets.weight,
+            exercises.title,
+            exercises.id AS exercise_id
+      FROM  workout_plans
+      JOIN  plan_exercises
+      ON    workout_plans.id = plan_exercises.workout_plan_id
+      JOIN  exercises
+      ON    exercises.id = plan_exercises.exercise_id
+      JOIN  plan_sets
+      ON    plan_sets.plan_exercise_id = plan_exercises.id
+      WHERE workout_plans.user_id = $1 AND workout_plans.deleted_at IS NULL 
+      ORDER BY workout_plans.title ASC, plan_exercises.display_order ASC, plan_sets.set_number ASC`,
     [userId],
   );
   return result.rows;
 }
 
-export async function getWorkout(workoutId: number): Promise<any> {
-  const exerciseResult = await pool.query(
+export async function getWorkout(workoutId: number): Promise<FlatWorkoutRow[]> {
+  const result = await pool.query(
     `SELECT   workout_plans.title as plan_title,
               workout_plans.user_id as plan_user_id,
+              workout_plans.id as plan_id,
               exercises.title,
-              exercises.user_id,
               plan_exercises.exercise_id,
               plan_exercises.display_order,
               plan_sets.set_number,
               plan_sets.repetitions,
               plan_sets.weight 
-      FROM      plan_exercises 
-      JOIN      exercises 
-      ON        plan_exercises.exercise_id = exercises.id 
-      JOIN      plan_sets 
-      ON        plan_exercises.id = plan_sets.plan_exercise_id 
-      JOIN      workout_plans 
-      ON        plan_exercises.workout_plan_id = workout_plans.id 
-      WHERE     plan_exercises.workout_plan_id = $1
+      FROM    workout_plans  
+      JOIN    plan_exercises 
+      ON      workout_plans.id = plan_exercises.workout_plan_id 
+      JOIN    exercises 
+      ON      exercises.id = plan_exercises.exercise_id 
+      JOIN    plan_sets 
+      ON      plan_sets.plan_exercise_id = plan_exercises.id
+      WHERE   workout_plans.id = $1
       ORDER BY  plan_exercises.display_order, plan_sets.set_number ASC`,
     [workoutId],
   );
-  return exerciseResult.rows;
+  return result.rows;
 }
 
-export async function getCompletedWorkout<T>(
+export async function getCompletedWorkout(
   userId: string,
   workoutId: string,
-): Promise<T> {
+): Promise<FlatCompletedWorkoutRow[]> {
   const result = await pool.query(
     `SELECT   completed_workouts.id AS workout_id,
-              exercises.user_id as user_id,
               completed_workouts.workout_plan_id,
               workout_plans.title AS plan_title,
+              completed_workouts.workout_plan_id as plan_user_id,
               completed_workouts.duration_seconds,
               completed_workouts.start_time,
               completed_workouts.end_time,
@@ -108,14 +125,17 @@ export async function getCompletedWorkout<T>(
               completed_sets.set_number ASC;`,
     [userId, workoutId],
   );
-  return result.rows as T;
+  return result.rows;
 }
 
-export async function getCompletedWorkouts(userId: string) {
+export async function getCompletedWorkouts(
+  userId: string,
+): Promise<FlatCompletedWorkoutRow[]> {
   const result = await pool.query(
     `SELECT   completed_workouts.id AS workout_id,
               completed_workouts.start_time,
               completed_workouts.workout_plan_id,
+              completed_workouts.workout_plan_id as plan_user_id,
               completed_workouts.duration_seconds,
               completed_workouts.pause_seconds,
               completed_workouts.end_time,
@@ -153,7 +173,7 @@ export async function getCompletedWorkouts(userId: string) {
 export async function getLastCompletedWorkout(
   workoutId: number,
   userId: string,
-) {
+): Promise<FlatCompletedWorkoutRow[] | FlatWorkoutRow[]> {
   const planIdResult = await pool.query(
     `SELECT   id
       FROM      completed_workouts
@@ -259,7 +279,7 @@ export async function postWorkoutPlan(
   title: string,
   userId: string,
   exercises: WorkoutExercise[],
-): Promise<{ message: string }> {
+): Promise<number> {
   const planResult = await client.query(
     "INSERT INTO workout_plans (user_id, title) VALUES ($1, $2) RETURNING id",
     [userId, title],
@@ -286,7 +306,7 @@ export async function postWorkoutPlan(
       );
     }
   }
-  return { message: "Workout Plan erfolgreich erstellt" };
+  return Number(planId);
 }
 
 export async function postCompletedWorkout(
@@ -299,7 +319,7 @@ export async function postCompletedWorkout(
   duration: number,
   pauseTime: number,
   exercises: WorkoutExercise[],
-): Promise<{ message: string }> {
+): Promise<string> {
   const completedPlanResults = await client.query(
     "INSERT INTO completed_workouts (user_id, workout_plan_id, title, start_time, end_time, duration_seconds, pause_seconds) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
     [userId, workoutId, title, startTime, endTime, duration, pauseTime],
@@ -322,19 +342,19 @@ export async function postCompletedWorkout(
       );
     }
   }
-  return { message: "Abgeschlossenes Workout erfolgreich gespeichert" };
+  return completedPlanId;
 }
 
 export async function deleteWorkout(
   client: PoolClient,
   workoutId: number,
   userId: string,
-): Promise<{ message: string }> {
+): Promise<{ deletedId: number; message: string }> {
   await client.query(
     "UPDATE workout_plans SET deleted_at = NOW() WHERE id = $1 AND user_id = $2",
     [workoutId, userId],
   );
-  return { message: `Workout erfolgreich gelöscht ${workoutId}` };
+  return { deletedId: workoutId, message: "Workout erfolgreich gelöscht" };
 }
 
 export async function putWorkout(
@@ -342,7 +362,7 @@ export async function putWorkout(
   workoutId: number,
   title: string,
   exercises: WorkoutExercise[],
-) {
+): Promise<number> {
   await client.query("UPDATE workout_plans SET title = $1 WHERE id = $2", [
     title,
     workoutId,
@@ -372,16 +392,16 @@ export async function putWorkout(
       );
     }
   }
-  return { message: "Workout erfolgreich Aktualisiert" };
+  return workoutId;
 }
 
 export async function putCompletedWorkout(
   client: PoolClient,
   workout: CompletedWorkout,
-) {
-  await client.query(
+): Promise<{ workoutId: string; userId: string; message: string }> {
+  const result = await client.query(
     `UPDATE completed_workouts SET title = $1, start_time = $2, end_time = $3, duration_seconds = $4 
-      WHERE id = $5`,
+      WHERE id = $5 RETURNING id, user_id`,
     [
       workout.title,
       workout.startTime,
@@ -411,5 +431,9 @@ export async function putCompletedWorkout(
       );
     }
   }
-  return { message: "Workout erfolgreich Aktualisiert" };
+  return {
+    workoutId: result.rows[0].id,
+    userId: result.rows[0].user_id,
+    message: "Workout erfolgreich Aktualisiert",
+  };
 }
