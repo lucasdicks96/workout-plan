@@ -1,28 +1,76 @@
 import { z } from "zod";
 
+// --- PREPROCESSOR HELPER ---
+const preprocessNumber = (val: unknown) => {
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (trimmed === "") return undefined;
+    return Number(trimmed);
+  }
+  return val;
+};
+
+const preprocessDate = (val: unknown) => {
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (trimmed === "") return undefined;
+    return new Date(trimmed);
+  }
+
+  if (typeof val === "number") {
+    return new Date(val);
+  }
+  
+  if (val instanceof Date) return val;
+  return val;
+};
+
 // --- WIEDERVERWENDBARE SUB-SCHEMAS ---
 
 export const workoutExerciseSetsSchema = z.object({
-  setNumber: z.coerce
-    .number()
-    .int()
-    .nonnegative()
-    .min(1, "Set-Nummer muss mindestens 1 sein."),
-  weight: z.coerce.number().nonnegative(),
-  repetitions: z.coerce.number().int().nonnegative(),
+  setNumber: z.preprocess(
+    preprocessNumber,
+    z
+      .number({ message: "Set-Nummer fehlt oder ist keine gültige Zahl." })
+      .int()
+      .nonnegative()
+      .min(1, "Set-Nummer muss mindestens 1 sein."),
+  ),
+  weight: z.preprocess(
+    preprocessNumber,
+    z.number({ message: "Gewicht fehlt oder ist keine Zahl." }).nonnegative(),
+  ),
+  repetitions: z.preprocess(
+    preprocessNumber,
+    z
+      .number({ message: "Wiederholungen fehlen oder sind keine Zahl." })
+      .int()
+      .nonnegative(),
+  ),
 });
 
 export const workoutExerciseSchema = z.object({
-  id: z.coerce.number().int().positive(),
+  id: z.preprocess(
+    preprocessNumber,
+    z
+      .number({ message: "Übungs-ID fehlt oder ist keine Zahl." })
+      .int()
+      .positive(),
+  ),
   title: z.string().min(1, "Übungstitel darf nicht leer sein."),
-  displayOrder: z.coerce.number().int().nonnegative(),
+  displayOrder: z.preprocess(
+    preprocessNumber,
+    z
+      .number({ message: "Display Order fehlt oder ist keine Zahl." })
+      .int()
+      .nonnegative(),
+  ),
   sets: z.array(workoutExerciseSetsSchema),
 });
 
 // --- PARAMETER SCHEMAS (URL) ---
 
 export const workoutIdParamSchema = z.object({
-  // Wandelt den URL-String (z.B. "/workout/123") sicher in die Zahl 123 um
   workoutId: z
     .string()
     .regex(/^\d+$/, "Workout ID muss eine gültige Zahl sein.")
@@ -30,7 +78,6 @@ export const workoutIdParamSchema = z.object({
 });
 
 export const stringIdParamSchema = z.object({
-  // Für completed-workouts, die anscheinend einen String/UUID als ID nutzen
   workoutId: z.uuid("Workout ID muss eine gültige UUID sein."),
 });
 
@@ -47,15 +94,29 @@ export const createWorkoutBodySchema = z.object({
 export type CreateWorkoutBody = z.infer<typeof createWorkoutBodySchema>;
 
 export const postCompletedWorkoutBodySchema = z.object({
-  workoutId: z.coerce
-    .number()
-    .int()
-    .positive("Workout ID fehlt oder ist ungültig"),
+  workoutId: z.preprocess(
+    preprocessNumber,
+    z
+      .number({ message: "Workout ID fehlt oder ist keine Zahl." })
+      .positive("Workout ID ist ungültig."),
+  ),
   title: z.string().min(1, "Workout Titel fehlt"),
-  startTime: z.coerce.date({ message: "Startzeit fehlt oder ist ungültig" }),
-  endTime: z.coerce.date({ message: "Endzeit fehlt oder ist ungültig" }),
-  pauseTime: z.coerce.number({ message: "Pausenzeit fehlt oder ist ungültig" }),
-  duration: z.coerce.number({ message: "Dauer fehlt oder ist ungültig" }),
+  startTime: z.preprocess(
+    preprocessDate,
+    z.date({ message: "Startzeit fehlt oder ist ungültig." }),
+  ),
+  endTime: z.preprocess(
+    preprocessDate,
+    z.date({ message: "Endzeit fehlt oder ist ungültig." }),
+  ),
+  pauseTime: z.preprocess(
+    preprocessNumber,
+    z.number({ message: "Pausenzeit fehlt oder ist keine Zahl." }),
+  ),
+  duration: z.preprocess(
+    preprocessNumber,
+    z.number({ message: "Dauer fehlt oder ist keine Zahl." }),
+  ),
   exercises: z.array(workoutExerciseSchema).min(1, "Übungen fehlen"),
 });
 export type PostCompletedWorkoutBody = z.infer<
@@ -65,16 +126,32 @@ export type PostCompletedWorkoutBody = z.infer<
 export const completedWorkoutSchema = z.object({
   id: z.uuid("Ungültige ID"),
   userId: z.uuid("Ungültige User ID"),
-  workoutId: z.coerce.number().int().positive("Workout ID fehlerhaft."),
+  workoutId: z.preprocess(
+    preprocessNumber,
+    z
+      .number({ message: "Workout ID fehlt oder ist keine Zahl." })
+      .int()
+      .positive("Workout ID fehlerhaft."),
+  ),
   title: z.string().min(1, "Titel darf nicht leer sein."),
-  duration: z.coerce.number(),
-  // coerce.date() nimmt den ISO-String aus dem JSON und macht ein echtes Date-Objekt daraus!
-  startTime: z.coerce.date(),
-  endTime: z.coerce.date(),
-  pauseTime: z.coerce.number(),
+  duration: z.preprocess(
+    preprocessNumber,
+    z.number({ message: "Dauer fehlt oder ist keine Zahl." }),
+  ),
+  startTime: z.preprocess(
+    preprocessDate,
+    z.date({ message: "Startzeit fehlt oder ist ungültig." }),
+  ),
+  endTime: z.preprocess(
+    preprocessDate,
+    z.date({ message: "Endzeit fehlt oder ist ungültig." }),
+  ),
+  pauseTime: z.preprocess(
+    preprocessNumber,
+    z.number({ message: "Pausenzeit fehlt oder ist keine Zahl." }),
+  ),
   exercises: z
     .array(workoutExerciseSchema)
     .min(1, "Es muss mindestens eine Übung vorhanden sein."),
 });
-
 export type PutCompletedWorkoutBody = z.infer<typeof completedWorkoutSchema>;
