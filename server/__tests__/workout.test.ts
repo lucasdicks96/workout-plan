@@ -34,6 +34,55 @@ describe("GET /workout/completed-workouts", () => {
     expect(response.body.status).toBe("fail");
     expect(response.body.message).toBe("Nicht authentifiziert");
   });
+
+  it("sollte nur die Pläne des jeweiligen Benutzer zurückgeben", async () => {
+    const userA = await createAndLoginTestUser();
+    const userB = await createAndLoginTestUser();
+    const workoutPlanId = crypto.randomInt(1, 10000);
+
+    await createTestWorkoutPlan({
+      workoutId: workoutPlanId,
+      userId: userA.userId,
+      title: "Geheimer Plan",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 10,
+    });
+
+    await createTestCompletedWorkout({
+      workoutId: workoutPlanId,
+      userId: userA.userId,
+      title: "Test",
+      startTime: new Date(Date.now()),
+      endTime: new Date(Date.now() + 3600),
+      duration: 3600,
+      pause: 100,
+      exerciseId: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 10,
+    });
+
+    const responseB = await request(app)
+      .get("/workout/completed-workouts")
+      .set("Cookie", userB.cookie);
+
+    expect(responseB.status).toBe(200);
+    expect(responseB.body.status).toBe("success");
+    expect(Array.isArray(responseB.body.data)).toBe(true);
+    expect(responseB.body.data.length).toBe(0);
+
+    const responseA = await request(app)
+      .get("/workout/completed-workouts")
+      .set("Cookie", userA.cookie);
+
+    expect(responseA.status).toBe(200);
+    expect(responseA.body.status).toBe("success");
+    expect(Array.isArray(responseA.body.data)).toBe(true);
+    expect(responseA.body.data.length).toBe(1);
+  });
 });
 
 describe("POST /workout/workout", () => {
@@ -338,6 +387,60 @@ describe("GET /workout/workouts", () => {
     expect(response.status).toBe(200);
     expect(response.body.status).toBe("success");
     expect(response.body.data.length).toBe(2);
+  });
+
+  it("sollte 401 zurückgeben, wenn der Request nicht authentifiziert ist", async () => {
+    // Act: Wir senden absichtlich keinen Cookie mit
+    const response = await request(app).get("/workout/workouts");
+
+    // Assert: Die Auth-Middleware muss blockieren
+    expect(response.status).toBe(401);
+    expect(response.body.status).toBe("fail"); // Ggf. "error", falls dein Handler das so nennt
+  });
+
+  it("sollte ein leeres Array (200 OK) zurückgeben, wenn der User noch keine Pläne hat", async () => {
+    // Arrange: Ein komplett neuer User wird erstellt (ohne Pläne in der DB)
+    const { cookie } = await createAndLoginTestUser();
+
+    // Act
+    const response = await request(app)
+      .get("/workout/workouts")
+      .set("Cookie", cookie);
+
+    // Assert: Kein Fehler! Sondern ein leeres Array.
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe("success");
+    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(response.body.data.length).toBe(0);
+  });
+
+  it("sollte strikt nur die Pläne des eigenen Users zurückgeben (Daten-Isolation)", async () => {
+    // Arrange: User A erstellt einen Plan
+    const userA = await createAndLoginTestUser();
+    await createTestWorkoutPlan({
+      workoutId: crypto.randomInt(1, 10000),
+      userId: userA.userId,
+      title: "Top Secret Plan User A",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 50,
+    });
+
+    // User B wird erstellt (hat selbst noch keine Pläne)
+    const userB = await createAndLoginTestUser();
+
+    // Act: User B fragt SEINE Workouts ab
+    const response = await request(app)
+      .get("/workout/workouts")
+      .set("Cookie", userB.cookie); // WICHTIG: Request läuft über den Cookie von User B!
+
+    // Assert: User B darf den Plan von User A unter keinen Umständen sehen
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe("success");
+    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(response.body.data.length).toBe(0); // Die Liste MUSS für User B leer sein
   });
 });
 
