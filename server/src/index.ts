@@ -2,7 +2,7 @@ import pgSession from "connect-pg-simple";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import env from "dotenv";
-import express, { RequestHandler } from "express";
+import express from "express";
 import session, { SessionOptions } from "express-session";
 import pool from "./config/db";
 import passport from "./config/passport";
