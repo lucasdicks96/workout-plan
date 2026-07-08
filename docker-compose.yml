@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: . # <-- Nimm das gesamte Projekt als Käfig!
+      dockerfile: ./server/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      # IP deines Postgres-LXC eintragen:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@${DB_IP}:${DB_PORT}/${DB_NAME}
+      - SESSION_SECRET=${SESSION_SECRET}
+      # Die URL, unter der das Frontend im Netzwerk erreichbar ist (für CORS)
+      - FRONTEND_URL=http://${DOCKER_HOST_IP}:5173
+    restart: unless-stopped
+
+  frontend:
+    build: 
+      context: .
+      dockerfile: ./client/Dockerfile
+      args:
+        # VITE BAUT STATISCH! Die Backend-URL muss beim Bauen bekannt sein:
+        # - VITE_API_URL=http://192.168.X.X:8080/user 
+        VITE_API_URL=http://${DOCKER_HOST_IP}:8080
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
