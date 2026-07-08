@@ -23,7 +23,7 @@ services:
       args:
         # VITE BAUT STATISCH! Die Backend-URL muss beim Bauen bekannt sein:
         # - VITE_API_URL=http://192.168.X.X:8080/user 
-        VITE_API_URL=http://${DOCKER_HOST_IP}:8080
+        VITE_API_URL: http://${DOCKER_HOST_IP}:8080
     ports:
       - "5173:80"
     depends_on:
