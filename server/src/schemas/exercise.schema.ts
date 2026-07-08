@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+const preprocessNumber = (val: unknown) => {
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (trimmed === "") return undefined;
+
+    const parsed = Number(trimmed);
+
+    return Number.isNaN(parsed) ? undefined : parsed;
+  }
+  return val;
+};
+
 // 1. Schema für das Erstellen (POST)
 export const createExerciseBodySchema = z.object({
   title: z
@@ -7,28 +19,34 @@ export const createExerciseBodySchema = z.object({
     .trim()
     .min(1, "Titel darf nicht leer sein."),
 
-  description: z.string().optional().default(""),
+  description: z.string().default(""),
 
   categories: z
     .array(
-      z.coerce
-        .number({
-          message: "Muss mindestens eine gültige Kategorie enthalten.",
-        })
-        .int()
-        .positive(),
+      z.preprocess(
+        preprocessNumber,
+        z
+          .number({
+            message: "Muss mindestens eine gültige Kategorie enthalten.",
+          })
+          .int("Kategorie-ID muss eine ganze Zahl sein.")
+          .positive("Kategorie-ID muss größer als 0 sein."),
+      ),
     )
-    .min(1),
+    .min(1, "Muss mindestens eine Kategorie enthalten.1"),
 });
 
 export type CreateExerciseBody = z.infer<typeof createExerciseBodySchema>;
 
 // 2. Schema für das Updaten (PUT)
 export const updateExerciseBodySchema = createExerciseBodySchema.extend({
-  id: z.coerce
-    .number({ message: "ID ist erforderlich und muss eine Zahl sein." })
-    .int()
-    .positive("Ungültige Übungs-ID."),
+  id: z.preprocess(
+    preprocessNumber,
+    z
+      .number({ message: "ID ist erforderlich und muss eine Zahl sein." })
+      .int("ID muss eine ganze Zahl sein.")
+      .positive("Ungültige Übungs-ID."),
+  ),
 });
 
 export type UpdateExerciseBody = z.infer<typeof updateExerciseBodySchema>;
