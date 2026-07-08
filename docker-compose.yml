@@ -6,8 +6,9 @@ services:
       context: . # <-- Nimm das gesamte Projekt als Käfig!
       dockerfile: ./server/Dockerfile
     ports:
-      - "8080:8080"
+      - "5000:5000"
     environment:
+      - PORT=5000
       - NODE_ENV=production
       # IP deines Postgres-LXC eintragen:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@${DB_IP}:${DB_PORT}/${DB_NAME}
@@ -23,7 +24,7 @@ services:
       args:
         # VITE BAUT STATISCH! Die Backend-URL muss beim Bauen bekannt sein:
         # - VITE_API_URL=http://192.168.X.X:8080/user 
-        VITE_API_URL: http://${DOCKER_HOST_IP}:8080
+        VITE_API_URL: ""
     ports:
       - "5173:80"
       - "8443:443"
