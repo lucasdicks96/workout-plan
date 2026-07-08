@@ -17,7 +17,7 @@ FROM nginx:alpine
 # Kopiere die fertigen React-Dateien in den Nginx-Webserver
 COPY --from=builder /app/client/dist /usr/share/nginx/html
 # Kopiere deine Nginx-Konfiguration
-COPY client/nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
