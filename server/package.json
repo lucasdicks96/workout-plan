@@ -9,7 +9,7 @@
   "main": "index.ts",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "start": "node dist/src/server.js",
+    "start": "node dist/server/src/server.js",
     "build": "tsc",
     "test": "jest --runInBand",
     "test:watch": "jest --watchAll --runInBand"
