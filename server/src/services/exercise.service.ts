@@ -68,12 +68,16 @@ export async function postExercise(
 
     await client.query("COMMIT");
 
+    const catTree = await getCategoryTree();
+
+    const cat = filterCategoryTreeByIds(catTree, categories);
+
     return {
       id: exData.id,
       userId: exData.user_id,
       title: exData.title,
       description: exData.description,
-      category: categories as any,
+      category: cat,
     };
   } catch (error) {
     await client.query("ROLLBACK");
