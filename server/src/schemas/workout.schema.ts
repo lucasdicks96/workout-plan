@@ -5,7 +5,10 @@ const preprocessNumber = (val: unknown) => {
   if (typeof val === "string") {
     const trimmed = val.trim();
     if (trimmed === "") return undefined;
-    return Number(trimmed);
+
+    const parsed = Number(trimmed);
+
+    return Number.isNaN(parsed) ? undefined : parsed;
   }
   return val;
 };
@@ -20,7 +23,7 @@ const preprocessDate = (val: unknown) => {
   if (typeof val === "number") {
     return new Date(val);
   }
-  
+
   if (val instanceof Date) return val;
   return val;
 };
