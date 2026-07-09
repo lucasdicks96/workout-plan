@@ -28,7 +28,7 @@ COPY --from=builder /app/server/dist ./server/dist
 # Falls "shared" einen eigenen dist-Ordner generiert, kommentiere das ein:
 # COPY --from=builder /app/shared/dist ./shared/dist
 
-EXPOSE 8080
+EXPOSE 5000
 
 # Starte den Server-Workspace
 CMD ["npm", "run", "start", "-w", "server"]
