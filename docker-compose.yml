@@ -12,7 +12,7 @@ services:
       context: .
       dockerfile: ./server/Dockerfile
     environment:
-      - PORT={PORT}
+      - PORT=${PORT}
       - NODE_ENV=production
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@${DB_IP}:${DB_PORT}/${DB_NAME}
       - SESSION_SECRET=${SESSION_SECRET}
