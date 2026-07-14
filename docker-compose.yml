@@ -12,11 +12,12 @@ services:
       context: .
       dockerfile: ./server/Dockerfile
     environment:
-      - PORT=5000
+      - PORT={PORT}
       - NODE_ENV=production
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@${DB_IP}:${DB_PORT}/${DB_NAME}
       - SESSION_SECRET=${SESSION_SECRET}
       - FRONTEND_URL=https://lucaslabs.dev
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
     restart: unless-stopped
     networks:
       - fitness-network

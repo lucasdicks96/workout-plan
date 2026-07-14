@@ -18,7 +18,12 @@ const PostgresqlStore = pgSession(session);
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://192.168.50.154:8443"],
+    origin: [
+      "http://localhost:5173",
+      "http://192.168.50.154:8443",
+      "https://lucaslabs.dev",
+    ],
+    optionsSuccessStatus: 200,
     credentials: true,
   }),
 );
@@ -50,7 +55,7 @@ const sessionConfig: SessionOptions = {
   },
 };
 
-app.set("trust proxy", 1); 
+app.set("trust proxy", 1);
 
 app.use(session(sessionConfig));
 
