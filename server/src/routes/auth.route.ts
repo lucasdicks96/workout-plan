@@ -112,15 +112,10 @@ router.post(
   "/logout",
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
     try {
+      // 1. Session direkt in PostgreSQL zerstören (ersetzt req.logout komplett)
       await new Promise<void>((resolve, reject) => {
-        req.logout((err) =>
-          err
-            ? reject(new InternalServerError("Logout fehlgeschlagen"))
-            : resolve(),
-        );
-      });
+        if (!req.session) return resolve();
 
-      await new Promise<void>((resolve, reject) => {
         req.session.destroy((err) =>
           err
             ? reject(
@@ -130,7 +125,23 @@ router.post(
         );
       });
 
-      res.clearCookie("connect.sid", { path: "/" });
+      const isProduction = process.env.NODE_ENV === "production";
+
+      // 2. Session-Cookie im Browser löschen (mit exakten Optionen!)
+      res.clearCookie("connect.sid", {
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax",
+        secure: isProduction,
+      });
+
+      // 3. NEU: Auch das CSRF-Cookie löschen
+      const csrfCookieName = isProduction ? "__Host-xsrf-token" : "xsrf-token";
+      res.clearCookie(csrfCookieName, {
+        path: "/",
+        sameSite: "lax",
+        secure: isProduction,
+      });
 
       return res.status(200).json({
         status: "success",
