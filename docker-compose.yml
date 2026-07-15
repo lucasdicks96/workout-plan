@@ -30,7 +30,8 @@ services:
       context: .
       dockerfile: ./client/Dockerfile
       args:
-        VITE_API_URL: "https://api.lucaslabs.dev" # Hier die neue API-URL eintragen!
+        - VITE_API_URL: "https://api.lucaslabs.dev"
+        - VITE_TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY}
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./ssl:/etc/nginx/ssl:ro

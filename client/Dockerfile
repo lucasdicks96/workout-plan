@@ -6,7 +6,9 @@ COPY . .
 RUN npm ci
 
 # Hole die API_URL aus der docker-compose und stelle sie Vite beim Bauen zur Verfügung
+ARG VITE_TURNSTILE_SITE_KEY
 ARG VITE_API_URL
+ENV VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
 ENV VITE_API_URL=$VITE_API_URL
 
 RUN npm run build -w client
