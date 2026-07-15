@@ -75,7 +75,7 @@ const sessionConfig: SessionOptions = {
   },
 };
 
-app.set("trust proxy", 1);
+app.set("trust proxy", true);
 
 app.use(session(sessionConfig));
 
@@ -83,11 +83,10 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 app.use((req, res, next) => {
-  console.log('Client IP:', req.ip);
-  console.log('X-Forwarded-For:', req.headers['x-forwarded-for']);
+  console.log("Client IP:", req.ip);
+  console.log("X-Forwarded-For:", req.headers["x-forwarded-for"]);
   next();
 });
-
 
 app.use("/user/register", authLimiter);
 app.use("/user/login", authLimiter);
