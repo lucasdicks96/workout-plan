@@ -13,7 +13,20 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
     });
   }
 
-  // 2. LOGGING FÜR DICH (Intern): Wir loggen IMMER die echten Details
+  // 2. CSRF Fehler abfangen und sicher als 403 (Forbidden) zurückgeben!
+  if (
+    err?.name === "ForbiddenError" ||
+    err?.message === "invalid csrf token" ||
+    err?.code === "EBADCSRFTOKEN" // Zusätzliches Fallback für manche Express-CSRF Versionen
+  ) {
+    return res.status(403).json({
+      status: "error",
+      message: "CSRF-Token ungültig oder abgelaufen.",
+      code: "CSRF_ERROR",
+    });
+  }
+
+  // 3. LOGGING FÜR DICH (Intern): Wir loggen IMMER die echten Details
   errorLogger.error({
     message: err.message || "Unbekannter Fehler",
     stack: err.stack,
@@ -22,7 +35,7 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
     method: req.method,
   });
 
-  // 3. ANTWORT AN DEN CLIENT (Extern): Sicherheits-Check!
+  // 4. ANTWORT AN DEN CLIENT (Extern): Sicherheits-Check!
 
   // Ist es ein von dir kontrollierter Fehler (z.B. NotFound, Unauthorized)?
   if (err instanceof AppError) {
@@ -34,7 +47,7 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
     });
   }
 
-  // 4. FALLBACK FÜR ALLES ANDERE: Der Fehler ist nicht von dir kontrolliert!
+  // 5. FALLBACK FÜR ALLES ANDERE: Der Fehler ist nicht von dir kontrolliert!
   return res.status(500).json({
     status: "error",
     message: "Interner Serverfehler", // Harter Fallback, überschreibt err.message
