@@ -15,6 +15,17 @@ env.config();
 
 const app = express();
 
+app.set("trust proxy", true);
+
+app.use((req, res, next) => {
+  console.log("--------------------------------");
+  console.log("Incoming Request:", req.method, req.url);
+  console.log("Remote IP:", req.ip);
+  console.log("X-Forwarded-For Header:", req.headers["x-forwarded-for"]);
+  console.log("--------------------------------");
+  next();
+});
+
 const PostgresqlStore = pgSession(session);
 
 const authLimiter = rateLimit({
@@ -75,18 +86,10 @@ const sessionConfig: SessionOptions = {
   },
 };
 
-app.set("trust proxy", true);
-
 app.use(session(sessionConfig));
 
 app.use(passport.initialize());
 app.use(passport.session());
-
-app.use((req, res, next) => {
-  console.log("Client IP:", req.ip);
-  console.log("X-Forwarded-For:", req.headers["x-forwarded-for"]);
-  next();
-});
 
 app.use("/user/register", authLimiter);
 app.use("/user/login", authLimiter);
