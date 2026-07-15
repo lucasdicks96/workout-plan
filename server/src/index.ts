@@ -31,10 +31,9 @@ const PostgresqlStore = pgSession(session);
 const authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
-  message: {
-    error:
-      "Zu viele Registrierungs- oder Login-Versuche. Bitte versuchen Sie es in einer Stunde erneut.",
-  },
+  message:
+    "Zu viele Registrierungs- oder Login-Versuche. Bitte versuchen Sie es in einer Stunde erneut.",
+
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -42,9 +41,7 @@ const authLimiter = rateLimit({
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
-  message: {
-    error: "Zu viele Anfragen. Versuche es später erneut.",
-  },
+  message: "Zu viele Anfragen. Versuche es später erneut.",
 });
 
 app.use(
