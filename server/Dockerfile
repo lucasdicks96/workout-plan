@@ -1,34 +1,31 @@
-# STAGE 1: Bauen
+# STAGE 1: Bauen (Bleibt unverändert)
 FROM node:20-alpine AS builder
 WORKDIR /app
-
-# Kopiere das gesamte Projekt ins Image (Dank .dockerignore ohne node_modules)
 COPY . .
-
-# Installiert alle Root- und Workspace-Abhängigkeiten
 RUN npm ci
-
-# Baut den Server. (Falls "shared" zwingend vorher gebaut werden muss, 
-# füge davor ein: RUN npm run build -w shared)
 RUN npm run build -w server
-
 
 # STAGE 2: Produktion
 FROM node:20-alpine
 WORKDIR /app
 
-# Wir kopieren wieder die package.json Dateien für die Workspace-Struktur
-COPY . .
+# WICHTIG: Rechte für das Arbeitsverzeichnis an den "node"-User übergeben, 
+# damit Winston später die Datei "error.log" anlegen und schreiben darf!
+RUN chown -R node:node /app
 
-# Wir installieren NUR die Produktions-Abhängigkeiten
+# Ab hier als unberechtigter "node" User weiterarbeiten
+USER node
+
+# Dateien direkt mit den richtigen Eigentumsrechten kopieren
+COPY --chown=node:node . .
+
+# Pakete als "node" User installieren (verhindert Permission Errors)
 RUN npm ci --omit=dev
 
-# Wir überschreiben die leeren Ordner mit dem fertig kompilierten Code
-COPY --from=builder /app/server/dist ./server/dist
-# Falls "shared" einen eigenen dist-Ordner generiert, kommentiere das ein:
-# COPY --from=builder /app/shared/dist ./shared/dist
+# Den fertig kompilierten Code aus Stage 1 rüberziehen
+COPY --chown=node:node --from=builder /app/server/dist ./server/dist
+# COPY --chown=node:node --from=builder /app/shared/dist ./shared/dist
 
 EXPOSE 5000
 
-# Starte den Server-Workspace
 CMD ["npm", "run", "start", "-w", "server"]
