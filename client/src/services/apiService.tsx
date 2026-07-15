@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { InternalAxiosRequestConfig } from "axios";
 import { Category, Exercise } from "../types/exercises";
 import { UserWithoutPassword } from "../types/user";
 import { CompletedWorkout, Workout, WorkoutExercises } from "../types/workouts";
@@ -9,6 +9,9 @@ export interface ApiResponse<T = void> {
   data: T;
 }
 
+// 1. CSRF Token im Arbeitsspeicher speichern (sicher gegen XSS)
+let csrfToken: string | null = null;
+
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "",
   withCredentials: true,
@@ -17,9 +20,46 @@ const apiClient = axios.create({
   },
 });
 
-// Add retry logic for transient errors
+// Hilfsfunktion zum Abholen des CSRF-Tokens vom Backend
+const fetchCsrfToken = async (): Promise<string> => {
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_URL || ""}/csrf-token`,
+      {
+        withCredentials: true,
+      },
+    );
+    csrfToken = response.data.csrfToken;
+    return csrfToken as string;
+  } catch (error) {
+    console.error("Fehler beim Abrufen des CSRF-Tokens:", error);
+    throw error;
+  }
+};
+
+// 2. REQUEST INTERCEPTOR: Hängt den CSRF-Token an alle schreibenden Requests an
+apiClient.interceptors.request.use(
+  async (config: InternalAxiosRequestConfig) => {
+    const unsafeMethods = ["post", "put", "delete", "patch"];
+
+    if (config.method && unsafeMethods.includes(config.method.toLowerCase())) {
+      // Wenn noch kein Token da ist, erst einen holen
+      if (!csrfToken) {
+        await fetchCsrfToken();
+      }
+      // Token in den Header setzen (Name muss exakt zur Backend-Config passen!)
+      if (csrfToken && config.headers) {
+        config.headers["x-csrf-token"] = csrfToken;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
+
 const RETRY_DELAY = 1000;
 
+// 3. RESPONSE INTERCEPTOR: Fehlerbehandlung und Retries
 apiClient.interceptors.response.use(
   (response) => {
     return response.data;
@@ -27,36 +67,50 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Don't retry if request was not JSON or status is not retryable
+    // Kein Retry, wenn es kein JSON-Request war
     if (!originalRequest.headers || !originalRequest.headers["Content-Type"]) {
       return Promise.reject(error);
     }
 
-    // Don't retry if already retried
+    // Kein Retry, wenn wir es schon versucht haben
     if (originalRequest._retry) {
       return Promise.reject(error);
     }
 
-    // Retry on 408, 429, 500, 502, 503, 504
+    // Wenn das Backend den Token ablehnt, holen wir einen neuen und versuchen den Request einmal erneut
+    if (error.response?.status === 403 && !originalRequest._csrfRetry) {
+      originalRequest._csrfRetry = true;
+      try {
+        console.warn("CSRF-Token ungültig/abgelaufen. Hole neuen Token...");
+        const newToken = await fetchCsrfToken();
+        originalRequest.headers["x-csrf-token"] = newToken;
+        return apiClient(originalRequest);
+      } catch (csrfError) {
+        return Promise.reject(csrfError);
+      }
+    }
+
     if (
       error.response?.status &&
-      [408, 429, 500, 502, 503, 504].includes(error.response.status)
+      [408, 500, 502, 503, 504].includes(error.response.status)
     ) {
       originalRequest._retry = true;
 
-      // Exponential backoff
       const delay = RETRY_DELAY * Math.pow(2, originalRequest._retries || 0);
       originalRequest._retries = (originalRequest._retries || 0) + 1;
 
-      console.log(`Retry ${originalRequest._retries} after ${delay}ms`);
+      console.log(`Retry ${originalRequest._retries} nach ${delay}ms`);
 
       await new Promise((resolve) => setTimeout(resolve, delay));
 
       return apiClient(originalRequest);
     }
 
-    // Handle 401 - unauthorized
+    // 401 - Unauthorized Handling
     if (error.response && error.response.status === 401) {
+      // Wenn wir ein 401 bekommen, verwerfen wir auch den alten CSRF-Token
+      csrfToken = null;
+
       const originalRequestUrl = error.config?.url;
       const publicUrls = ["/user/login", "/user/register", "/user/status"];
 

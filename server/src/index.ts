@@ -11,9 +11,32 @@ import userRoute from "./routes/auth.route";
 import exerciseRoute from "./routes/exercise.route";
 import workoutRoute from "./routes/workout.route";
 import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import { doubleCsrf } from "csrf-csrf";
 env.config();
 
 const app = express();
+app.use(helmet());
+
+export const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
+  getSecret: () =>
+    process.env.CSRF_SECRET || "ein-sehr-geheimes-langes-passwort",
+  getSessionIdentifier: (req) => {
+    // Verknüpft den Schutz unzertrennlich mit deiner Postgres-Session
+    return req.session.id;
+  },
+  cookieName:
+    process.env.NODE_ENV === "production" ? "__Host-xsrf-token" : "xsrf-token",
+  cookieOptions: {
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production" ? true : false,
+  },
+});
+
+// Route zum Abholen des Tokens
+app.get("/csrf-token", (req, res) => {
+  res.json({ csrfToken: generateCsrfToken(req, res) });
+});
 
 app.set("trust proxy", "172.19.0.0/16");
 
@@ -71,6 +94,13 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+app.get("/csrf-token", (req, res) => {
+  const csrfToken = generateCsrfToken(req, res);
+  res.json({ csrfToken });
+});
+
+app.use(doubleCsrfProtection);
 
 // 1. Definiere die Optionen separat
 const sessionConfig: SessionOptions = {
