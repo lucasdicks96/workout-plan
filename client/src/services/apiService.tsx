@@ -130,7 +130,11 @@ export const apiService = {
       "/user/login",
       payload,
     ),
-  register: (payload: { email: string; password: string }) =>
+  register: (payload: {
+    email: string;
+    password: string;
+    turnstileToken: string;
+  }) =>
     apiClient.post<typeof payload, ApiResponse<UserWithoutPassword>>(
       "/user/register",
       payload,

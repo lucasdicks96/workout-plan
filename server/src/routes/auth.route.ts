@@ -9,6 +9,7 @@ import {
   AuthenticatedRequest,
   authenticatedHandler,
 } from "../utils/auth.utils";
+import { verifyTurnstile } from "../middlewares/turnstile";
 
 import {
   AuthCredentialsBody,
@@ -24,6 +25,7 @@ const logInAsync = (req: Request, user: Express.User) =>
 
 router.post(
   "/register",
+  verifyTurnstile,
   async (
     req: Request<any, any, AuthCredentialsBody>,
     res: Response<ApiResponse<UserWithoutPassword>>,

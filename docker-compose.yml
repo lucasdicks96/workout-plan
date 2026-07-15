@@ -19,6 +19,7 @@ services:
       - FRONTEND_URL=https://lucaslabs.dev
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - CSRF_SECRET=${CSRF_SECRET}
+      - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY}
     restart: unless-stopped
     networks:
       - fitness-network

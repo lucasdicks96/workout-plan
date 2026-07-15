@@ -4,7 +4,9 @@ dist
 build
 */dist
 */build
+**/.env
 .env*
+!frontend/.env
 .git
 __tests__
 coverage

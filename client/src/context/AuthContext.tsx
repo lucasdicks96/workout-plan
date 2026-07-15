@@ -17,7 +17,11 @@ export interface AuthContextType {
   /** Authentifiziert einen Benutzer mit E-Mail und Passwort */
   login: (email: string, password: string) => Promise<void>;
   /** Registriert ein neues Benutzerkonto und loggt dieses direkt ein */
-  register: (email: string, password: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    turnstileToken: string,
+  ) => Promise<void>;
   /** Beendet die aktuelle Session auf dem Server und leert den lokalen State */
   logout: () => Promise<void>;
 }
@@ -91,7 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(response.data);
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        const message = error.response?.data?.message || "Anmeldung fehlgeschlagen";
+        const message =
+          error.response?.data?.message || "Anmeldung fehlgeschlagen";
         console.error("Login fehlgeschlagen:", message, error.response?.status);
         throw new Error(message);
       } else {
@@ -109,13 +114,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * @param password - Das gewählte Passwort
    * @throws {Error} Reicht die serverseitige Fehlermeldung an die UI-Komponente weiter.
    */
-  const register = async (email: string, password: string): Promise<void> => {
+  const register = async (
+    email: string,
+    password: string,
+    turnstileToken: string,
+  ): Promise<void> => {
     try {
-      const response = await apiService.register({ email, password });
+      const response = await apiService.register({
+        email,
+        password,
+        turnstileToken,
+      });
       setUser(response.data);
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        const message = error.response?.data?.message || "Registrierung fehlgeschlagen";
+        const message =
+          error.response?.data?.message || "Registrierung fehlgeschlagen";
         console.error(
           "Registrierung fehlgeschlagen:",
           message,
@@ -144,10 +158,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       showNotification("Logout fehlgeschlagen", "error");
       console.error("Logout fehlgeschlagen:", error);
-      
+
       // Hinweis: Wenn das Cookie/die Session auf dem Server aktiv bleibt,
       // behalten wir zur Sicherheit den User-State lokal bei.
-      throw new Error("Logout fehlgeschlagen. Session auf dem Server noch aktiv.");
+      throw new Error(
+        "Logout fehlgeschlagen. Session auf dem Server noch aktiv.",
+      );
     }
   };
 
