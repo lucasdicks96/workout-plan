@@ -96,6 +96,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.get("/csrf-token", (req, res) => {
+  // WICHTIG: Wir schreiben einen Dummy-Wert in die Session!
+  // Das zwingt express-session (trotz saveUninitialized: false) dazu,
+  // die Session in Postgres zu speichern und den Cookie an den Browser zu senden.
+  (req.session as any).csrfInitialized = true;
+
   const csrfToken = generateCsrfToken(req, res);
   res.json({ csrfToken });
 });
