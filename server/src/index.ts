@@ -15,7 +15,7 @@ env.config();
 
 const app = express();
 
-app.set("trust proxy", true);
+app.set("trust proxy", "172.19.0.0/16");
 
 app.use((req, res, next) => {
   console.log("--------------------------------");
@@ -30,18 +30,30 @@ const PostgresqlStore = pgSession(session);
 
 const authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 5,
-  message:
-    "Zu viele Registrierungs- oder Login-Versuche. Bitte versuchen Sie es in einer Stunde erneut.",
-
+  max: process.env.NODE_ENV === "production" ? 5 : 100,
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    res.status(options.statusCode).json({
+      status: "error",
+      message:
+        "Zu viele Registrierungs- oder Login-Versuche. Bitte versuchen Sie es in einer Stunde erneut.",
+      code: 429,
+    });
+  },
 });
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
-  message: "Zu viele Anfragen. Versuche es später erneut.",
+  handler: (req, res, next, options) => {
+    res.status(options.statusCode).json({
+      status: "error",
+      message:
+        "Zu viele API-Anfragen. Bitte versuchen Sie es in einer Stunde erneut.",
+      code: 429,
+    });
+  },
 });
 
 app.use(
