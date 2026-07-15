@@ -16,27 +16,8 @@ import { doubleCsrf } from "csrf-csrf";
 env.config();
 
 const app = express();
+
 app.use(helmet());
-
-export const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
-  getSecret: () =>
-    process.env.CSRF_SECRET || "ein-sehr-geheimes-langes-passwort",
-  getSessionIdentifier: (req) => {
-    // Verknüpft den Schutz unzertrennlich mit deiner Postgres-Session
-    return req.session.id;
-  },
-  cookieName:
-    process.env.NODE_ENV === "production" ? "__Host-xsrf-token" : "xsrf-token",
-  cookieOptions: {
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production" ? true : false,
-  },
-});
-
-// Route zum Abholen des Tokens
-app.get("/csrf-token", (req, res) => {
-  res.json({ csrfToken: generateCsrfToken(req, res) });
-});
 
 app.set("trust proxy", "172.19.0.0/16");
 
@@ -95,18 +76,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.get("/csrf-token", (req, res) => {
-  // WICHTIG: Wir schreiben einen Dummy-Wert in die Session!
-  // Das zwingt express-session (trotz saveUninitialized: false) dazu,
-  // die Session in Postgres zu speichern und den Cookie an den Browser zu senden.
-  (req.session as any).csrfInitialized = true;
-
-  const csrfToken = generateCsrfToken(req, res);
-  res.json({ csrfToken });
-});
-
-app.use(doubleCsrfProtection);
-
 // 1. Definiere die Optionen separat
 const sessionConfig: SessionOptions = {
   store: new PostgresqlStore({
@@ -134,6 +103,33 @@ app.use(session(sessionConfig));
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+export const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
+  getSecret: () =>
+    process.env.CSRF_SECRET || "ein-sehr-geheimes-langes-passwort",
+  getSessionIdentifier: (req) => {
+    // Verknüpft den Schutz unzertrennlich mit deiner Postgres-Session
+    return req.session.id;
+  },
+  cookieName:
+    process.env.NODE_ENV === "production" ? "__Host-xsrf-token" : "xsrf-token",
+  cookieOptions: {
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production" ? true : false,
+  },
+});
+
+app.get("/csrf-token", (req, res) => {
+  // WICHTIG: Wir schreiben einen Dummy-Wert in die Session!
+  // Das zwingt express-session (trotz saveUninitialized: false) dazu,
+  // die Session in Postgres zu speichern und den Cookie an den Browser zu senden.
+  (req.session as any).csrfInitialized = true;
+
+  const csrfToken = generateCsrfToken(req, res);
+  res.json({ csrfToken });
+});
+
+app.use(doubleCsrfProtection);
 
 app.use("/user/register", authLimiter);
 app.use("/user/login", authLimiter);
