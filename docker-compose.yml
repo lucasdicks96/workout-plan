@@ -21,7 +21,7 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@${DB_IP}:${DB_PORT}/${DB_NAME}
       - SESSION_SECRET=${SESSION_SECRET}
-      - FRONTEND_URL=https://lucaslabs.dev
+      - FRONTEND_URL=${FRONTEND_URL}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - CSRF_SECRET=${CSRF_SECRET}
       - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY}
@@ -35,7 +35,7 @@ services:
       context: .
       dockerfile: ./client/Dockerfile
       args:
-        VITE_API_URL: "https://api.lucaslabs.dev"
+        VITE_API_URL: ${VITE_API_URL}
         VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY}
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
