@@ -13,7 +13,9 @@ export interface ApiResponse<T = void> {
 let csrfToken: string | null = null;
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "",
+  baseURL: import.meta.env.DEV
+    ? "http://localhost:5000/"
+    : import.meta.env.VITE_API_URL || "",
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
