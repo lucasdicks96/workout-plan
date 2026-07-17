@@ -104,32 +104,35 @@ app.use(session(sessionConfig));
 app.use(passport.initialize());
 app.use(passport.session());
 
-export const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
-  getSecret: () =>
-    process.env.CSRF_SECRET || "ein-sehr-geheimes-langes-passwort",
-  getSessionIdentifier: (req) => {
-    // Verknüpft den Schutz unzertrennlich mit deiner Postgres-Session
-    return req.session.id;
-  },
-  cookieName:
-    process.env.NODE_ENV === "production" ? "__Host-xsrf-token" : "xsrf-token",
-  cookieOptions: {
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production" ? true : false,
-  },
-});
+const isProd = process.env.NODE_ENV === "production";
 
-app.get("/csrf-token", (req, res) => {
-  // WICHTIG: Wir schreiben einen Dummy-Wert in die Session!
-  // Das zwingt express-session (trotz saveUninitialized: false) dazu,
-  // die Session in Postgres zu speichern und den Cookie an den Browser zu senden.
-  (req.session as any).csrfInitialized = true;
+if (isProd) {
+  const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
+    getSecret: () =>
+      process.env.CSRF_SECRET || "ein-sehr-geheimes-langes-passwort",
+    getSessionIdentifier: (req) => {
+      return req.session.id;
+    },
 
-  const csrfToken = generateCsrfToken(req, res);
-  res.json({ csrfToken });
-});
+    cookieName: "__Host-xsrf-token",
+    cookieOptions: {
+      sameSite: "lax",
+      secure: true,
+    },
+  });
 
-app.use(doubleCsrfProtection);
+  app.get("/csrf-token", (req, res) => {
+    (req.session as any).csrfInitialized = true;
+    const csrfToken = generateCsrfToken(req, res);
+    res.json({ csrfToken });
+  });
+
+  app.use(doubleCsrfProtection);
+} else {
+  app.get("/csrf-token", (req, res) => {
+    res.json({ csrfToken: "local-dev-dummy-token" });
+  });
+}
 
 app.use("/user/register", authLimiter);
 app.use("/user/login", authLimiter);
