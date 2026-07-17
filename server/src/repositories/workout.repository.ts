@@ -65,7 +65,7 @@ export async function getWorkout(workoutId: number): Promise<FlatWorkoutRow[]> {
   const result = await pool.query(
     `SELECT   workout_plans.title as plan_title,
               workout_plans.user_id as plan_user_id,
-              workout_plans.id as plan_id,
+              workout_plans.id AS plan_id,
               exercises.title,
               plan_exercises.exercise_id,
               plan_exercises.display_order,
@@ -92,7 +92,7 @@ export async function getCompletedWorkout(
 ): Promise<FlatCompletedWorkoutRow[]> {
   const result = await pool.query(
     `SELECT   completed_workouts.id AS workout_id,
-              completed_workouts.workout_plan_id,
+              completed_workouts.workout_plan_id AS plan_id,
               workout_plans.title AS plan_title,
               completed_workouts.workout_plan_id as plan_user_id,
               completed_workouts.duration_seconds,
@@ -134,8 +134,8 @@ export async function getCompletedWorkouts(
   const result = await pool.query(
     `SELECT   completed_workouts.id AS workout_id,
               completed_workouts.start_time,
-              completed_workouts.workout_plan_id,
-              completed_workouts.workout_plan_id as plan_user_id,
+              completed_workouts.workout_plan_id AS plan_id,
+              completed_workouts.user_id as plan_user_id,
               completed_workouts.duration_seconds,
               completed_workouts.pause_seconds,
               completed_workouts.end_time,
@@ -145,7 +145,6 @@ export async function getCompletedWorkouts(
               completed_sets.repetitions,
               completed_sets.weight,
               exercises.title,
-              exercises.user_id,
               unique_plan_exercises.display_order
     FROM      completed_workouts
     JOIN      completed_sets
