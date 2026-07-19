@@ -247,7 +247,7 @@ export default function WorkoutInProgress() {
     )}:${String(seconds).padStart(2, "0")}`;
   };
 
-  useSetTitle(workoutName);
+  useSetTitle("Workout starten");
 
   if (!workoutName && !startTime) {
     return <div>Lade Workout...</div>;
@@ -255,6 +255,16 @@ export default function WorkoutInProgress() {
 
   return (
     <>
+      {" "}
+      <input
+        className="input"
+        name="name"
+        style={{ maxWidth: "20rem" }}
+        type="text"
+        placeholder="Name des Trainingsplans"
+        value={workoutName}
+        onChange={(e) => setWorkoutName(e.target.value)}
+      />
       <WorkoutExercises
         workoutList={workoutList || []}
         onUpdate={(key, setIndex, field, value) => {
