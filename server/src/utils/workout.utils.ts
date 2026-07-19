@@ -72,7 +72,8 @@ export function buildCompletedWorkouts(
           id: completedWorkoutId,
           userId: row.plan_user_id,
           workoutId: row.plan_id,
-          title: row.plan_title,
+          title: row.workout_title,
+          planTitle: row.plan_title,
           duration: row.duration_seconds,
           startTime: row.start_time,
           endTime: row.end_time,
@@ -171,4 +172,76 @@ export function buildWorkoutPlansList(rows: FlatWorkoutRow[]): Workout[] {
   }
 
   return workouts.sort((a, b) => a.title.localeCompare(b.title));
+}
+
+export function buildMergedWorkout(
+  workoutId: number,
+  planRows: FlatWorkoutRow[],
+  completedRows: FlatCompletedWorkoutRow[],
+): Workout {
+  const { plan_title, plan_user_id } = planRows[0];
+
+  const workout: Workout = {
+    id: workoutId,
+    title: plan_title,
+    userId: plan_user_id,
+    exercises: [],
+  };
+
+  // SCHRITT 1: Historie in eine schnelle Lookup-Map verwandeln
+  // Schlüssel-Format: "exerciseId-setNumber" -> Wert: { weight, repetitions }
+  const historyLookup = new Map<
+    string,
+    { weight: number; repetitions: number }
+  >();
+
+  completedRows.forEach((row) => {
+    if (row.set_number != null) {
+      historyLookup.set(`${row.exercise_id}-${row.set_number}`, {
+        weight: Number(row.weight),
+        repetitions: Number(row.repetitions),
+      });
+    }
+  });
+
+  // SCHRITT 2: Workout strikt auf Basis der Plan-Vorlage aufbauen
+  const exerciseMap = new Map<number, WorkoutExercise>();
+
+  planRows.forEach((row) => {
+    let exercise = exerciseMap.get(row.exercise_id);
+
+    if (!exercise) {
+      exercise = {
+        id: row.exercise_id,
+        title: row.title,
+        displayOrder: row.display_order,
+        sets: [],
+      };
+      exerciseMap.set(row.exercise_id, exercise);
+    }
+
+    if (row.set_number != null) {
+      // Prüfen: Gibt es für diese Übung und diesen Satz einen historischen Wert?
+      const historyKey = `${row.exercise_id}-${row.set_number}`;
+      const historicalData = historyLookup.get(historyKey);
+
+      exercise.sets.push({
+        setNumber: row.set_number,
+        // Wenn Historie da ist: Nimm historisches Gewicht/Reps.
+        // Wenn NEUE ÜBUNG: Nimm die Vorgabe aus dem Plan (oder 0)!
+        weight: historicalData
+          ? historicalData.weight
+          : Number(row.weight || 0),
+        repetitions: historicalData
+          ? historicalData.repetitions
+          : Number(row.repetitions || 0),
+      });
+    }
+  });
+
+  workout.exercises = Array.from(exerciseMap.values()).sort(
+    (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0),
+  );
+
+  return workout;
 }
