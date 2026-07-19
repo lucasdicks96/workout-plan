@@ -25,8 +25,12 @@ const apiClient = axios.create({
 // Hilfsfunktion zum Abholen des CSRF-Tokens vom Backend
 const fetchCsrfToken = async (): Promise<string> => {
   try {
+    const baseURL = import.meta.env.DEV
+      ? "http://localhost:5000"
+      : import.meta.env.VITE_API_URL || "";
+
     const response = await axios.get(
-      `${import.meta.env.VITE_API_URL || ""}/csrf-token`,
+      `${baseURL}/csrf-token`,
       {
         withCredentials: true,
       },
