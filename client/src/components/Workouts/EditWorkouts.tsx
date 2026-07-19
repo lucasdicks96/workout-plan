@@ -13,6 +13,7 @@ import {
 import ReturnButton from "../Buttons/ReturnButton";
 import SharedWorkoutEditor from "./SharedWorkoutEditor";
 import { WorkoutList as WorkoutPlans } from "./Workouts";
+import { getApiErrorMessage } from "../../util/errorHelper";
 
 // ==========================================
 // Hauptkomponente: EditWorkouts
@@ -65,6 +66,11 @@ export default function EditWorkouts() {
         const response = await apiService.getExercises();
         setAllExercises(response.data);
       } catch (error) {
+        showNotification(
+          getApiErrorMessage(error, "Fehler beim Abrufen der Übungen"),
+          "error",
+          3000,
+        );
         console.error("Fehler beim Abrufen aller Übungen:", error);
       }
     };
@@ -82,6 +88,11 @@ export default function EditWorkouts() {
       const response = await apiService.getWorkouts();
       setWorkoutPlans(response.data);
     } catch (error) {
+      showNotification(
+        getApiErrorMessage(error, "Fehler beim Abrufen der Workouts"),
+        "error",
+        3000,
+      );
       console.error("Fehler beim Abrufen der Workouts:", error);
     } finally {
       setIsLoading(false);
@@ -105,6 +116,11 @@ export default function EditWorkouts() {
       setWorkoutExercises(response.data.exercises);
       setWorkoutName(response.data.title);
     } catch (error) {
+      showNotification(
+        getApiErrorMessage(error, "Fehler beim Abrufen der Workout-Übungen"),
+        "error",
+        3000,
+      );
       console.error("Fehler beim Laden der Workout-Übungen:", error);
     } finally {
       setIsLoading(false);
@@ -144,7 +160,11 @@ export default function EditWorkouts() {
         handleClosePopup();
       }
     } catch (error) {
-      showNotification("Fehler beim Speichern des Trainingsplans", "error");
+      showNotification(
+        getApiErrorMessage("Fehler beim Speichern des Trainingsplans"),
+        "error",
+        3000,
+      );
     }
   };
 
@@ -182,8 +202,12 @@ export default function EditWorkouts() {
       setSelectedWorkoutId(null);
       handleClosePopup();
     } catch (error) {
-      showNotification("Fehler beim Löschen des Plans", "error");
-      console.error("Fehler beim Löschen des Plans", error);
+      showNotification(
+        getApiErrorMessage(error, "Fehler beim Löschen des Plans"),
+        "error",
+        3000,
+      );
+
       handleClosePopup();
     }
   };

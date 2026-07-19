@@ -6,6 +6,7 @@ import { apiService } from "../../services/apiService";
 import { Exercise } from "../../types/exercises";
 import { CompletedWorkout, WorkoutExercises } from "../../types/workouts";
 import SharedWorkoutEditor from "./SharedWorkoutEditor";
+import { getApiErrorMessage } from "../../util/errorHelper";
 
 // ==========================================
 // Hauptkomponente: EditHistoryWorkout
@@ -37,11 +38,19 @@ export default function EditHistoryWorkout() {
    * Wird benötigt, damit der User im Editor neue Übungen zum alten Workout hinzufügen kann.
    */
   useEffect(() => {
-    const fetchAllExercises = async () => {
-      const response = await apiService.getExercises();
-      setAllExercises(response.data);
-    };
-    fetchAllExercises();
+    try {
+      const fetchAllExercises = async () => {
+        const response = await apiService.getExercises();
+        setAllExercises(response.data);
+      };
+      fetchAllExercises();
+    } catch (error) {
+      showNotification(
+        getApiErrorMessage(error, "Fehler beim Abrufen der Übungen"),
+        "error",
+        3000,
+      );
+    }
   }, []);
 
   /**
@@ -55,6 +64,11 @@ export default function EditHistoryWorkout() {
         setCompletedWorkout(response.data);
       } catch (error) {
         console.error("Fehler beim Laden des Verlaufs:", error);
+        showNotification(
+          getApiErrorMessage(error, "Fehler beim Abrufen der Historie"),
+          "error",
+          3000,
+        );
       } finally {
         // Ladezustand wird unabhängig von Erfolg oder Fehler beendet
         setIsLoading(false);
@@ -91,7 +105,11 @@ export default function EditHistoryWorkout() {
         navigate("/history"); // Direkt zurück zur Historie navigieren
       }
     } catch (error) {
-      showNotification("Fehler beim Aktualisieren", "error");
+      showNotification(
+        getApiErrorMessage(error, "Fehler beim Aktualisieren"),
+        "error",
+        3000,
+      );
     }
   };
 
@@ -109,7 +127,7 @@ export default function EditHistoryWorkout() {
         Erstellen von Plänen als auch für das Editieren von Historien-Einträgen genutzt wird.
       */}
       <SharedWorkoutEditor
-        initialTitle={completedWorkout.title}
+        initialTitle={completedWorkout.planTitle}
         initialExercises={completedWorkout.exercises}
         allExercises={allExercises}
         onSave={handleSave}

@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { isAxiosError } from "axios"; // WICHTIG: Hinzugefügt für sicheres Error-Handling
 import { useExercises } from "../../hooks/useExercises";
+import { useNotification } from "../../hooks/useNotification";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
 import "../../styles/global.css";
 import ConfirmButton from "../Buttons/ConfirmButton";
 import ReturnButton from "../Buttons/ReturnButton";
-import { useNotification } from "../../hooks/useNotification";
+import { getApiErrorMessage } from "../../util/errorHelper";
 
 type FormState = {
   title: string;
@@ -42,27 +42,15 @@ export default function CreateExercise() {
       });
       navigate("/exercises", { replace: true });
     } catch (error) {
-      // 1. Prüfen, ob es ein Fehler direkt von der API (Axios) ist
-      if (isAxiosError(error) && error.response) {
-        // error.response.data ist genau dein { status: "fail", message: "..." } JSON aus dem Backend!
-        const backendMessage =
-          error.response.data.message || "Fehler beim Erstellen der Übung";
-        showNotification(backendMessage, "error", 3000);
-      }
-      // 2. Fallback für Netzwerkfehler (Server offline, etc.) oder allgemeine JS Fehler
-      else if (error instanceof Error) {
-        showNotification(error.message, "error", 3000);
-      }
-      // 3. Wenn absolut gar nichts mehr geht
-      else {
-        showNotification(
-          "Ein unbekannter Fehler ist aufgetreten.",
-          "error",
-          3000,
-        );
-      }
-
+      // 1. Logge den Fehler weiterhin für dich im Konsolen-Debugging
       console.error("Error creating exercise:", error);
+
+      // 2. Nutze die Helper-Funktion für das Notification-Popup
+      showNotification(
+        getApiErrorMessage(error, "Fehler beim Erstellen der Übung"),
+        "error",
+        3000,
+      );
     }
   };
 

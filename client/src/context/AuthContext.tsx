@@ -3,6 +3,7 @@ import { createContext, ReactNode, useEffect, useState } from "react";
 import { useNotification } from "../hooks/useNotification";
 import { apiService } from "../services/apiService";
 import { User } from "../types/user";
+import { getApiErrorMessage } from "../util/errorHelper";
 
 /**
  * Definition des Inhalts vom AuthContext.
@@ -55,22 +56,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await apiService.getStatus();
         setUser(response.data);
       } catch (error) {
-        if (axios.isAxiosError(error)) {
-          // Ein 401-Fehler ist ein erwartbarer Zustand, wenn keine Session vorliegt
-          if (error.response?.status === 401) {
-            console.warn("Auth Check: User nicht authentifiziert");
-            setUser(null);
-          } else {
-            console.error(
-              "Fehler beim Auth Check:",
-              error.response?.data?.message || error.message,
-            );
-            setUser(null);
-          }
+        // Ein 401-Fehler ist ein normaler Zustand (Gast-Session), kein Systemfehler
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          console.warn("Auth Check: User nicht authentifiziert");
         } else {
-          console.error("Fehler beim Auth Check:", error);
-          setUser(null);
+          // Für alle anderen Fehler (z.B. 500, Netzwerk down) nutzen wir den Helper
+          console.error(
+            "Fehler beim Auth Check:",
+            getApiErrorMessage(error, "Verbindungsfehler zur API"),
+          );
         }
+        // Wird in jedem Fehlerfall ausgeführt – spart 3 redundante Aufrufe!
+        setUser(null);
       } finally {
         // loading wird auf false gesetzt, sobald die Server-Antwort da ist.
         // Verhindert Flackern/falsche Redirects während der Prüfung.
@@ -94,15 +91,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiService.login({ email, password });
       setUser(response.data);
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const message =
-          error.response?.data?.message || "Anmeldung fehlgeschlagen";
-        console.error("Login fehlgeschlagen:", message, error.response?.status);
-        throw new Error(message);
-      } else {
-        console.error("Login fehlgeschlagen:", error);
-        throw new Error("Ein unbekannter Fehler ist aufgetreten");
-      }
+      // 1. Helper zieht zielgenau die Backend-Message oder nimmt das Fallback
+
+      showNotification(
+        getApiErrorMessage(error, "Anmeldung fehlgeschlagen"),
+        "error",
+        3000,
+      );
+      // 2. Wir werfen die saubere Nachricht für die UI-Komponente (z.B. Login-Formular) weiter
+      throw new Error("Anmeldung fehlgeschlagen");
     }
   };
 
@@ -127,19 +124,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setUser(response.data);
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const message =
-          error.response?.data?.message || "Registrierung fehlgeschlagen";
-        console.error(
-          "Registrierung fehlgeschlagen:",
-          message,
-          error.response?.status,
-        );
-        throw new Error(message);
-      } else {
-        console.error("Registrierung fehlgeschlagen:", error);
-        throw new Error("Ein unbekannter Fehler ist aufgetreten");
-      }
+      showNotification(
+        getApiErrorMessage(error, "Registrierung fehlgeschlagen"),
+        "error",
+        3000,
+      );
+      throw new Error("Registrierung fehlgeschlagen");
     }
   };
 
@@ -156,11 +146,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       showNotification("Erfolgreich ausgeloggt", "success");
       setUser(null);
     } catch (error) {
-      showNotification("Logout fehlgeschlagen", "error");
-      console.error("Logout fehlgeschlagen:", error);
+      showNotification(
+        getApiErrorMessage(error, "Logout fehlgeschlagen"),
+        "error",
+        3000,
+      );
 
-      // Hinweis: Wenn das Cookie/die Session auf dem Server aktiv bleibt,
-      // behalten wir zur Sicherheit den User-State lokal bei.
       throw new Error(
         "Logout fehlgeschlagen. Session auf dem Server noch aktiv.",
       );

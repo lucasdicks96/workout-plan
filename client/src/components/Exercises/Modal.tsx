@@ -1,3 +1,4 @@
+import { AxiosError } from "axios";
 import { FormEvent, useEffect, useState } from "react";
 import { useExercises } from "../../hooks/useExercises";
 import { useNotification } from "../../hooks/useNotification";
@@ -8,6 +9,7 @@ import { Category, Exercise } from "../../types/exercises";
 import ConfirmButton from "../Buttons/ConfirmButton";
 import DeleteButton from "../Buttons/DeleteButton";
 import ReturnButton from "../Buttons/ReturnButton";
+import { getApiErrorMessage } from "../../util/errorHelper";
 
 type ModalProps = {
   isOpen: boolean;
@@ -72,12 +74,11 @@ export default function Modal({
       onUpdateSuccess();
       onClose();
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        showNotification(
-          error.message || "Ein Fehler ist aufgetreten",
-          "error",
-        );
-      }
+      showNotification(
+        getApiErrorMessage(error, "Die Übung konnte nicht gelöscht werden."),
+        "error",
+        3000,
+      );
     }
   };
 
@@ -103,15 +104,13 @@ export default function Modal({
       onUpdateSuccess();
       onClose();
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        showNotification(
-          error.message || "Ein Fehler ist aufgetreten",
-          "error",
-        );
-      }
+      showNotification(
+        getApiErrorMessage(error, "Die Übung konnte nicht gespeichert werden"),
+        "error",
+        3000,
+      );
     }
   };
-
   return (
     <div
       className={stylesExercises["exercise-list"]}

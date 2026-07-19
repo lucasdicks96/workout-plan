@@ -12,6 +12,7 @@ import ConfirmButton from "../Buttons/ConfirmButton";
 import ReturnButton from "../Buttons/ReturnButton";
 import ExerciseSelectionList from "../Exercises/ExerciseSelectionList";
 import WorkoutExercises from "./WorkoutExercises";
+import { getApiErrorMessage } from "../../util/errorHelper";
 
 export default function CreateWorkout() {
   const {
@@ -55,6 +56,11 @@ export default function CreateWorkout() {
       const response = await apiService.getExercises();
       setAllExercises(response.data);
     } catch (error) {
+      showNotification(
+        getApiErrorMessage(error, "Fehler beim Abrufen der Übungen"),
+        "error",
+        3000,
+      );
       console.error("Fehler beim Abrufen der Übungen:", error);
     } finally {
       setIsLoading(false);
@@ -83,21 +89,11 @@ export default function CreateWorkout() {
       showNotification("Trainingsplan erstellt!", "success");
       navigate("/workouts");
     } catch (error) {
-      if (isAxiosError(error) && error.response) {
-        showNotification(
-          error.response.data?.message || "Fehler beim Erstellen des Plans",
-          "error",
-        );
-      } else if (error instanceof Error) {
-        showNotification(
-          error.message || "Fehler beim Erstellen des Plans",
-          "error",
-        );
-      } else {
-        showNotification("Ein unbekannter Fehler ist aufgetreten.", "error");
-      }
-
-      console.error("Fehler beim Erstellen des Plans", error);
+      showNotification(
+        getApiErrorMessage(error, "Fehler beim Erstellen des Trainingsplans"),
+        "error",
+        3000,
+      );
     } finally {
       localStorage.removeItem("createPlan");
       localStorage.removeItem("planName");
