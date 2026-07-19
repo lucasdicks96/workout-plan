@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import { CompletedWorkout } from "../../types/workouts";
 import { apiService } from "../../services/apiService";
+import { getApiErrorMessage } from "../../util/errorHelper";
 import {
   LineChart,
   ComposedChart,
@@ -16,6 +17,7 @@ import {
 } from "recharts";
 
 import styles from "../../styles/AnalyseWorkouts.module.css";
+import { useNotification } from "../../hooks/useNotification";
 
 // ==========================================
 // Typdefinitionen
@@ -54,6 +56,7 @@ interface CustomTooltipProps {
 
 export default function AnalyseWorkouts() {
   useSetTitle("Analyse Workouts");
+  const { showNotification } = useNotification();
 
   const [completedWorkouts, setCompletedWorkouts] = useState<
     CompletedWorkout[]
@@ -66,16 +69,25 @@ export default function AnalyseWorkouts() {
   const [chartMetric, setChartMetric] = useState<ChartMetricType>("VOLUMEN");
   const [viewMode, setViewMode] = useState<ViewModeType>("SET");
 
-  useEffect(() => {
-    const fetchCompletedWorkouts = async () => {
+  const fetchCompletedWorkouts = useCallback(async () => {
+    try {
       const response = await apiService.getCompletedWorkouts();
       setCompletedWorkouts(response.data);
-    };
+    } catch (error) {
+      showNotification(
+        getApiErrorMessage(error, "Fehler beim Abrufen der Workouts"),
+        "error",
+        3000,
+      );
+    }
+  }, []);
+
+  useEffect(() => {
     fetchCompletedWorkouts();
   }, []);
 
   const availableWorkouts = useMemo(() => {
-    const workoutNames = new Set(completedWorkouts.map((w) => w.title));
+    const workoutNames = new Set(completedWorkouts.map((w) => w.planTitle));
     return Array.from(workoutNames).sort();
   }, [completedWorkouts]);
 
@@ -84,7 +96,7 @@ export default function AnalyseWorkouts() {
     completedWorkouts.forEach((workout) => {
       if (
         selectedWorkoutTitle === "ALL" ||
-        workout.title === selectedWorkoutTitle
+        workout.planTitle === selectedWorkoutTitle
       ) {
         workout.exercises.forEach((ex) => exerciseNames.add(ex.title));
       }
