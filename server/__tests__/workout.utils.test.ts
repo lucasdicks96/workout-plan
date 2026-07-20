@@ -81,6 +81,7 @@ describe("Workout Mapper Unit Tests", () => {
           plan_user_id: "user123",
           plan_id: 1,
           plan_title: "Alter Plan",
+          workout_title: "Neuer Planname",
           duration_seconds: 3600,
           start_time: dateOld,
           end_time: new Date("2026-01-01T11:00:00Z"),
@@ -97,6 +98,7 @@ describe("Workout Mapper Unit Tests", () => {
           plan_user_id: "user123",
           plan_id: 2,
           plan_title: "Neuer Plan",
+          workout_title: "Neuer Planname2",
           duration_seconds: 4000,
           start_time: dateNew, // Dieses Workout ist neuer
           end_time: new Date("2026-01-02T11:00:00Z"),
