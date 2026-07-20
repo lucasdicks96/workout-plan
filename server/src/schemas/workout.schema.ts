@@ -137,6 +137,7 @@ export const completedWorkoutSchema = z.object({
       .positive("Workout ID fehlerhaft."),
   ),
   title: z.string().min(1, "Titel darf nicht leer sein."),
+  planTitle: z.string().min(1, "Titel darf nicht leer sein."),
   duration: z.preprocess(
     preprocessNumber,
     z.number({ message: "Dauer fehlt oder ist keine Zahl." }),
