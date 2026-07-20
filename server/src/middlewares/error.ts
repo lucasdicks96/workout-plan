@@ -6,10 +6,27 @@ import errorLogger from "./logger";
 const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   // 1. Zod v4 Error Handling (Ist sicher, betrifft nur Validierung)
   if (err instanceof ZodError) {
+    // A) Ziehe die allererste, konkrete Fehlermeldung für das Notification-Popup heraus:
+    const firstErrorMessage =
+      err.issues[0]?.message || "Validierungsfehler bei den gesendeten Daten.";
+
+    const fieldErrors: Record<string, string[]> = {};
+
+    for (const issue of err.issues) {
+      // Wenn ein Feld verschachtelt ist (z.B. ['user', 'name']), wird daraus "user.name"
+      const fieldName = issue.path.join(".") || "_global";
+      if (!fieldErrors[fieldName]) {
+        fieldErrors[fieldName] = [];
+      }
+      fieldErrors[fieldName].push(issue.message);
+    }
+
     return res.status(400).json({
       status: "fail",
-      message: "Validierungsfehler bei den gesendeten Daten.",
-      data: z.treeifyError(err),
+      message: firstErrorMessage, // <-- Schickt "Muss mindestens eine Kategorie enthalten.1" direkt ans Popup
+      data: {
+        errors: fieldErrors, // <-- Flaches, sauberes DTO ohne Deprecation!
+      },
     });
   }
 
