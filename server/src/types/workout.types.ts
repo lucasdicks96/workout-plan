@@ -5,19 +5,6 @@ export interface Workout {
   exercises: WorkoutExercise[];
 }
 
-export interface CompletedWorkout {
-  id: string;
-  userId: string;
-  workoutId: number;
-  title: string;
-  duration: number;
-  startTime: Date;
-  endTime: Date;
-  pauseTime: number;
-  exercises: WorkoutExercise[];
-  // date: string;
-}
-
 export interface WorkoutExercise {
   id: number;
   title: string;
@@ -31,11 +18,26 @@ export interface WorkoutExerciseSets {
   repetitions: number;
 }
 
+export interface CompletedWorkout {
+  id: string;
+  userId: string;
+  workoutId: number;
+  title: string;
+  planTitle: string;
+  duration: number;
+  startTime: Date;
+  endTime: Date;
+  pauseTime: number;
+  exercises: WorkoutExercise[];
+  // date: string;
+}
+
 export type FlatCompletedWorkoutRow = {
   workout_id: string;
   plan_id: number;
   plan_user_id: string;
   plan_title: string;
+  workout_title: string;
   duration_seconds: number;
   start_time: Date;
   end_time: Date;
