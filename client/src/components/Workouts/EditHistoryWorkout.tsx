@@ -18,46 +18,56 @@ import { getApiErrorMessage } from "../../util/errorHelper";
 /**
  * EditHistoryWorkout
  *
- * Diese Komponente dient dazu, ein bereits in der Vergangenheit absolviertes
- * Workout (aus dem Verlauf/History) nachträglich zu bearbeiten.
- * Sie lädt die spezifischen Workout-Daten anhand der URL-ID, holt parallel
- * alle verfügbaren Übungen für den Editor und reicht diese an den
- * `SharedWorkoutEditor` weiter.
+ * Diese Komponente ermöglicht die nachträgliche Bearbeitung eines bereits in der 
+ * Vergangenheit absolvierten Workouts (aus dem Trainingsverlauf bzw. der Historie).
+ * 
+ * Sie steuert den gesamten Datenfluss für diesen Bereich:
+ * - Extrahiert die eindeutige Historien-ID aus den URL-Parametern (`useParams`).
+ * - Lädt asynchron die spezifischen Daten des abgeschlossenen Workouts.
+ * - Lädt parallel den vollständigen Übungskatalog (`allExercises`), damit der Nutzer 
+ *   dem alten Verlauf bei Bedarf neue Übungen hinzufügen kann.
+ * - Übergibt alle Daten an den modularen `SharedWorkoutEditor` und verarbeitet das Abspeichern.
+ *
+ * @returns {JSX.Element} Entweder einen Ladehinweis, eine Fehlermeldung oder den aktiven Workout-Editor.
  */
 export default function EditHistoryWorkout() {
-  // Extrahiert die History-ID direkt aus der URL (z.B. /history/edit/123)
+  // Extrahiert die History-ID direkt aus der URL (z. B. /history/edit/123)
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showNotification } = useNotification();
 
   // --- State-Management ---
+  /** Das geladene, abgeschlossene Workout, das aktuell bearbeitet wird. */
   const [completedWorkout, setCompletedWorkout] =
     useState<CompletedWorkout | null>(null);
+  /** Die Master-Liste aller im System existierenden Übungen (für den Editor-Auswahlmodus). */
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
+  /** Globaler Ladezustand für die asynchronen Datenabfragen. */
   const [isLoading, setIsLoading] = useState(true);
 
   /**
-   * Lädt die Master-Liste aller verfügbaren Übungen.
-   * Wird benötigt, damit der User im Editor neue Übungen zum alten Workout hinzufügen kann.
+   * Lädt die Master-Liste aller verfügbaren Übungen einmalig beim Mounten.
+   * Fehler werden direkt abgefangen und über das Notification-System ausgegeben.
    */
   useEffect(() => {
-    try {
-      const fetchAllExercises = async () => {
+    const fetchAllExercises = async () => {
+      try {
         const response = await apiService.getExercises();
         setAllExercises(response.data);
-      };
-      fetchAllExercises();
-    } catch (error) {
-      showNotification(
-        getApiErrorMessage(error, "Fehler beim Abrufen der Übungen"),
-        "error",
-        3000,
-      );
-    }
-  }, []);
+      } catch (error) {
+        showNotification(
+          getApiErrorMessage(error, "Fehler beim Abrufen der Übungen"),
+          "error",
+          3000,
+        );
+      }
+    };
+    fetchAllExercises();
+  }, [showNotification]);
 
   /**
    * Lädt die spezifischen Daten des abgeschlossenen Workouts anhand der URL-ID.
+   * Beendet den Ladezustand im `finally`-Block unabhängig von Erfolg oder Fehler.
    */
   useEffect(() => {
     const fetchCompletedWorkout = async () => {
@@ -78,23 +88,25 @@ export default function EditHistoryWorkout() {
       }
     };
     fetchCompletedWorkout();
-  }, [id]);
+  }, [id, showNotification]);
 
   /**
-   * handleSave
-   * Wird vom `SharedWorkoutEditor` aufgerufen, wenn der Nutzer auf "Speichern" klickt.
-   * Führt die geänderten Daten (Titel und Sätze/Übungen) mit den unveränderlichen
-   * Historien-Daten (wie Dauer oder Startzeit) zusammen und sendet sie an die API.
+   * Verarbeitet den Speicher-Vorgang aus dem `SharedWorkoutEditor`:
+   * Führt die modifizierten Daten (Titel und Übungsstruktur/Sätze) mit den 
+   * unveränderlichen Metadaten des Verlaufs (wie Dauer, Start- und Endzeit) 
+   * zusammen und überträgt das aktualisierte Objekt an die API.
    *
-   * @param title Der (potenziell) geänderte Name des Workouts
-   * @param exercises Die aktualisierte Liste der Übungen und Sätze
+   * @async
+   * @param {string} title - Der (potenziell) geänderte Name des Workouts.
+   * @param {WorkoutExercises[]} exercises - Die aktualisierte Liste der Übungen und Sätze.
+   * @returns {Promise<void>}
    */
   const handleSave = async (title: string, exercises: WorkoutExercises[]) => {
     try {
       if (!id || !completedWorkout) return;
 
-      // Merge: Bestehende Daten behalten (Dauer, Start-/Endzeit), aber Titel und Übungen überschreiben
-      const updatedWorkout = {
+      // Merge: Bestehende Historien-Metadaten behalten, aber Titel und Übungen aktualisieren
+      const updatedWorkout: CompletedWorkout = {
         ...completedWorkout,
         title,
         exercises,
@@ -102,10 +114,10 @@ export default function EditHistoryWorkout() {
 
       const response = await apiService.putCompletedWorkout(updatedWorkout);
 
-      // Zeigt Erfolgsmeldung; Navigation zurück zur Historie erfolgt über onClose des Popups
+      // Zeigt Erfolgsmeldung und navigiert direkt zurück zur Verlauf-Übersicht
       if (response.status === "success") {
         showNotification("Verlauf erfolgreich aktualisiert!", "success");
-        navigate("/history"); // Direkt zurück zur Historie navigieren
+        navigate("/history");
       }
     } catch (error) {
       showNotification(
@@ -127,14 +139,13 @@ export default function EditHistoryWorkout() {
     <>
       {/* 
         Der SharedWorkoutEditor ist eine generische Komponente, die sowohl für das 
-        Erstellen von Plänen als auch für das Editieren von Historien-Einträgen genutzt wird.
+        Erstellen neuer Pläne als auch für das Editieren von Historien-Einträgen genutzt wird.
       */}
       <SharedWorkoutEditor
         initialTitle={completedWorkout.title}
         initialExercises={completedWorkout.exercises}
         allExercises={allExercises}
         onSave={handleSave}
-        // Wenn der Nutzer abbricht, geht es direkt zurück zur Verlauf-Seite
         onCancel={() => navigate("/history")}
       />
     </>
