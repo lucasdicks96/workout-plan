@@ -214,7 +214,7 @@ router.put(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, CreateWorkoutBody>,
-      res: Response<ApiResponse<Workout>>,
+      res: Response<ApiResponse>,
     ) => {
       const { workoutId } = workoutIdParamSchema.parse(req.params);
       const { title, exercises } = createWorkoutBodySchema.parse(req.body);
@@ -229,7 +229,6 @@ router.put(
       res.status(200).json({
         status: "success",
         message: "Workoutplan erfolgreich aktualisiert",
-        data: workout,
       });
     },
   ),
@@ -241,7 +240,7 @@ router.put(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, PutCompletedWorkoutBody>,
-      res: Response<ApiResponse<CompletedWorkout>>,
+      res: Response<ApiResponse>,
     ) => {
       const workout = completedWorkoutSchema.parse(req.body);
       const completedWorkout =
@@ -250,7 +249,6 @@ router.put(
       res.status(200).json({
         status: "success",
         message: "Abgeschlossenes Workout erfolgreich aktualisiert",
-        data: completedWorkout,
       });
     },
   ),

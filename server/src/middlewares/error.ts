@@ -60,7 +60,6 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
       // Status dynamisch berechnen: 4xx = fail, 5xx = error
       status: err.statusCode >= 400 && err.statusCode < 500 ? "fail" : "error",
       message: err.message, // Sicher, weil du den Text geschrieben hast
-      data: null,
     });
   }
 
@@ -68,7 +67,6 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   return res.status(500).json({
     status: "error",
     message: "Interner Serverfehler", // Harter Fallback, überschreibt err.message
-    data: null,
   });
 };
 
