@@ -588,7 +588,7 @@ export default function AnalyseWorkouts() {
                       tick={{
                         fontSize: 12,
                         fill: "var(--c-text-primary)",
-                        angle: -45,
+                        angle: 0,
                         textAnchor: "middle",
                       }}
                       tickMargin={10}
@@ -674,7 +674,7 @@ export default function AnalyseWorkouts() {
                       tick={{
                         fontSize: 12,
                         fill: "var(--c-text-primary)",
-                        angle: -45,
+                        angle: 0,
                         textAnchor: "middle",
                       }}
                       tickMargin={10}
