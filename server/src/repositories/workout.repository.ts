@@ -93,8 +93,9 @@ export async function getCompletedWorkout(
   const result = await pool.query(
     `SELECT   completed_workouts.id AS workout_id,
               completed_workouts.workout_plan_id AS plan_id,
-              workout_plans.title AS plan_title,
-              completed_workouts.workout_plan_id as plan_user_id,
+              completed_workouts.title AS workout_title,
+              COALESCE(workout_plans.title, completed_workouts.title) AS plan_title,
+              completed_workouts.user_id AS plan_user_id,
               completed_workouts.duration_seconds,
               completed_workouts.start_time,
               completed_workouts.end_time,
@@ -110,18 +111,18 @@ export async function getCompletedWorkout(
     ON        completed_workouts.id = completed_sets.completed_workout_id
     JOIN      exercises
     ON        completed_sets.exercise_id = exercises.id
-    JOIN      workout_plans
+    LEFT JOIN workout_plans -- GEÄNDERT: LEFT JOIN, falls ein Workout ohne Plan gestartet wurde
     ON        completed_workouts.workout_plan_id = workout_plans.id
-    JOIN (
+    LEFT JOIN (             -- GEÄNDERT: LEFT JOIN, damit neu hinzugefügte Übungen nicht rausfliegen
     SELECT    workout_plan_id, exercise_id, MIN(display_order) as display_order
     FROM      plan_exercises
     GROUP BY  workout_plan_id, exercise_id)
     AS        unique_plan_exercises
     ON        completed_sets.exercise_id = unique_plan_exercises.exercise_id 
-    AND       workout_plans.id = unique_plan_exercises.workout_plan_id
+    AND       completed_workouts.workout_plan_id = unique_plan_exercises.workout_plan_id -- GEÄNDERT: Direkt auf completed_workouts prüfen
     WHERE     completed_workouts.user_id = $1
     AND       completed_workouts.id = $2
-    ORDER BY  unique_plan_exercises.display_order ASC,
+    ORDER BY  unique_plan_exercises.display_order ASC NULLS LAST, -- GEÄNDERT: NULLS LAST für Übungen ohne Plan
               completed_sets.set_number ASC;`,
     [userId, workoutId],
   );
@@ -139,7 +140,8 @@ export async function getCompletedWorkouts(
               completed_workouts.duration_seconds,
               completed_workouts.pause_seconds,
               completed_workouts.end_time,
-              workout_plans.title AS plan_title,
+              completed_workouts.title AS workout_title,
+              COALESCE(workout_plans.title, completed_workouts.title) AS plan_title,
               completed_sets.exercise_id,
               completed_sets.set_number,
               completed_sets.repetitions,
@@ -151,18 +153,18 @@ export async function getCompletedWorkouts(
     ON        completed_workouts.id = completed_sets.completed_workout_id
     JOIN      exercises
     ON        completed_sets.exercise_id = exercises.id
-    JOIN      workout_plans
+    LEFT JOIN workout_plans -- GEÄNDERT: LEFT JOIN für Workouts ohne Plan
     ON        completed_workouts.workout_plan_id = workout_plans.id
-    JOIN (
+    LEFT JOIN (             -- GEÄNDERT: LEFT JOIN, damit nachträgliche Übungen nicht gefiltert werden
     SELECT    workout_plan_id, exercise_id, MIN(display_order) as display_order
     FROM      plan_exercises
     GROUP BY  workout_plan_id, exercise_id)
     AS        unique_plan_exercises
     ON        completed_sets.exercise_id = unique_plan_exercises.exercise_id 
-    AND       workout_plans.id = unique_plan_exercises.workout_plan_id
+    AND       completed_workouts.workout_plan_id = unique_plan_exercises.workout_plan_id
     WHERE     completed_workouts.user_id = $1
     ORDER BY  completed_workouts.start_time DESC,   
-              unique_plan_exercises.display_order ASC,
+              unique_plan_exercises.display_order ASC NULLS LAST, -- GEÄNDERT: Neue Übungen ans Ende der jeweiligen Einheit
               completed_sets.set_number ASC;`,
     [userId],
   );
@@ -172,7 +174,7 @@ export async function getCompletedWorkouts(
 export async function getLastCompletedWorkout(
   workoutId: number,
   userId: string,
-): Promise<FlatCompletedWorkoutRow[] | FlatWorkoutRow[]> {
+): Promise<FlatCompletedWorkoutRow[] | []> {
   const planIdResult = await pool.query(
     `SELECT   id
       FROM      completed_workouts
@@ -184,10 +186,8 @@ export async function getLastCompletedWorkout(
   );
 
   if (planIdResult.rows.length === 0) {
-    console.log(
-      "Kein letztes Completed-Workout gefunden. Fallback zu findWorkoutById.",
-    );
-    return await getWorkout(workoutId);
+    console.log("Kein letztes Completed-Workout gefunden.");
+    return [];
   }
   const lastWorkoutID: string = planIdResult.rows[0].id;
 
@@ -400,13 +400,14 @@ export async function putCompletedWorkout(
 ): Promise<{ workoutId: string; userId: string; message: string }> {
   const result = await client.query(
     `UPDATE completed_workouts SET title = $1, start_time = $2, end_time = $3, duration_seconds = $4 
-      WHERE id = $5 RETURNING id, user_id`,
+      WHERE id = $5 AND user_id = $6 RETURNING id, user_id`,
     [
       workout.title,
       workout.startTime,
       workout.endTime,
       workout.duration,
       workout.id,
+      workout.userId,
     ],
   );
 
@@ -416,6 +417,7 @@ export async function putCompletedWorkout(
   );
 
   for (const exercise of workout.exercises) {
+    console.log("PUT COMPLETED WORKOUT REPO TEST: ", workout.exercises);
     if (exercise.sets && exercise.sets.length > 0) {
       await client.query(
         `INSERT INTO completed_sets (completed_workout_id, exercise_id, set_number, repetitions, weight)
