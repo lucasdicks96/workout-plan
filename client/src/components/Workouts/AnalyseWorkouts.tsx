@@ -147,6 +147,49 @@ export default function AnalyseWorkouts() {
   }, [fetchCompletedWorkouts]);
 
   /**
+   * Generiert die verfügbaren Metrik-Optionen dynamisch basierend auf
+   * der gewählten Detaillierung (SESSION vs. SET) und der Übungsauswahl.
+   */
+  const chartMetricOptions = useMemo(() => {
+    if (viewMode === "SESSION") {
+      // Wenn "Alle Übungen" gewählt sind, machen nur kumulierte Summen Sinn
+      if (selectedExerciseTitle === "ALL") {
+        return [
+          { label: "Nur Volumen", value: "VOLUMEN" },
+          { label: "Nur Wiederholungen", value: "REPS" },
+        ];
+      }
+      // Bei einer spezifischen Übung macht auch das Top-Gewicht/PR der Session Sinn
+      return [
+        { label: "Nur Volumen", value: "VOLUMEN" },
+        { label: "Max. Gewicht (Session-PR)", value: "WEIGHT" },
+        { label: "Nur Wiederholungen", value: "REPS" },
+      ];
+    }
+
+    // Im Satz-Modus stehen alle Detail-Metriken inkl. Kombi zur Verfügung
+    return [
+      { label: "Kombi: Wdh. & Gewicht", value: "COMBO" },
+      { label: "Nur Volumen", value: "VOLUMEN" },
+      { label: "Nur Gewicht", value: "WEIGHT" },
+      { label: "Nur Wiederholungen", value: "REPS" },
+    ];
+  }, [viewMode, selectedExerciseTitle]);
+
+  /**
+   * Bereinigt ungültige Metrik-Auswahlen (z. B. "COMBO" im SESSION-Modus).
+   */
+  useEffect(() => {
+    const isCurrentOptionValid = chartMetricOptions.some(
+      (opt) => opt.value === chartMetric,
+    );
+
+    if (!isCurrentOptionValid) {
+      setChartMetric("VOLUMEN");
+    }
+  }, [chartMetricOptions, chartMetric]);
+
+  /**
    * Extrahiert und sortiert alle verfügbaren Workout-Namen für das Dropdown-Menü.
    */
   const availableWorkouts = useMemo(() => {
@@ -532,12 +575,7 @@ export default function AnalyseWorkouts() {
               <CustomSelect
                 value={chartMetric}
                 onChange={(val) => setChartMetric(val as ChartMetricType)}
-                options={[
-                  { label: "Kombi: Wdh. & Gewicht", value: "COMBO" },
-                  { label: "Nur Volumen", value: "VOLUMEN" },
-                  { label: "Nur Gewicht", value: "WEIGHT" },
-                  { label: "Nur Wiederholungen", value: "REPS" },
-                ]}
+                options={chartMetricOptions}
               />
             </div>
           </div>
