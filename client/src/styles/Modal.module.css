@@ -19,9 +19,11 @@
   border-radius: 0.75rem;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   z-index: 20;
-  min-width: 90%;
+  box-sizing: border-box; 
+  overflow-x: hidden;   
+  width: 90%;
   max-width: 500px;
-  width: auto;
+  
   max-height: 90vh;
   overflow-y: auto;
   display: flex;
@@ -114,8 +116,8 @@
 @media (max-width: 480px) {
   .modal {
     padding: 1rem;
-    min-width: 95%;
-    max-width: 100%;
+    width: 95%;
+    max-width: 95vw; 
     border-radius: 0.5rem;
   }
   
@@ -131,7 +133,7 @@
 @media (min-width: 769px) {
   .modal {
     padding: 2rem;
-    min-width: 400px;
+    width: 100%;
     max-width: 600px;
   }
 }
