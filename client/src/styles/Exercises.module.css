@@ -131,6 +131,115 @@
   hyphens: auto;
 }
 
+/* Container für die relative Positionierung */
+.dropdown-wrapper {
+  position: relative;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+/* Der sichtbare Button (übernimmt dein .input Aussehen genau) */
+.dropdown-trigger {
+  width: 100%;
+  height: 42px; /* 1. Exakte Höhe für beide vorgeben */
+  box-sizing: border-box; /* 2. Padding und Border in die 42px einrechnen */
+  padding: 0 1.5rem; /* 3. Vertikales Padding auf 0, Flexbox zentriert den Text automatisch */
+  
+  background-color: var(--c-bg);
+  border: 0.0625rem solid var(--c-border);
+  border-radius: 0.5rem;
+  color: var(--c-text-primary);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dropdown-trigger:hover {
+  border-color: var(--c-text-primary);
+}
+
+/* Das eigentliche Dropdown-Menü */
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.25rem); /* Zwingt das Menü IMMER nach unten! */
+  left: 0;
+  width: 100%;
+  max-height: 250px; /* Ab hier wird gescrollt */
+  overflow-y: auto;  /* Aktiviert den Scrollbalken */
+  background-color: var(--c-bg);
+  border: 0.0625rem solid var(--c-border);
+  border-radius: 0.5rem;
+  z-index: 1000; /* Wichtig im Modal: Legt sich über alle anderen Elemente */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.25rem 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Die einzelnen Kategorie-Einträge */
+.dropdown-item {
+  padding: 0.5rem 1.5rem;
+  color: var(--c-text-primary);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item.active {
+  background-color: var(--c-border);
+}
+
+/* Ein kleiner Pfeil als Indikator */
+.arrow {
+  transition: transform 0.2s ease;
+  font-size: 0.8rem;
+}
+.arrow.open {
+  transform: rotate(180deg);
+}
+
+
+.search-wrapper {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.search-input {
+  width: 100%;
+  height: 42px; /* 1. Exakt dieselbe Höhe wie beim Dropdown */
+  box-sizing: border-box; /* 2. Zwingt das Input ins selbe Box-Modell */
+  padding: 0 1.5rem; /* 3. Vertikales Padding nullen, damit nichts überläuft */
+  
+  background-color: var(--c-bg);
+  border: 0.0625rem solid var(--c-border);
+  border-radius: 0.5rem;
+  color: var(--c-text-primary);
+  font-weight: 600;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Platzhalter etwas dezenter gestalten */
+.search-input::placeholder {
+  color: var(--c-text-primary);
+  /* opacity: 0.5; */
+  font-weight: 600;
+}
+
+/* Gleiches Interaktions-Feedback wie beim Dropdown */
+.search-input:hover {
+  border-color: var(--c-text-primary);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--c-text-primary);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05); /* Optional: ganz dezenter Glow */
+}
+
 /* --- TYPOGRAFIE & BUTTONS --- */
 h2 {
   font-weight: 500;
