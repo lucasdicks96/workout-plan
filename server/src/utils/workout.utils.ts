@@ -6,6 +6,19 @@ import {
   WorkoutExercise,
 } from "../types/workout.types";
 
+/**
+ * Transformiert flache SQL-Abfrageergebnisse eines einzelnen Trainingsplans in ein strukturiertes,
+ * hierarchisches `Workout`-Domain-Objekt.
+ *
+ * @remarks
+ * **Performance:** Nutzt eine `Map` für das Gruppieren von Übungen nach ihrer ID.
+ * Dies garantiert eine lineare Zeitkomplexität von O(N) relativ zur Anzahl der Datenbankzeilen
+ * und vermeidet performancelastige `Array.find()`-Aufrufe.
+ *
+ * @param workoutId - Die eindeutige ID des zu generierenden Workouts.
+ * @param rows - Array von flachen Zeilen aus der Datenbank (typischerweise Ergebnis eines SQL-JOINs aus Plan, Übungen und Sätzen).
+ * @returns Das fertig aggregierte und sortierte `Workout`-Objekt.
+ */
 export function buildWorkout(
   workoutId: number,
   rows: FlatWorkoutRow[],
@@ -34,6 +47,8 @@ export function buildWorkout(
       exerciseMap.set(row.exercise_id, exercise);
     }
 
+    // Null-Check (`!= null` prüft auf null UND undefined):
+    // Essentiell für Übungen ohne definierte Sätze (z.B. durch SQL LEFT JOINs).
     if (row.set_number != null) {
       exercise.sets.push({
         setNumber: row.set_number,
@@ -43,6 +58,7 @@ export function buildWorkout(
     }
   });
 
+  // Übungen in ein Array konvertieren und nach der gewünschten Anzeigereihenfolge sortieren
   workout.exercises = Array.from(exerciseMap.values()).sort(
     (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0),
   );
@@ -50,6 +66,19 @@ export function buildWorkout(
   return workout;
 }
 
+/**
+ * Gruppiert und transformiert eine flache Liste von Trainingshistorien-Zeilen in ein Array von
+ * absolvierten Workouts (`CompletedWorkout[]`).
+ *
+ * @remarks
+ * **Sortierung:** Das resultierende Array wird automatisch chronologisch **absteigend** sortiert
+ * (neueste Workouts zuerst).
+ * **Zweistufiges Mapping:** Nutzt eine verschachtelte Map-Struktur (Workout -> Exercise -> Sets),
+ * um die Datenstruktur mit O(N) Laufzeit aufzubauen.
+ *
+ * @param rows - Flache Zeilen aus der Datenbank-Historientabelle (inkl. Zeitstempel, Pausen und Dauer).
+ * @returns Ein absteigend nach Startzeitpunkt sortiertes Array von absolvierten Workouts.
+ */
 export function buildCompletedWorkouts(
   rows: FlatCompletedWorkoutRow[],
 ): CompletedWorkout[] {
@@ -101,6 +130,7 @@ export function buildCompletedWorkouts(
     if (row.set_number != null) {
       exercise.sets.push({
         setNumber: row.set_number,
+        // Explizites Type Casting für numerische Datenbank-Rückgabewerte
         weight: row.weight as number,
         repetitions: row.repetitions as number,
       });
@@ -116,11 +146,23 @@ export function buildCompletedWorkouts(
     completedWorkouts.push(workout);
   }
 
+  // Absteigende chronologische Sortierung (neueste zuerst)
   return completedWorkouts.sort(
     (a, b) => b.startTime.getTime() - a.startTime.getTime(),
   );
 }
 
+/**
+ * Aggregiert das flache Ergebnis einer Datenbankabfrage über alle verfügbaren Trainingspläne
+ * eines Nutzers in eine strukturierte Liste von `Workout`-Objekten.
+ *
+ * @remarks
+ * **Sortierung:** Im Gegensatz zur Historie werden die Pläne hier **alphabetisch** aufsteigend
+ * nach dem Plan-Titel sortiert.
+ *
+ * @param rows - Flache Join-Zeilen aller Trainingspläne eines Nutzers.
+ * @returns Eine alphabetisch sortierte Liste von vollständigen `Workout`-Objekten.
+ */
 export function buildWorkoutPlansList(rows: FlatWorkoutRow[]): Workout[] {
   const plansMap = new Map<
     number,
@@ -171,9 +213,27 @@ export function buildWorkoutPlansList(rows: FlatWorkoutRow[]): Workout[] {
     workouts.push(workout);
   }
 
+  // Alphabetische Sortierung nach dem Titel des Plans
   return workouts.sort((a, b) => a.title.localeCompare(b.title));
 }
 
+/**
+ * Erzeugt ein "intelligentes" Workout-Objekt für das nächste anstehende Training (Pre-Filling),
+ * indem die Zielstruktur des Trainingsplans mit den realen Leistungsdaten der Historie verschmolzen wird.
+ *
+ * @remarks
+ * **Algorithmus (2 Phasen):**
+ * 1. **Historien-Lookup:** Erstellt eine schnell durchsuchbare Map (`O(1)`) aus den absolvierten Sätzen
+ *    unter Verwendung eines Composite Keys (`"exerciseId-setNumber"`).
+ * 2. **Plan-Konstruktion:** Baut das Workout **strikt** nach der aktuellen Plan-Vorlage auf.
+ *    - Falls historische Daten zu einem Satz existieren, werden Gewicht und Wiederholungen als Vorbelegung übernommen.
+ *    - Falls keine Historie existiert (z.B. bei neu im Plan hinzugefügten Übungen), werden die Zielwerte aus dem Plan (oder 0) gesetzt.
+ *
+ * @param workoutId - Die ID für das neu zu erstellende/anstehende Workout.
+ * @param planRows - Flache Zeilen der aktuellen Trainingsplan-Vorlage.
+ * @param completedRows - Flache Zeilen aus der Trainingshistorie (idealerweise nur vom zuletzt absolvierten Training dieses Plans).
+ * @returns Ein fertig mit historischen Daten vorbefülltes `Workout`-Objekt für die UI.
+ */
 export function buildMergedWorkout(
   workoutId: number,
   planRows: FlatWorkoutRow[],
@@ -228,7 +288,7 @@ export function buildMergedWorkout(
       exercise.sets.push({
         setNumber: row.set_number,
         // Wenn Historie da ist: Nimm historisches Gewicht/Reps.
-        // Wenn NEUE ÜBUNG: Nimm die Vorgabe aus dem Plan (oder 0)!
+        // Wenn NEUE ÜBUNG: Nimm die Vorgabe aus dem Plan (oder Fallback 0)!
         weight: historicalData
           ? historicalData.weight
           : Number(row.weight || 0),
