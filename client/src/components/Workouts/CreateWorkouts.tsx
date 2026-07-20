@@ -1,4 +1,3 @@
-import { isAxiosError } from "axios";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNotification } from "../../hooks/useNotification";
@@ -14,6 +13,21 @@ import ExerciseSelectionList from "../Exercises/ExerciseSelectionList";
 import WorkoutExercises from "./WorkoutExercises";
 import { getApiErrorMessage } from "../../util/errorHelper";
 
+/**
+ * CreateWorkout
+ *
+ * Diese Komponente steuert den gesamten Erstellungsprozess eines neuen Trainingsplans.
+ *
+ * Kernfunktionen:
+ * - **Draft-Persistenz im LocalStorage**: Speichert unvollständige Eingaben (Trainingsname und Übungsliste)
+ *   automatisch im Hintergrund ab, damit bei versehentlichem Schließen oder Neuladen des Tabs keine Daten verloren gehen.
+ * - **Modales Umschalten**: Ermöglicht das Wechseln in den Übungskatalog (`ExerciseSelectionList`)
+ *   zum Hinzufügen neuer Übungen.
+ * - **Validierung & API-Übertragung**: Prüft, ob ein Plan-Name vergeben wurde und ob mindestens eine Übung
+ *   enthalten ist, bevor der Plan an das Backend gesendet wird.
+ *
+ * @returns {JSX.Element} Entweder den Ladebildschirm, die Übungsauswahl oder den Workout-Erstellungs-Editor.
+ */
 export default function CreateWorkout() {
   const {
     updateExerciseInWorkout,
@@ -28,16 +42,22 @@ export default function CreateWorkout() {
     reorderWorkoutList,
   } = useWorkoutManager();
 
+  /** Die Master-Liste aller im System existierenden Übungen für den Auswahl-Bildschirm. */
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
 
+  /** Der Name des neu zu erstellenden Trainingsplans. */
   const [workoutName, setWorkoutName] = useState<string>("");
+  /** Globaler Ladezustand für das initiale Abrufen des Übungskatalogs. */
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
   const navigate = useNavigate();
-
   useSetTitle("Plan erstellen");
-
   const { showNotification } = useNotification();
 
+  /**
+   * Initialer Hydrations-Effect: Versucht beim Laden der Komponente einen eventuell
+   * zwischengespeicherten Entwurf ("createPlan" und "planName") aus dem LocalStorage wiederherzustellen.
+   */
   useEffect(() => {
     const savedList = localStorage.getItem("createPlan");
     const savedName = localStorage.getItem("planName");
@@ -46,11 +66,22 @@ export default function CreateWorkout() {
     if (savedName) setWorkoutName(JSON.parse(savedName));
   }, [setWorkoutList]);
 
+  /**
+   * Auto-Save-Effect: Synchronisiert den aktuellen Bearbeitungsstand (Übungen und Name)
+   * bei jeder Änderung kontinuierlich mit dem LocalStorage.
+   */
   useEffect(() => {
     localStorage.setItem("createPlan", JSON.stringify(workoutList));
     localStorage.setItem("planName", JSON.stringify(workoutName));
   }, [workoutList, workoutName]);
 
+  /**
+   * Lädt den vollständigen Übungskatalog asynchron von der API,
+   * damit der Nutzer beim Hinzufügen von Übungen aus allen verfügbaren Optionen wählen kann.
+   *
+   * @async
+   * @returns {Promise<void>}
+   */
   const loadAllExercises = useCallback(async () => {
     try {
       const response = await apiService.getExercises();
@@ -65,19 +96,40 @@ export default function CreateWorkout() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [showNotification]);
 
   useEffect(() => {
     loadAllExercises();
   }, [loadAllExercises]);
 
+  /**
+   * Validiert die Formulardaten und sendet den neuen Trainingsplan an das Backend.
+   *
+   * Validierungsregeln:
+   * 1. Der Plan-Name darf nicht leer sein (`workoutName.trim()`).
+   * 2. Es muss mindestens eine Übung im Plan vorhanden sein.
+   *
+   * Nach erfolgreichem Speichern werden die Entwurfsdaten im LocalStorage bereinigt
+   * und der Nutzer wird zur Workout-Übersicht weitergeleitet.
+   *
+   * @async
+   * @returns {Promise<void>}
+   */
   const handleCreateWorkout = async () => {
     if (!workoutName.trim()) {
-      alert("Bitte gib dem Trainingsplan einen Namen.");
+      showNotification(
+        "Bitte gib dem Trainingsplan einen Namen.",
+        "error",
+        3000,
+      );
       return;
     }
     if (workoutList.length === 0) {
-      alert("Füge mindestens eine Übung zum Plan hinzu.");
+      showNotification(
+        "Füge mindestens eine Übung zum Plan hinzu.",
+        "error",
+        3000,
+      );
       return;
     }
 
@@ -87,6 +139,11 @@ export default function CreateWorkout() {
         exercises: workoutList,
       });
       showNotification("Trainingsplan erstellt!", "success");
+
+      // Cleanup des lokalen Entwurfs bei Erfolg
+      localStorage.removeItem("createPlan");
+      localStorage.removeItem("planName");
+
       navigate("/workouts");
     } catch (error) {
       showNotification(
@@ -94,22 +151,24 @@ export default function CreateWorkout() {
         "error",
         3000,
       );
-    } finally {
-      localStorage.removeItem("createPlan");
-      localStorage.removeItem("planName");
     }
   };
 
+  /**
+   * Bricht den Erstellungsprozess ab:
+   * Verwirft den lokalen Entwurf im LocalStorage und navigiert zurück zur Workout-Übersicht.
+   */
   const handleBack = () => {
-    navigate("/workouts");
     localStorage.removeItem("createPlan");
     localStorage.removeItem("planName");
+    navigate("/workouts");
   };
 
   if (isLoading) {
     return <p>Lade Daten...</p>;
   }
 
+  // Bedingtes Rendering: Wenn der Nutzer neue Übungen hinzufügen möchte, öffnet sich der Katalog
   if (isSelecting) {
     return (
       <ExerciseSelectionList
@@ -120,8 +179,10 @@ export default function CreateWorkout() {
       />
     );
   }
+
   return (
     <>
+      {/* Eingabefeld für den Titel des neuen Trainingsplans */}
       <input
         className="input"
         name="title"
@@ -131,6 +192,8 @@ export default function CreateWorkout() {
         value={workoutName}
         onChange={(e) => setWorkoutName(e.target.value)}
       />
+
+      {/* Haupt-Komponente zur Verwaltung der Übungsblöcke, Sätze und des Drag-&-Drop-Reorderings */}
       <WorkoutExercises
         workoutList={workoutList}
         onUpdate={(key, setIndex, field, value) => {
@@ -144,11 +207,14 @@ export default function CreateWorkout() {
         onAddSet={handleAddSet}
         onRemoveSet={handleRemoveSet}
       />
+
+      {/* Aktionsleiste am unteren Bildschirmrand */}
       <div className={stylesButton.buttonContainer}>
         <ReturnButton
           onBack={handleBack}
           className={`${stylesButton.button}, ${stylesButton.left}`}
         />
+        {/* Aktiviert den Auswahl-Modus (isSelecting = true) */}
         <AddButton onAdd={() => setIsSelecting(true)} />
         <ConfirmButton
           onConfirm={handleCreateWorkout}
