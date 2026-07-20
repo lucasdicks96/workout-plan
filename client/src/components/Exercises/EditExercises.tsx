@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
-import { Exercise } from "../../types/exercises";
+import { Exercise } from "../../schemas/exercise.schema";
 import { ExerciseList } from "./Exercises";
 import ReturnButton from "../Buttons/ReturnButton";
 

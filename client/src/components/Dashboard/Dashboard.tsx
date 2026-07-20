@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSetTitle } from "../../hooks/useSetTitle";
-import { CompletedWorkout } from "../../types/workouts";
+import { CompletedWorkout } from "../../schemas/workout.schema";
 import { apiService } from "../../services/apiService";
 
 import Calendar from "react-calendar";
@@ -23,7 +23,9 @@ export default function Dashboard() {
   // Setzt den globalen Seitentitel im Header
   useSetTitle("Dashboard");
 
-  const [completedWorkouts, setCompletedWorkouts] = useState<CompletedWorkout[]>([]);
+  const [completedWorkouts, setCompletedWorkouts] = useState<
+    CompletedWorkout[]
+  >([]);
   const [viewMode, setViewMode] = useState<ViewMode>("YEAR");
 
   /**
@@ -34,7 +36,7 @@ export default function Dashboard() {
     const fetchCompletedWorkouts = async () => {
       try {
         const response = await apiService.getCompletedWorkouts();
-        
+
         const sortedData = response.data.sort(
           (a: CompletedWorkout, b: CompletedWorkout) =>
             new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
@@ -92,7 +94,7 @@ export default function Dashboard() {
         const dateStr = localD.toISOString().split("T")[0];
 
         const count = workoutCounts.get(dateStr) || 0;
-        
+
         // Bestimmt die Farbintensität in der Heatmap (Level 0-4)
         let level = 0;
         if (count === 1) level = 1;
@@ -234,8 +236,18 @@ export default function Dashboard() {
                 }}
                 labels={{
                   months: [
-                    "Jan", "Feb", "Mär", "Apr", "Mai", "Jun",
-                    "Jul", "Aug", "Sep", "Okt", "Nov", "Dez",
+                    "Jan",
+                    "Feb",
+                    "Mär",
+                    "Apr",
+                    "Mai",
+                    "Jun",
+                    "Jul",
+                    "Aug",
+                    "Sep",
+                    "Okt",
+                    "Nov",
+                    "Dez",
                   ],
                   weekdays: ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],
                   totalCount: "{{count}} Workouts im letzten Jahr",

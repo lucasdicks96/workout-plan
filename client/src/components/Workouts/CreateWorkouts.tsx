@@ -6,7 +6,7 @@ import { useSetTitle } from "../../hooks/useSetTitle";
 import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
 import stylesButton from "../../styles/Button.module.css";
-import { Exercise } from "../../types/exercises";
+import { Exercise } from "../../schemas/exercise.schema";
 import AddButton from "../Buttons/AddButton";
 import ConfirmButton from "../Buttons/ConfirmButton";
 import ReturnButton from "../Buttons/ReturnButton";

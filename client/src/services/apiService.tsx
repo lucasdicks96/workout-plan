@@ -1,7 +1,13 @@
 import axios, { InternalAxiosRequestConfig } from "axios";
-import { Category, Exercise } from "../types/exercises";
-import { UserWithoutPassword } from "../types/user";
-import { CompletedWorkout, Workout, WorkoutExercises } from "../types/workouts";
+import { CategorySchema, ExerciseSchema } from "../schemas/exercise.schema";
+import { UserWithoutPasswordSchema } from "../schemas/user.schema";
+import {
+  CompletedWorkoutSchema,
+  WorkoutSchema,
+  WorkoutExercises,
+  CompletedWorkout,
+} from "../schemas/workout.schema";
+import { z } from "zod";
 
 export interface ApiResponse<T = void> {
   status: "success" | "fail";
@@ -29,12 +35,9 @@ const fetchCsrfToken = async (): Promise<string> => {
       ? "http://localhost:5000"
       : import.meta.env.VITE_API_URL || "";
 
-    const response = await axios.get(
-      `${baseURL}/csrf-token`,
-      {
-        withCredentials: true,
-      },
-    );
+    const response = await axios.get(`${baseURL}/csrf-token`, {
+      withCredentials: true,
+    });
     csrfToken = response.data.csrfToken;
     return csrfToken as string;
   } catch (error) {
@@ -130,33 +133,44 @@ apiClient.interceptors.response.use(
   },
 );
 
+function createApiResponseSchema<T extends z.ZodTypeAny>(dataSchema: T) {
+  return z.looseObject({
+    data: dataSchema,
+  });
+}
+
 export const apiService = {
-  login: (payload: { email: string; password: string }) =>
-    apiClient.post<typeof payload, ApiResponse<UserWithoutPassword>>(
-      "/user/login",
-      payload,
-    ),
-  register: (payload: {
+  login: async (payload: { email: string; password: string }) => {
+    const res = await apiClient.post("/user/login", payload);
+    // Hier schlägt Zod zur Laufzeit zu und erzwingt das UserWithoutPasswordSchema!
+    return createApiResponseSchema(UserWithoutPasswordSchema).parse(res);
+  },
+
+  register: async (payload: {
     email: string;
     password: string;
     turnstileToken: string;
-  }) =>
-    apiClient.post<typeof payload, ApiResponse<UserWithoutPassword>>(
-      "/user/register",
-      payload,
-    ),
+  }) => {
+    const res = await apiClient.post("/user/register", payload);
+    return createApiResponseSchema(UserWithoutPasswordSchema).parse(res);
+  },
+
   logout: () => apiClient.post<unknown, ApiResponse>("/user/logout"),
-  getStatus: () =>
-    apiClient.get<never, ApiResponse<UserWithoutPassword>>("/user/status"),
-  postExercise: (payload: {
+
+  getStatus: async () => {
+    const res = await apiClient.get("/user/status");
+    return createApiResponseSchema(UserWithoutPasswordSchema).parse(res);
+  },
+
+  postExercise: async (payload: {
     title: string;
     description: string;
     categories: number[];
-  }) =>
-    apiClient.post<typeof payload, ApiResponse<Exercise>>(
-      "/exercise/exercise",
-      payload,
-    ),
+  }) => {
+    const res = await apiClient.post("/exercise/exercise", payload);
+    return createApiResponseSchema(ExerciseSchema).parse(res);
+  },
+
   putExercise: (payload: {
     id: number;
     title: string;
@@ -168,25 +182,47 @@ export const apiService = {
   deleteExercise: (id: number) =>
     apiClient.delete<never, ApiResponse>(`/exercise/exercise/${id}`),
 
-  getExercises: () =>
-    apiClient.get<never, ApiResponse<Exercise[]>>(`/exercise/exercises`),
-  getUserExercises: () =>
-    apiClient.get<never, ApiResponse<Exercise[]>>(`/exercise/user-exercises`),
-  getCategoryTree: () =>
-    apiClient.get<never, ApiResponse<Category[]>>("/exercise/category-tree"),
-  getUserId: () => apiClient.get<never, ApiResponse<string>>("/user/id"),
-  // getAllWorkouts: (userId: string) =>
-  //   apiClient.get(`/workout/all-workouts/${userId}`),
-  getWorkouts: () =>
-    apiClient.get<never, ApiResponse<Workout[]>>(`/workout/workouts`),
-  getWorkout: (workoutId: number) =>
-    apiClient.get<never, ApiResponse<Workout>>(`/workout/workout/${workoutId}`),
-  getLastWorkout: (workoutId: number) =>
-    apiClient.get<never, ApiResponse<Workout>>(
-      `/workout/last-workout/${workoutId}`,
-    ),
+  // --- HIER WIRD DER STRING-VS-NUMBER BUG BEI ÜBUNGEN GEFIXT: ---
+  getExercises: async () => {
+    const res = await apiClient.get(`/exercise/exercises`);
+    // z.array() sagt Zod, dass ein Array von Übungen in "data" liegt.
+    // Alle IDs, die hier als "42" (String) ankommen, verlassen diese Zeile als 42 (Number)!
+    return createApiResponseSchema(z.array(ExerciseSchema)).parse(res);
+  },
+
+  getUserExercises: async () => {
+    const res = await apiClient.get(`/exercise/user-exercises`);
+    return createApiResponseSchema(z.array(ExerciseSchema)).parse(res);
+  },
+
+  getCategoryTree: async () => {
+    const res = await apiClient.get("/exercise/category-tree");
+    return createApiResponseSchema(z.array(CategorySchema)).parse(res);
+  },
+
+  getUserId: async () => {
+    const res = await apiClient.get("/user/id");
+    return createApiResponseSchema(z.string()).parse(res);
+  },
+
+  getWorkouts: async () => {
+    const res = await apiClient.get(`/workout/workouts`);
+    return createApiResponseSchema(z.array(WorkoutSchema)).parse(res);
+  },
+
+  getWorkout: async (workoutId: number) => {
+    const res = await apiClient.get(`/workout/workout/${workoutId}`);
+    return createApiResponseSchema(WorkoutSchema).parse(res);
+  },
+
+  getLastWorkout: async (workoutId: number) => {
+    const res = await apiClient.get(`/workout/last-workout/${workoutId}`);
+    return createApiResponseSchema(WorkoutSchema).parse(res);
+  },
+
   postWorkout: (payload: { title: string; exercises: WorkoutExercises[] }) =>
     apiClient.post<typeof payload, ApiResponse>("/workout/workout", payload),
+
   putWorkout: (payload: {
     title: string;
     workoutId: number;
@@ -196,6 +232,7 @@ export const apiService = {
       `/workout/workout/${payload.workoutId}`,
       payload,
     ),
+
   postCompletedWorkout: (payload: {
     workoutId: number;
     startTime: number;
@@ -209,19 +246,23 @@ export const apiService = {
       "/workout/completed-workout",
       payload,
     ),
-  getCompletedWorkouts: () =>
-    apiClient.get<never, ApiResponse<CompletedWorkout[]>>(
-      `/workout/completed-workouts`,
-    ),
-  getCompletedWorkout: (workoutId: string) =>
-    apiClient.get<never, ApiResponse<CompletedWorkout>>(
-      `/workout/completed-workout/${workoutId}`,
-    ),
+
+  getCompletedWorkouts: async () => {
+    const res = await apiClient.get(`/workout/completed-workouts`);
+    return createApiResponseSchema(z.array(CompletedWorkoutSchema)).parse(res);
+  },
+
+  getCompletedWorkout: async (workoutId: string) => {
+    const res = await apiClient.get(`/workout/completed-workout/${workoutId}`);
+    return createApiResponseSchema(CompletedWorkoutSchema).parse(res);
+  },
+
   putCompletedWorkout: (payload: CompletedWorkout) =>
     apiClient.put<typeof payload, ApiResponse>(
       `/workout/completed-workout`,
       payload,
     ),
+
   deleteWorkout: (workoutId: number) =>
     apiClient.delete<never, ApiResponse>(`/workout/workout/${workoutId}`),
 };

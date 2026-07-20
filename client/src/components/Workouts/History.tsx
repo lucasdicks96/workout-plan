@@ -6,7 +6,7 @@ import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
 import styles from "../../styles/Exercises.module.css";
 import stylesButton from "../../styles/Button.module.css";
-import { CompletedWorkout } from "../../types/workouts";
+import { CompletedWorkout } from "../../schemas/workout.schema";
 import EditButton from "../Buttons/EditButton";
 
 /**

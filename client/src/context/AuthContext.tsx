@@ -2,7 +2,7 @@ import axios from "axios";
 import { createContext, ReactNode, useEffect, useState } from "react";
 import { useNotification } from "../hooks/useNotification";
 import { apiService } from "../services/apiService";
-import { User } from "../types/user";
+import { User, UserWithoutPassword } from "../schemas/user.schema";
 import { getApiErrorMessage } from "../util/errorHelper";
 
 /**
@@ -41,7 +41,7 @@ export const AuthContext = createContext<AuthContextType | null>(null);
  * @param children - Die untergeordneten Komponenten, die Zugriff auf den Auth-Status erhalten.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserWithoutPassword | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const { showNotification } = useNotification();
 

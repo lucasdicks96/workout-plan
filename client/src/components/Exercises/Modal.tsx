@@ -1,15 +1,14 @@
-import { AxiosError } from "axios";
 import { FormEvent, useEffect, useState } from "react";
 import { useExercises } from "../../hooks/useExercises";
 import { useNotification } from "../../hooks/useNotification";
 import { apiService } from "../../services/apiService";
 import stylesExercises from "../../styles/Exercise.module.css";
 import styles from "../../styles/Modal.module.css";
-import { Category, Exercise } from "../../types/exercises";
+import { Category, Exercise } from "../../schemas/exercise.schema";
+import { getApiErrorMessage } from "../../util/errorHelper";
 import ConfirmButton from "../Buttons/ConfirmButton";
 import DeleteButton from "../Buttons/DeleteButton";
 import ReturnButton from "../Buttons/ReturnButton";
-import { getApiErrorMessage } from "../../util/errorHelper";
 
 type ModalProps = {
   isOpen: boolean;

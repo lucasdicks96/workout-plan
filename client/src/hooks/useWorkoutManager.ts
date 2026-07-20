@@ -2,8 +2,8 @@ import { useState } from "react";
 import {
   WorkoutExerciseSets,
   WorkoutExercises as WorkoutExercisesType,
-} from "../types/workouts";
-import { Exercise } from "../types/exercises";
+} from "../schemas/workout.schema";
+import { Exercise } from "../schemas/exercise.schema";
 
 /**
  * useWorkoutManager

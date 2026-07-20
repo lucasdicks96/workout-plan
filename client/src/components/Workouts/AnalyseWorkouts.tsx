@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSetTitle } from "../../hooks/useSetTitle";
-import { CompletedWorkout } from "../../types/workouts";
+import { CompletedWorkout } from "../../schemas/workout.schema";
 import { apiService } from "../../services/apiService";
 import { getApiErrorMessage } from "../../util/errorHelper";
 import {

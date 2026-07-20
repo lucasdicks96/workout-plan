@@ -6,8 +6,8 @@ import AddButton from "../Buttons/AddButton";
 import ConfirmButton from "../Buttons/ConfirmButton";
 import ReturnButton from "../Buttons/ReturnButton";
 import stylesButton from "../../styles/Button.module.css";
-import { WorkoutExercises as WorkoutExercisesType } from "../../types/workouts";
-import { Exercise } from "../../types/exercises";
+import { WorkoutExercises as WorkoutExercisesType } from "../../schemas/workout.schema";
+import { Exercise } from "../../schemas/exercise.schema";
 
 // ==========================================
 // Schnittstellen (Interfaces)

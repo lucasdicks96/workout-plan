@@ -4,8 +4,8 @@ import stylesModal from "../../styles/Modal.module.css";
 import SearchInput from "../SearchInput";
 import CategoryDropDown from "../CategoryDropDown";
 import { useExercises } from "../../hooks/useExercises";
-import { Exercise } from "../../types/exercises";
-import { WorkoutExercises } from "../../types/workouts";
+import { Exercise } from "../../schemas/exercise.schema";
+import { WorkoutExercises } from "../../schemas/workout.schema";
 import { useSetTitle } from "../../hooks/useSetTitle";
 
 type ExerciseSelectionListProps = {

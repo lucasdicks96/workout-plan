@@ -4,7 +4,7 @@ import { useExercises } from "../../hooks/useExercises";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import stylesButton from "../../styles/Button.module.css";
 import styles from "../../styles/Exercises.module.css";
-import { Exercise } from "../../types/exercises";
+import { Exercise } from "../../schemas/exercise.schema";
 import AddButton from "../Buttons/AddButton";
 import EditButton from "../Buttons/EditButton";
 import CategoryDropdown from "../CategoryDropDown";

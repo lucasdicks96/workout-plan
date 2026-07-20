@@ -5,7 +5,7 @@ import stylesWorkoutExercises from "../../styles/WorkoutExercises.module.css";
 import {
   WorkoutExerciseSets,
   WorkoutExercises as WorkoutExercisesType,
-} from "../../types/workouts";
+} from "../../schemas/workout.schema";
 
 type WorkoutExercisesProps = {
   workoutList: WorkoutExercisesType[];

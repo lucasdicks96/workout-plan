@@ -5,11 +5,11 @@ import { useSetTitle } from "../../hooks/useSetTitle";
 import { apiService } from "../../services/apiService";
 import stylesButton from "../../styles/Button.module.css";
 import styles from "../../styles/Exercises.module.css";
-import { Exercise } from "../../types/exercises";
+import { Exercise } from "../../schemas/exercise.schema";
 import {
   Workout,
   WorkoutExercises as WorkoutExercisesType,
-} from "../../types/workouts";
+} from "../../schemas/workout.schema";
 import ReturnButton from "../Buttons/ReturnButton";
 import SharedWorkoutEditor from "./SharedWorkoutEditor";
 import { WorkoutList as WorkoutPlans } from "./Workouts";

@@ -3,8 +3,11 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useNotification } from "../../hooks/useNotification";
 import { apiService } from "../../services/apiService";
-import { Exercise } from "../../types/exercises";
-import { CompletedWorkout, WorkoutExercises } from "../../types/workouts";
+import { Exercise } from "../../schemas/exercise.schema";
+import {
+  CompletedWorkout,
+  WorkoutExercises,
+} from "../../schemas/workout.schema";
 import SharedWorkoutEditor from "./SharedWorkoutEditor";
 import { getApiErrorMessage } from "../../util/errorHelper";
 

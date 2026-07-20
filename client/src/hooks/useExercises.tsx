@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiService } from "../services/apiService";
-import { Category, Exercise } from "../types/exercises";
+import { Category, Exercise } from "../schemas/exercise.schema";
 
 /**
  * Custom Hook zur Verwaltung von Übungen mit Kategorie-Filterung.

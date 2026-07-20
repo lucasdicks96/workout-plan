@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { apiService } from "../../services/apiService";
-import { User } from "../../types/user";
+import { User } from "../../schemas/user.schema";
 import { useSetTitle } from "../../hooks/useSetTitle";
 import ReturnButton from "../Buttons/ReturnButton";
 import Popup from "../Popup";
