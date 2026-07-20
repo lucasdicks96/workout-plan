@@ -38,7 +38,7 @@ export async function createAndLoginTestUser() {
   }
 
   // Wir geben die ID (für spätere Abfragen) und den Cookie zurück
-  return { userId, cookie };
+  return { userId, cookie, email, password };
 }
 
 export async function createTestWorkoutPlan({
