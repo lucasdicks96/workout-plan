@@ -1,8 +1,8 @@
 import axios from "axios";
 import { createContext, ReactNode, useEffect, useState } from "react";
 import { useNotification } from "../hooks/useNotification";
+import { UserWithoutPassword } from "../schemas/user.schema";
 import { apiService } from "../services/apiService";
-import { User, UserWithoutPassword } from "../schemas/user.schema";
 import { getApiErrorMessage } from "../util/errorHelper";
 
 /**
@@ -12,7 +12,7 @@ import { getApiErrorMessage } from "../util/errorHelper";
  */
 export interface AuthContextType {
   /** Das Objekt des aktuell angemeldeten Benutzers oder null, wenn anonym */
-  user: User | null;
+  user: UserWithoutPassword | null;
   /** Gibt an, ob die Session-Prüfung beim App-Start noch aktiv ist */
   loading: boolean;
   /** Authentifiziert einen Benutzer mit E-Mail und Passwort */
@@ -61,9 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.warn("Auth Check: User nicht authentifiziert");
         } else {
           // Für alle anderen Fehler (z.B. 500, Netzwerk down) nutzen wir den Helper
-          console.error(
-            "Fehler beim Auth Check:",
+          showNotification(
             getApiErrorMessage(error, "Verbindungsfehler zur API"),
+            "error",
+            3000,
           );
         }
         // Wird in jedem Fehlerfall ausgeführt – spart 3 redundante Aufrufe!
