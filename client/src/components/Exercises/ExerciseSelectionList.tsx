@@ -20,7 +20,7 @@ function ExerciseSelectionList({
   onSelectExercise,
   onBack,
 }: ExerciseSelectionListProps) {
-  const exercisesInWorkout = new Set(workoutList.map((ex) => ex.id));
+  const exercisesInWorkout = new Set(workoutList.map((ex) => String(ex.id)));
   useSetTitle("Wähle eine Übung aus");
   const {
     searchTerm,
@@ -46,7 +46,7 @@ function ExerciseSelectionList({
       </div>
       <div className={styles["exercise-list"]}>
         {filteredExercises.map((exercise) => {
-          const isAdded = exercisesInWorkout.has(exercise.id);
+          const isAdded = exercisesInWorkout.has(String(exercise.id));
           return (
             <div
               key={exercise.id}
