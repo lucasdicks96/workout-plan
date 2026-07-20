@@ -714,7 +714,7 @@ describe("POST /workout/completed-workout", () => {
       .send(newWorkoutPayload);
 
     const completedPayload = {
-      workoutId: res.body.data.id,
+      workoutId: res.body.data,
       title: "Bein Tag (Durchgeführt)",
       startTime: new Date().toISOString(),
       endTime: new Date(Date.now() + 3600000).toISOString(), // 1 Stunde später
@@ -1055,7 +1055,7 @@ describe("PUT /workout/completed-workout", () => {
       .send(newWorkoutPayload);
 
     const cwPayload = {
-      workoutId: res.body.data.id,
+      workoutId: res.body.data,
       startTime: new Date(),
       endTime: new Date(),
       pauseTime: 200,
@@ -1078,11 +1078,11 @@ describe("PUT /workout/completed-workout", () => {
 
     // Da deine Route die ID nicht in der URL (/workout/:id) erwartet,
     // muss die UUID zwingend im Body mitgeschickt werden!
-    const cwId = cwResult.body.data.id;
+    const cwId = cwResult.body.data;
     const updatePayload = {
       id: cwId,
       userId: userId,
-      workoutId: res.body.data.id,
+      workoutId: res.body.data,
       title: "Korrigierter Name",
       planTitle: "Push Day (Test)",
       startTime: new Date(),
