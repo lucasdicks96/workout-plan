@@ -3,6 +3,7 @@ import { useSetTitle } from "../../hooks/useSetTitle";
 import { CompletedWorkout } from "../../schemas/workout.schema";
 import { apiService } from "../../services/apiService";
 import { getApiErrorMessage } from "../../util/errorHelper";
+import CustomSelect from "../CustomSelect";
 import {
   LineChart,
   ComposedChart,
@@ -23,30 +24,67 @@ import { useNotification } from "../../hooks/useNotification";
 // Typdefinitionen
 // ==========================================
 
+/**
+ * Verfügbare Metriken für die visuelle Auswertung im Diagramm:
+ * - `"VOLUMEN"`: Gesamtes bewegtes Gewicht (Gewicht × Wiederholungen)
+ * - `"WEIGHT"`: Höchst- oder Satzgewicht
+ * - `"REPS"`: Anzahl der Wiederholungen
+ * - `"COMBO"`: Kombinierte Ansicht aus Wiederholungen (Balken) und Gewicht (Linie)
+ */
 type ChartMetricType = "VOLUMEN" | "WEIGHT" | "REPS" | "COMBO";
+
+/**
+ * Granularität der Diagrammdarstellung:
+ * - `"SESSION"`: Aggregierte Werte pro gesamtem Trainingstag/Session
+ * - `"SET"`: Detaillierte Einzelwerte pro absolviertem Satz
+ */
 type ViewModeType = "SESSION" | "SET";
 
+/**
+ * Repräsentiert einen einzelnen Datenpunkt innerhalb des Recharts-Diagramms.
+ */
 interface ChartDataPoint {
+  /** Eindeutiger Bezeichner/Achsen-String für Recharts */
   name: string;
-  dateStr: string; // Speichert nur das Datum für den Tooltip
-  setStr?: string; // Speichert die Satz-Info (z.B. "Satz 1")
+  /** Das reine Datum im deutschen Format ("DD.MM.") für Tooltips */
+  dateStr: string;
+  /** Optionale Satz-Information (z. B. "Satz 1") für die Satz-Detailansicht */
+  setStr?: string;
+  /** Berechnetes Volumen (Gewicht × Wiederholungen) */
   volumen: number;
+  /** Absolviertes Gewicht in kg */
   gewicht: number;
+  /** Absolvierte Anzahl an Wiederholungen */
   wiederholungen: number;
+  /** Titel des zugrundeliegenden Workout-Plans */
   workoutName: string;
+  /** Optionaler Name der spezifischen Übung */
   exerciseName?: string;
 }
 
+/**
+ * Payload-Struktur für einzelne Datenreihen-Einträge im Recharts-Tooltip.
+ */
 interface TooltipPayload {
+  /** Name der Datenreihe (z. B. "Gewicht (kg)") */
   name: string;
+  /** Der aktuelle numerische Wert */
   value: number;
+  /** Die zugewiesene Farbe im Diagramm */
   color: string;
+  /** Der vollständige zugrundeliegende `ChartDataPoint` */
   payload: ChartDataPoint;
 }
 
+/**
+ * Eigenschaften (Props) für die benutzerdefinierte `CustomTooltip`-Komponente.
+ */
 interface CustomTooltipProps {
+  /** Gibt an, ob der Tooltip aktuell auf dem Diagramm aktiv/sichtbar ist */
   active?: boolean;
+  /** Array aller aktiven Datenpunkte unter dem Cursor */
   payload?: TooltipPayload[];
+  /** Die Bezeichnung des X-Achsen-Wertes */
   label?: string;
 }
 
@@ -54,21 +92,43 @@ interface CustomTooltipProps {
 // Hauptkomponente: AnalyseWorkouts
 // ==========================================
 
+/**
+ * AnalyseWorkouts
+ *
+ * Eine interaktive Analyse-Seite zur visuellen und statistischen Auswertung absolvierter Trainings.
+ *
+ * Bietet folgende Kernfunktionen:
+ * - Dynamisches Filtern nach Workout-Plan, Einzelübung und Zeitfenster (7, 30, 90 Tage, Gesamt).
+ * - Diagramm-Umschaltung zwischen Session-Aggregaten und detaillierten Satz-Verläufen.
+ * - Verschiedene Metriken (Volumen, Gewicht, Wiederholungen sowie kombinierte Ansicht).
+ * - Automatische Trendberechnung (steigend, sinkend, stabil) und statistische Zusammenfassung (Summe, Max, Min, Ø).
+ *
+ * @returns {JSX.Element} Die gerenderte Analyseansicht mit Filtern, Diagramm und Datentabelle.
+ */
 export default function AnalyseWorkouts() {
   useSetTitle("Analyse Workouts");
   const { showNotification } = useNotification();
 
+  /** Zustand aller absolvierten Workouts aus der API */
   const [completedWorkouts, setCompletedWorkouts] = useState<
     CompletedWorkout[]
   >([]);
+  /** Filterzustand: Ausgewählter Workout-Plan ("ALL" oder spezifischer Titel) */
   const [selectedWorkoutTitle, setSelectedWorkoutTitle] =
     useState<string>("ALL");
+  /** Filterzustand: Ausgewählte Übung ("ALL" oder spezifischer Name) */
   const [selectedExerciseTitle, setSelectedExerciseTitle] =
     useState<string>("ALL");
+  /** Filterzustand: Betrachteter Zeitraum in Tagen (0 = Gesamtzeitraum) */
   const [timeRangeDays, setTimeRangeDays] = useState<number>(30);
+  /** Steuerung der anzuzeigenden Metrik im Diagramm */
   const [chartMetric, setChartMetric] = useState<ChartMetricType>("VOLUMEN");
+  /** Steuerung der Granularität (Session vs. Satz) */
   const [viewMode, setViewMode] = useState<ViewModeType>("SET");
 
+  /**
+   * Lädt die Historie aller absolvierten Workouts asynchron vom Backend.
+   */
   const fetchCompletedWorkouts = useCallback(async () => {
     try {
       const response = await apiService.getCompletedWorkouts();
@@ -80,17 +140,23 @@ export default function AnalyseWorkouts() {
         3000,
       );
     }
-  }, []);
+  }, [showNotification]);
 
   useEffect(() => {
     fetchCompletedWorkouts();
-  }, []);
+  }, [fetchCompletedWorkouts]);
 
+  /**
+   * Extrahiert und sortiert alle verfügbaren Workout-Namen für das Dropdown-Menü.
+   */
   const availableWorkouts = useMemo(() => {
     const workoutNames = new Set(completedWorkouts.map((w) => w.planTitle));
     return Array.from(workoutNames).sort();
   }, [completedWorkouts]);
 
+  /**
+   * Extrahiert und sortiert alle verfügbaren Übungs-Namen – abhängig vom gewählten Workout-Filter.
+   */
   const availableExercises = useMemo(() => {
     const exerciseNames = new Set<string>();
     completedWorkouts.forEach((workout) => {
@@ -104,6 +170,10 @@ export default function AnalyseWorkouts() {
     return Array.from(exerciseNames).sort();
   }, [completedWorkouts, selectedWorkoutTitle]);
 
+  /**
+   * Setzt den Übungsfilter auf "ALL" zurück, falls die aktuell gewählte Übung
+   * im neu gefilterten Workout-Plan nicht existiert.
+   */
   useEffect(() => {
     if (
       selectedExerciseTitle !== "ALL" &&
@@ -113,6 +183,12 @@ export default function AnalyseWorkouts() {
     }
   }, [availableExercises, selectedExerciseTitle]);
 
+  /**
+   * Formatiert eine Zeitdauer in Sekunden in ein lesbares Stunden- und Minuten-Format.
+   *
+   * @param {number} seconds - Die Dauer in Sekunden.
+   * @returns {string} Formatierte Zeitangabe (z. B. "1h 15m") oder "-" bei 0 Sekunden.
+   */
   const formatTime = (seconds: number) => {
     if (seconds === 0) return "-";
     const m = Math.floor(seconds / 60);
@@ -121,6 +197,14 @@ export default function AnalyseWorkouts() {
     return `${h}h ${remainingM < 10 ? "0" : ""}${remainingM}m`;
   };
 
+  /**
+   * Berechnet statistische Kennzahlen (Summe, Max, Min, Mittelwert und Trend)
+   * für eine Zahlenreihe. Der Trend vergleicht den aktuellsten Wert mit dem bisherigen Mittelwert.
+   *
+   * @param {number[]} arr - Das Array der zu berechnenden Zahlenwerte.
+   * @returns {{ sum: number, max: number, min: number, avg: number, trend: number }}
+   *          Objekt mit den berechneten Kennzahlen (`trend`: 1 = steigend, -1 = sinkend, 0 = neutral).
+   */
   const calculateStats = (arr: number[]) => {
     if (arr.length === 0) return { sum: 0, max: 0, min: 0, avg: 0, trend: 0 };
     const sum = arr.reduce((a, b) => a + b, 0);
@@ -139,6 +223,10 @@ export default function AnalyseWorkouts() {
     return { sum, max, min, avg, trend };
   };
 
+  /**
+   * Hauptberechnung: Generiert die Datenpunkte für das Recharts-Diagramm (`chartData`)
+   * sowie die aggregierte Statistik-Tabelle (`tableData`) unter Berücksichtigung aller aktiven Filter.
+   */
   const { chartData, tableData, workoutCount } = useMemo(() => {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - timeRangeDays);
@@ -198,7 +286,6 @@ export default function AnalyseWorkouts() {
                   ? `${formattedDate} (S${index + 1})___${exercise.title}${firstMarker}`
                   : `${formattedDate} (S${index + 1})${firstMarker}`;
 
-              // dateStr und setStr hinzugefügt für saubere Trennung von Datum und Satz-Info im Tooltip
               generatedChartData.push({
                 name: axisName,
                 dateStr: formattedDate,
@@ -221,7 +308,6 @@ export default function AnalyseWorkouts() {
 
       if (hasMatchingData) {
         if (viewMode === "SESSION") {
-          // dateStr hinzugefügt für sauberen Tooltip
           generatedChartData.push({
             name: formattedDate,
             dateStr: formattedDate,
@@ -259,6 +345,11 @@ export default function AnalyseWorkouts() {
     viewMode,
   ]);
 
+  /**
+   * Liefert die Farbschema- und Beschriftungskonfiguration für die aktuell gewählte Einzelmetrik.
+   *
+   * @returns {{ dataKey: string, label: string, color: string }} Konfigurationsobjekt für Recharts.
+   */
   const getChartConfig = () => {
     switch (chartMetric) {
       case "WEIGHT":
@@ -277,6 +368,12 @@ export default function AnalyseWorkouts() {
 
   const currentConfig = getChartConfig();
 
+  /**
+   * Rendert das visuelle Trend-Symbol (Pfeil nach oben/unten oder Bindestrich) für die Datentabelle.
+   *
+   * @param {number} trendVal - Der Trendcode (1 = Steigend, -1 = Sinkend, 0 = Neutral).
+   * @returns {JSX.Element} Das gerenderte Trend-Icon.
+   */
   const renderTrend = (trendVal: number) => {
     if (workoutCount < 2)
       return <span className={styles["trend-neutral"]}>-</span>;
@@ -301,10 +398,13 @@ export default function AnalyseWorkouts() {
 
   /**
    * CustomTooltip
-   * Vollständig benutzerdefinierter Tooltip, der Datum, Satz-Info, Übungsname und die Werte anzeigt. Verwendet die neuen dateStr und setStr Felder für saubere Trennung von Datum und Satz-Info.
-    - Zeigt das Datum immer an, aber die Satz-Info nur, wenn sie existiert (also in der Satz-Ansicht).
-    - Zeigt den Übungsnamen an, wenn ein spezifischer Übungstitel ausgewählt ist oder wenn in der Satz-Ansicht mehrere Übungen angezeigt werden.
-    - Listet alle Werte (Volumen, Gewicht, Wiederholungen) mit entsprechenden Farben auf, abhängig von der aktuellen Chart-Metrik.
+   *
+   * Benutzerdefinierte Tooltip-Komponente für Recharts:
+   * - Trennt Datum, Satz-Information und Übungsname sauber ab.
+   * - Passt sich dynamisch an Einzel- und Kombi-Diagramme an.
+   *
+   * @param {CustomTooltipProps} props - Die Tooltip-Eigenschaften von Recharts.
+   * @returns {JSX.Element | null} Das gerenderte Tooltip-Element oder null.
    */
   const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
@@ -358,59 +458,51 @@ export default function AnalyseWorkouts() {
     <div className={styles["analyse-container"]}>
       {/* 1. Sektion: Globale Filter */}
       <div className={styles["filter-section"]}>
+        {/* 1. Workout Plan */}
         <div className={styles["filter-group"]}>
-          <label htmlFor="workoutPlan" className={styles["filter-label"]}>
-            Workout Plan:
-          </label>
-          <select
-            id="workoutPlan"
+          <label className={styles["filter-label"]}>Workout Plan:</label>
+          <CustomSelect
             value={selectedWorkoutTitle}
-            onChange={(e) => setSelectedWorkoutTitle(e.target.value)}
-            className={styles["filter-select"]}
-          >
-            <option value="ALL">Alle Workouts</option>
-            {availableWorkouts.map((title) => (
-              <option key={`workout-${title}`} value={title}>
-                {title}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedWorkoutTitle}
+            options={[
+              { label: "Alle Workouts", value: "ALL" },
+              ...availableWorkouts.map((title) => ({
+                label: title,
+                value: title,
+              })),
+            ]}
+          />
         </div>
 
+        {/* 2. Übung */}
         <div className={styles["filter-group"]}>
-          <label htmlFor="exercise" className={styles["filter-label"]}>
-            Übung:
-          </label>
-          <select
-            id="exercise"
+          <label className={styles["filter-label"]}>Übung:</label>
+          <CustomSelect
             value={selectedExerciseTitle}
-            onChange={(e) => setSelectedExerciseTitle(e.target.value)}
-            className={styles["filter-select"]}
-          >
-            <option value="ALL">Alle Übungen</option>
-            {availableExercises.map((title) => (
-              <option key={`exercise-${title}`} value={title}>
-                {title}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedExerciseTitle}
+            options={[
+              { label: "Alle Übungen", value: "ALL" },
+              ...availableExercises.map((title) => ({
+                label: title,
+                value: title,
+              })),
+            ]}
+          />
         </div>
 
+        {/* 3. Zeitraum */}
         <div className={styles["filter-group"]}>
-          <label htmlFor="timeRange" className={styles["filter-label"]}>
-            Zeitraum:
-          </label>
-          <select
-            id="timeRange"
+          <label className={styles["filter-label"]}>Zeitraum:</label>
+          <CustomSelect
             value={timeRangeDays}
-            onChange={(e) => setTimeRangeDays(Number(e.target.value))}
-            className={styles["filter-select"]}
-          >
-            <option value={7}>Letzte 7 Tage</option>
-            <option value={30}>Letzte 30 Tage</option>
-            <option value={90}>Letzte 90 Tage</option>
-            <option value={0}>Gesamter Zeitraum</option>
-          </select>
+            onChange={setTimeRangeDays}
+            options={[
+              { label: "Letzte 7 Tage", value: 7 },
+              { label: "Letzte 30 Tage", value: 30 },
+              { label: "Letzte 90 Tage", value: 90 },
+              { label: "Gesamter Zeitraum", value: 0 },
+            ]}
+          />
         </div>
       </div>
 
@@ -423,37 +515,30 @@ export default function AnalyseWorkouts() {
 
           <div className={styles["chart-controls"]}>
             <div className={styles["filter-group"]}>
-              <label htmlFor="viewMode" className={styles["filter-label"]}>
-                Detaillierung:
-              </label>
-              <select
-                id="viewMode"
+              <label className={styles["filter-label"]}>Detaillierung:</label>
+              <CustomSelect
                 value={viewMode}
-                onChange={(e) => setViewMode(e.target.value as ViewModeType)}
-                className={styles["filter-select"]}
-              >
-                <option value="SESSION">Pro Session (Gesamt)</option>
-                <option value="SET">Pro Satz (Detailliert)</option>
-              </select>
+                onChange={(val) => setViewMode(val as ViewModeType)}
+                options={[
+                  { label: "Pro Session (Gesamt)", value: "SESSION" },
+                  { label: "Pro Satz (Detailliert)", value: "SET" },
+                ]}
+              />
             </div>
 
+            {/* 5. Metrik */}
             <div className={styles["filter-group"]}>
-              <label htmlFor="chartMetric" className={styles["filter-label"]}>
-                Anzeigen:
-              </label>
-              <select
-                id="chartMetric"
+              <label className={styles["filter-label"]}>Anzeigen:</label>
+              <CustomSelect
                 value={chartMetric}
-                onChange={(e) =>
-                  setChartMetric(e.target.value as ChartMetricType)
-                }
-                className={styles["filter-select"]}
-              >
-                <option value="COMBO">Kombi: Wdh. & Gewicht</option>
-                <option value="VOLUMEN">Nur Volumen</option>
-                <option value="WEIGHT">Nur Gewicht</option>
-                <option value="REPS">Nur Wiederholungen</option>
-              </select>
+                onChange={(val) => setChartMetric(val as ChartMetricType)}
+                options={[
+                  { label: "Kombi: Wdh. & Gewicht", value: "COMBO" },
+                  { label: "Nur Volumen", value: "VOLUMEN" },
+                  { label: "Nur Gewicht", value: "WEIGHT" },
+                  { label: "Nur Wiederholungen", value: "REPS" },
+                ]}
+              />
             </div>
           </div>
         </div>
@@ -479,6 +564,7 @@ export default function AnalyseWorkouts() {
                     <XAxis
                       dataKey="name"
                       interval={0}
+                      tickLine={chartData.length <= 30}
                       tickFormatter={(value) => {
                         if (typeof value !== "string") return value;
 
@@ -486,14 +572,15 @@ export default function AnalyseWorkouts() {
                           return value.split("___")[0];
                         }
 
-                        // Logik für die Satz-Ansicht
+                        // --- SATZ-ANSICHT (SET) ---
                         const isFirst = value.includes("___FIRST");
 
                         if (isFirst) {
-                          // Wenn es der erste Satz des Tages ist, gib nur das Datum aus (z.B. "14.05")
                           return value.split(" ")[0];
                         } else {
-                          // Wenn nicht, gib nur die Satznummer aus (z.B. "S2")
+                          if (chartData.length > 25) {
+                            return "";
+                          }
                           const match = value.match(/\((S\d+)\)/);
                           return match ? match[1] : "";
                         }
@@ -563,6 +650,7 @@ export default function AnalyseWorkouts() {
                     <XAxis
                       dataKey="name"
                       interval={0}
+                      tickLine={chartData.length <= 30}
                       tickFormatter={(value) => {
                         if (typeof value !== "string") return value;
 
@@ -570,14 +658,15 @@ export default function AnalyseWorkouts() {
                           return value.split("___")[0];
                         }
 
-                        // Logik für die Satz-Ansicht
+                        // --- SATZ-ANSICHT (SET) ---
                         const isFirst = value.includes("___FIRST");
 
                         if (isFirst) {
-                          // Wenn es der erste Satz des Tages ist, gib nur das Datum aus (z.B. "14.05")
                           return value.split(" ")[0];
                         } else {
-                          // Wenn nicht, gib nur die Satznummer aus (z.B. "S2")
+                          if (chartData.length > 25) {
+                            return "";
+                          }
                           const match = value.match(/\((S\d+)\)/);
                           return match ? match[1] : "";
                         }
