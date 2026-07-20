@@ -2,7 +2,12 @@ import { beforeAll, describe, expect, it } from "@jest/globals";
 import request from "supertest";
 import pool from "../src/config/db";
 import app from "../src/index";
-import { createAndLoginTestUser } from "./testHelpers";
+import {
+  createAndLoginTestUser,
+  createTestCompletedWorkout,
+  createTestWorkoutPlan,
+} from "./testHelpers";
+import crypto from "crypto";
 
 describe("Exercise API Integration Tests (Seeded DB)", () => {
   let validCategoryId: number;
@@ -57,6 +62,98 @@ describe("Exercise API Integration Tests (Seeded DB)", () => {
     });
   });
 
+  describe("GET /exercise/:exerciseId/last-performance", () => {
+    it("sollte die korrekten letzten Sätze einer absolvierten Übung für den angemeldeten User zurückgeben", async () => {
+      const userA = await createAndLoginTestUser();
+      const workoutPlanId = crypto.randomInt(1, 10000);
+      const exerciseId = 1;
+
+      // User A absolviert ein Training mit bestimmten Werten
+      await createTestWorkoutPlan({
+        workoutId: workoutPlanId,
+        userId: userA.userId,
+        title: "Chest Day",
+        exerciseId: exerciseId,
+        displayOrder: 1,
+        setNumber: 1,
+        repetitions: 10,
+        weight: 20,
+      });
+
+      await createTestCompletedWorkout({
+        workoutId: workoutPlanId,
+        userId: userA.userId,
+        title: "Brust Tag",
+        startTime: new Date(),
+        endTime: new Date(Date.now() + 3600),
+        duration: 3600,
+        pause: 100,
+        exerciseId: exerciseId,
+        setNumber: 1,
+        repetitions: 12,
+        weight: 50,
+      });
+
+      // User A ruft die letzte Performance für diese Übung ab
+      const response = await request(app)
+        .get(`/exercise/${exerciseId}/last-performance`)
+        .set("Cookie", userA.cookie);
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe("success");
+      expect(response.body.data).toEqual([
+        {
+          setNumber: 1,
+          weight: 50,
+          repetitions: 12,
+        },
+      ]);
+    });
+
+    it("sollte keine Historie eines fremden Users zurückgeben (Datenschutz/Isolation)", async () => {
+      const userA = await createAndLoginTestUser();
+      const userB = await createAndLoginTestUser();
+      const workoutPlanId = crypto.randomInt(1, 10000);
+      const exerciseId = 1;
+
+      // User A hat die Übung absolviert (schwere Gewichte)
+      await createTestWorkoutPlan({
+        workoutId: workoutPlanId,
+        userId: userA.userId,
+        title: "Chest Day",
+        exerciseId: exerciseId,
+        displayOrder: 1,
+        setNumber: 1,
+        repetitions: 10,
+        weight: 20,
+      });
+
+      await createTestCompletedWorkout({
+        workoutId: workoutPlanId,
+        userId: userA.userId,
+        title: "Geheimes Training von A",
+        startTime: new Date(),
+        endTime: new Date(Date.now() + 3600),
+        duration: 3600,
+        pause: 100,
+        exerciseId: exerciseId,
+        setNumber: 1,
+        repetitions: 8,
+        weight: 100,
+      });
+
+      // User B versucht, die Historie genau dieser Übung abzurufen (hat sie selbst aber nie gemacht)
+      const responseB = await request(app)
+        .get(`/exercise/${exerciseId}/last-performance`)
+        .set("Cookie", userB.cookie);
+
+      expect(responseB.status).toBe(200);
+      expect(responseB.body.status).toBe("success");
+      // Da User B keine eigene Historie für diese Übung hat, muss ein leeres Array zurückkommen
+      expect(responseB.body.data).toEqual([]);
+    });
+  });
+
   // =================================================================
   // GET /category-tree
   // =================================================================
@@ -93,8 +190,7 @@ describe("Exercise API Integration Tests (Seeded DB)", () => {
 
       expect(response.status).toBe(201);
       expect(response.body.status).toBe("success");
-      expect(response.body.data.title).toBe(payload.title);
-      expect(response.body.data.id).toBeDefined();
+      expect(response.body.message).toBe("Übung erfolgreich erstellt.");
     });
 
     it("sollte mit 400 scheitern, wenn Zod die Daten ablehnt (leerer Titel)", async () => {
@@ -122,7 +218,7 @@ describe("Exercise API Integration Tests (Seeded DB)", () => {
         .set("Cookie", cookie)
         .send({ title: "Pre-Update Body", categories: [validCategoryId] });
 
-      const myExerciseId = createRes.body.data.id;
+      const myExerciseId = createRes.body.data;
 
       const response = await request(app)
         .put("/exercise/exercise")
@@ -151,7 +247,7 @@ describe("Exercise API Integration Tests (Seeded DB)", () => {
           categories: [validCategoryId],
         });
 
-      const myExerciseId = createRes.body.data.id;
+      const myExerciseId = createRes.body.data;
 
       const response = await request(app)
         .put(`/exercise/exercise/${myExerciseId}`)
@@ -189,7 +285,7 @@ describe("Exercise API Integration Tests (Seeded DB)", () => {
           categories: [validCategoryId],
         });
 
-      const myExerciseId = createRes.body.data.id;
+      const myExerciseId = createRes.body.data;
 
       const deleteRes = await request(app)
         .delete(`/exercise/exercise/${myExerciseId}`)
