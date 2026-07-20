@@ -33,7 +33,7 @@ export const createExerciseBodySchema = z.object({
           .positive("Kategorie-ID muss größer als 0 sein."),
       ),
     )
-    .min(1, "Muss mindestens eine Kategorie enthalten.1"),
+    .min(1, "Muss mindestens eine Kategorie enthalten."),
 });
 
 export type CreateExerciseBody = z.infer<typeof createExerciseBodySchema>;
