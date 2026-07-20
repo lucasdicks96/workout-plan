@@ -1,18 +1,40 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { apiService } from "../services/apiService";
+import { useLocation } from "react-router-dom";
 import { Category, Exercise } from "../schemas/exercise.schema";
+import { apiService } from "../services/apiService";
 
 /**
- * Custom Hook zur Verwaltung von Übungen mit Kategorie-Filterung.
- * Lädt Übungen und Kategoriebaum, filtert nach Suche und ausgewählter Kategorie (inklusive Hierarchie).
- * Unterstützt Streng-Modus für Unterkategorien (schließt Geschwister aus, z. B. Trizeps bei Bizeps-Auswahl).
+ * Repräsentiert eine geglättete Kategorie im Pre-Order-DFS-Format.
+ * Diese reine Datenstruktur entkoppelt die hierarchische Baumlogik vollständig
+ * von der UI-Schicht und ermöglicht ein einfaches Rendern (z. B. in Dropdowns oder Checkbox-Listen)
+ * über die Eigenschaft `depth` zur optischen Einrückung.
+ */
+export interface FlattenedCategory {
+  /** Die eindeutige Datenbank-ID der Kategorie */
+  id: number;
+  /** Der sichtbare Name der Kategorie (z. B. "Arme" oder "Bizeps") */
+  name: string;
+  /** Die hierarchische Tiefenebene im Baum (0 = Root, 1 = Kind, 2 = Enkel usw.) */
+  depth: number;
+}
+
+/**
+ * Custom Hook zur zentralen Verwaltung und Filterung von Übungen mit Kategorie-Hierarchien.
  *
- * @param strictSubcategory - Wenn true, Unterkategorien matchen nur direkte Nachkommen/Vorfahren, ignoriert Geschwister unter demselben Parent.
- * @returns Objekt mit States, Settern und Hilfsfunktionen.
+ * Bietet folgende Kernfunktionen:
+ * - Asynchrones Laden und Deduplizieren von Übungen und Kategoriebäumen.
+ * - Hierarchisches Filtern: Wählt man eine Oberkategorie (z. B. "Arme"), matcht die Filterung auch alle Unterkategorien ("Bizeps", "Trizeps").
+ * - Streng-Modus für Unterkategorien (`strictSubcategory`): Schließt Geschwister-Kategorien bei gezielter Auswahl aus (z. B. kein Trizeps, wenn Bizeps gewählt ist).
+ * - Multi-Select mit Auto-Selection: Wählt man eine Unterkategorie, werden alle Vorfahren automatisch mitgewählt. Wählt man ab, werden alle Nachkommen automatisch entfernt.
+ * - Performantes Glätten des Kategoriebaums (`flattenCategoryTree`) mittels LIFO-Stack (Pre-Order DFS).
+ *
+ * @returns Ein Objekt mit reaktiven Zuständen, Setter-Funktionen, gefilterten Listen und Helper-Methoden.
  */
 export function useExercises() {
+  /** Wenn true, matchen Unterkategorien nur direkte Vorfahren/Nachkommen und ignorieren Geschwister im selben Ast. */
   const strictSubcategory: boolean = true;
-  const debugMode: boolean = false; // Umschaltung für Debug-Logs; in Production auf false setzen
+  /** Steuert das interne Debug-Logging in der Konsole. In Production stets auf false setzen. */
+  const debugMode: boolean = false;
 
   const [exerciseList, setExerciseList] = useState<Exercise[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -26,15 +48,21 @@ export function useExercises() {
   const [isCategoryLoading, setIsCategoryLoading] = useState<boolean>(false);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
 
+  const location = useLocation();
+
   /**
-   * Lädt alle Übungen aus API, dedupliziert nach ID und updated State.
+   * Lädt alle verfügbaren Übungen asynchron über den API-Service, dedupliziert
+   * den Datensatz anhand der eindeutigen Übungs-ID und aktualisiert den State.
+   *
+   * @async
+   * @returns {Promise<void>}
    */
   const fetchAllExercises = useCallback(async (): Promise<void> => {
     try {
       setIsLoading(true);
       const response = await apiService.getExercises();
       if (response.data && Array.isArray(response.data)) {
-        // Deduplizierung: Filtert einzigartige nach ID
+        // Deduplizierung: Behält nur das erste Vorkommen jeder Übungs-ID
         const uniqueExercises: Exercise[] = response.data.filter(
           (ex: Exercise, index: number, self: Exercise[]) =>
             index === self.findIndex((e: Exercise) => e.id === ex.id),
@@ -53,11 +81,22 @@ export function useExercises() {
   }, []);
 
   /**
-   * Extrahiert alle Kategorie-IDs aus dem Übungs-Kategoriebaum (selbst + Nachkommen).
-   * Handhabt undefinierte/ leere Arrays;
+   * Reagiert auf Änderungen des Pfades (`location.pathname`).
+   * Löst automatisch ein Neuladen aller Übungen über `fetchAllExercises()` aus,
+   * sobald der Benutzer die Übersichtsseite (`/exercises`) aufruft.
+   */
+  useEffect(() => {
+    if (location.pathname === "/exercises") {
+      fetchAllExercises();
+    }
+  }, [location.pathname, fetchAllExercises]);
+
+  /**
+   * Extrahiert rekursiv alle Kategorie-IDs aus einem Array von Kategorie-Objekten
+   * (inklusive sämtlicher verschachtelter `children`-Elemente).
    *
-   * @param categories - Array von Category-Objekten aus exercise.category.
-   * @returns Abgeflachtes Array einzigartiger IDs.
+   * @param {Category[] | undefined} categories - Array von Kategorie-Objekten (z. B. aus `exercise.category`).
+   * @returns {number[]} Ein abgeflachtes Array einzigartiger Kategorie-IDs.
    */
   const getAllCategoryIdsFromTree = useCallback(
     (categories: Category[] | undefined): number[] => {
@@ -65,7 +104,7 @@ export function useExercises() {
 
       const ids = new Set<number>();
       function recurse(cat: Category): void {
-        if (!cat || !Number.isFinite(cat.id)) return; // Guard pro Kategorie
+        if (!cat || !Number.isFinite(cat.id)) return;
         ids.add(cat.id);
         if (cat.children && Array.isArray(cat.children)) {
           cat.children.forEach(recurse);
@@ -78,8 +117,11 @@ export function useExercises() {
   );
 
   /**
-   * Lädt den Kategoriebaum aus API und updated State.
-   * Handhabt leere/ungültige Antworten.
+   * Lädt den vollständigen hierarchischen Kategoriebaum asynchron von der API
+   * und hinterlegt ihn im State.
+   *
+   * @async
+   * @returns {Promise<void>}
    */
   const fetchCategoryTree = useCallback(async (): Promise<void> => {
     try {
@@ -108,18 +150,21 @@ export function useExercises() {
   }, [fetchCategoryTree]);
 
   /**
-   * Baut eine Parent-Map aus dem Kategoriebaum für Vorfahren-Traversal.
+   * Memoisiere Map zur schnellen Traversierung von unten nach oben (Upward-Traversal).
+   * Mappt jede Kategorie-ID auf ihre direkte Parent-ID (oder `null` bei Root-Kategorien).
+   *
+   * @type {Map<number, number | null>}
    */
   const parentMap = useMemo((): Map<number, number | null> => {
     const map = new Map<number, number | null>();
     function buildParentMap(categories: Category[] | undefined): void {
-      if (!Array.isArray(categories)) return; // Guard: Ungültiger Input
+      if (!Array.isArray(categories)) return;
       categories.forEach((cat: Category) => {
         if (cat.parent_id !== undefined && Number.isFinite(cat.id)) {
           map.set(cat.id, cat.parent_id);
         }
         if (cat.children && Array.isArray(cat.children)) {
-          buildParentMap(cat.children); // Rekursiv nur für Parent-Setzung
+          buildParentMap(cat.children);
         }
       });
     }
@@ -128,35 +173,31 @@ export function useExercises() {
   }, [categoryTree]);
 
   /**
-   * Baut eine Children-Map iterativ aus Kategorie-Daten.
-   * Nutzt children-Arrays bei Nested; Fallback zu parent_id für flache Teile.
+   * Memoisiere Map für schnelle Kind-Zugriffe (Downward-Traversal).
+   * Mappt jede Kategorie-ID auf ein aufsteigend sortiertes Array der IDs ihrer direkten Kinder.
+   * Berücksichtigt sowohl verschachtelte `children`-Arrays als auch flache `parent_id`-Verweise.
    *
-   * @returns Map<ID, direkte Child-IDs>.
+   * @type {Map<number, number[]>}
    */
   const categoryMap = useMemo((): Map<number, number[]> => {
     const map = new Map<number, number[]>();
-    if (!Array.isArray(categoryTree) || categoryTree.length === 0) {
-      if (debugMode) console.warn("categoryTree leer – categoryMap empty");
-      return map;
-    }
+    if (!Array.isArray(categoryTree) || categoryTree.length === 0) return map;
 
-    // Sammle alle in flacher Liste für parent_id-Gruppierung
-    const allCategories: Category[] = []; // Flache Liste für Iteration
+    const allCategories: Category[] = [];
     function collectFlat(cats: Category[] | undefined): void {
       if (!Array.isArray(cats)) return;
       cats.forEach((cat: Category) => {
-        allCategories.push(cat); // Selbst hinzufügen
+        allCategories.push(cat);
         if (cat.children && Array.isArray(cat.children)) {
-          collectFlat(cat.children); // Iterativ sammeln
+          collectFlat(cat.children);
         }
       });
     }
     collectFlat(categoryTree);
 
-    // Nach parent_id gruppieren
     allCategories.forEach((cat: Category) => {
       const catId = Number(cat.id);
-      const parentId = cat.parent_id ? Number(cat.parent_id) : null; // parent_id aus Daten
+      const parentId = cat.parent_id ? Number(cat.parent_id) : null;
 
       if (Number.isFinite(catId)) {
         if (parentId && Number.isFinite(parentId)) {
@@ -164,11 +205,9 @@ export function useExercises() {
           const children = map.get(parentId)!;
           if (!children.includes(catId)) children.push(catId);
         } else {
-          // Root: Leere Children-Liste setzen
           if (!map.has(catId)) map.set(catId, []);
         }
 
-        // Nested-Children überschreiben, falls verfügbar
         if (cat.children && Array.isArray(cat.children)) {
           const nestedChildren = cat.children
             .map((c: Category) => Number(c.id))
@@ -178,96 +217,37 @@ export function useExercises() {
       }
     });
 
-    // Children sortieren
     map.forEach((children) => children.sort((a, b) => a - b));
-
-    if (debugMode) {
-      console.log("categoryMap built iteratively:");
-      console.log("  - Arme (4):", map.get(4)); // [20,21,22]
-      console.log("  - Alle Keys:", Array.from(map.keys()));
-    }
-
     return map;
-  }, [categoryTree, debugMode]);
-
-  // Effect für Logging von Maps und Tree (nach Initialisierung, TDZ-sicher (temporal dead zone))
-  useEffect(() => {
-    if (debugMode && categoryTree?.length > 0 && parentMap && categoryMap) {
-      const tempParentMap = parentMap;
-      const tempCategoryMap = categoryMap;
-      console.log(
-        "Global parentMap (Bizeps 20 -> Arme 4):",
-        tempParentMap.get(20),
-      );
-      console.log(
-        "Global categoryMap (Arme 4 -> [20,21,22]):",
-        tempCategoryMap.get(4),
-      );
-      console.log(
-        "Global Category Tree Roots:",
-        categoryTree.slice(0, 5).map((c) => ({ id: c.id, name: c.name })),
-      );
-    }
-  }, [categoryTree, parentMap, categoryMap, debugMode]);
-
-  // Effect für Logging von Übungen (nach Laden)
-  useEffect(() => {
-    if (
-      debugMode &&
-      exerciseList?.length > 0 &&
-      categoryTree?.length > 0 &&
-      getAllCategoryIdsFromTree
-    ) {
-      exerciseList.forEach((ex: Exercise) => {
-        if (
-          ex.category &&
-          Array.isArray(ex.category) &&
-          ex.category.length > 0
-        ) {
-          const rootIds = ex.category.map((cat: Category) => cat.id);
-          const allIds = getAllCategoryIdsFromTree(ex.category);
-          console.log(
-            `Übung "${ex.title}": Roots [${rootIds.join(
-              ", ",
-            )}], All IDs [${allIds.join(", ")}]`,
-          );
-        }
-      });
-    }
-  }, [exerciseList, categoryTree, getAllCategoryIdsFromTree, debugMode]);
+  }, [categoryTree]);
 
   /**
-   * Baut eine flache Map von ID zu Category-Objekt iterativ auf.
-   * Flacht verschachtelte Struktur ab (Roots + alle Children) für O(1)-Lookups.
+   * Memoisiere Map für O(1)-Lookups von Kategorie-Objekten anhand ihrer ID.
+   * Flacht den Baum iterativ über unendliche Hierarchie-Ebenen ab, um auch tiefe
+   * Unterkategorien direkt greifbar zu machen.
    *
-   * @returns Map<id, Category> für alle Kategorien.
+   * @type {Map<number, Category>}
    */
   const idToCategoryMap = useMemo((): Map<number, Category> => {
     const map = new Map<number, Category>();
-    if (!Array.isArray(categoryTree) || categoryTree.length === 0) {
-      if (debugMode) console.warn("categoryTree leer – idToCategoryMap empty");
-      return map;
-    }
+    if (!Array.isArray(categoryTree) || categoryTree.length === 0) return map;
 
-    // Iterativ abflachen: Sammle alle Kategorien (wichtig für Children-Suche in getAllAncestors)
     const allCategories: Category[] = [];
     categoryTree.forEach((cat: Category) => {
-      allCategories.push(cat); // Root hinzufügen
+      allCategories.push(cat);
       if (cat.children && Array.isArray(cat.children)) {
         cat.children.forEach((child: Category) => {
-          allCategories.push(child); // Direkte Child
+          allCategories.push(child);
           if (child.children && Array.isArray(child.children)) {
-            // Iterativ für Level 3+ (in deinem Fall leer; erweitert bei tieferen Bäumen)
             child.children.forEach((grand: Category) => {
               allCategories.push(grand);
-              // While-Loop für weitere Levels
               let level = grand;
               while (
                 level.children &&
                 Array.isArray(level.children) &&
                 level.children.length > 0
               ) {
-                const nextLevel = level.children[0]; // Annahme: Flach; bei mehreren Children erweitern
+                const nextLevel = level.children[0];
                 if (nextLevel) {
                   allCategories.push(nextLevel);
                   level = nextLevel;
@@ -279,7 +259,6 @@ export function useExercises() {
       }
     });
 
-    // Map bauen (Duplikate vermeiden)
     allCategories.forEach((cat: Category) => {
       const catId = Number(cat.id);
       if (Number.isFinite(catId) && !map.has(catId)) {
@@ -287,89 +266,59 @@ export function useExercises() {
       }
     });
 
-    if (debugMode) {
-      console.log(
-        "idToCategoryMap built: Size",
-        map.size,
-        "Entries: Arme(4) has parent_id:",
-        map.get(4)?.parent_id,
-        "Bizeps(20) parent_id:",
-        map.get(20)?.parent_id,
-      );
-    }
-
     return map;
-  }, [categoryTree, debugMode]);
+  }, [categoryTree]);
 
   /**
-   * Holt iterativ alle Nachkommen-IDs mit BFS (Queue).
-   * Enthält direkte Children + tiefere Levels.
+   * Ermittelt iterativ mittels Breitensuche (BFS-Queue) alle Nachkommen-IDs
+   * (Kinder, Enkel, Urenkel usw.) einer bestimmten Kategorie.
    *
-   * @param id - Start-Kategorie-ID (Parent).
-   * @param map - Map von ID zu direkten Child-IDs.
-   * @returns Array von Nachkommen-IDs (exkl. selbst).
+   * @param {number} id - Die ID der Start-Kategorie (Parent).
+   * @param {Map<number, number[]>} map - Die `categoryMap` mit den Kind-Beziehungen.
+   * @returns {number[]} Ein aufsteigend sortiertes Array aller Nachkommen-IDs (ohne die Start-ID selbst).
    */
   const getAllDescendants = useCallback(
     (id: number, map: Map<number, number[]>): number[] => {
       const numId = Number(id);
-      if (!map || !Number.isFinite(numId) || !map.has(numId)) {
-        if (debugMode)
-          console.log(`getAllDescendants(${numId}): No map/entry – []`);
-        return [];
-      }
+      if (!map || !Number.isFinite(numId) || !map.has(numId)) return [];
 
       const descendants = new Set<number>();
-      const queue: number[] = []; // BFS-Queue für schrittweises Durchlaufen
+      const queue: number[] = [];
       const directChildren = map.get(numId) || [];
 
-      if (debugMode) {
-        console.log(
-          `getAllDescendants(${numId}): Direct [${directChildren.join(", ")}]`,
-        );
-      }
-
-      // Initial: Direkte Children zu Set und Queue hinzufügen
       directChildren.forEach((childId: number) => {
         const numChild = Number(childId);
         if (Number.isFinite(numChild) && !descendants.has(numChild)) {
           descendants.add(numChild);
-          queue.push(numChild); // Für BFS-Processing
+          queue.push(numChild);
         }
       });
 
-      // BFS: Queue iterativ verarbeiten (Level 2+)
       while (queue.length > 0) {
-        const current = queue.shift()!; // Erstes Element entnehmen
+        const current = queue.shift()!;
         const children = map.get(current) || [];
 
         children.forEach((grandChildId: number) => {
           const numGrand = Number(grandChildId);
           if (Number.isFinite(numGrand) && !descendants.has(numGrand)) {
             descendants.add(numGrand);
-            queue.push(numGrand); // Nächstes Level enqueue
+            queue.push(numGrand);
           }
         });
       }
 
-      const result = Array.from(descendants).sort((a, b) => a - b);
-      if (debugMode && result.length > 0) {
-        console.log(
-          `getAllDescendants(${numId}) iterative BFS: [${result.join(", ")}]`,
-        ); // z.B. [20,21,22]
-      }
-
-      return result;
+      return Array.from(descendants).sort((a, b) => a - b);
     },
-    [debugMode],
+    [],
   );
 
   /**
-   * Holt iterativ alle Vorfahren-IDs für eine Kategorie-ID.
-   * Nutzt flache idToCategoryMap; Loop upward via parent_id.
-   * Stoppt bei Root (parent_id null);
+   * Ermittelt iterativ alle Vorfahren-IDs (Eltern, Großeltern usw.) einer Kategorie
+   * durch schrittweises Hochklettern über den `parent_id`-Verweis in der `idToCategoryMap`.
+   * Schützt sich durch ein `visited`-Set automatisch vor Endlosschleifen bei zyklischen Daten.
    *
-   * @param id - Start-Kategorie-ID.
-   * @returns Array von Vorfahren-IDs (exkl. selbst).
+   * @param {number} id - Die ID der Start-Kategorie.
+   * @returns {number[]} Ein Array aller Vorfahren-IDs (ohne die Start-ID selbst).
    */
   const getAllAncestors = useCallback(
     (id: number): number[] => {
@@ -382,25 +331,13 @@ export function useExercises() {
 
       while (currentId && !visited.has(currentId)) {
         visited.add(currentId);
-
-        // Lookup in flacher Map
         const currentCat = idToCategoryMap.get(currentId);
-        if (!currentCat) {
-          if (debugMode)
-            console.log(
-              `getAllAncestors(${numId}): No cat for ${currentId} – stop`,
-            );
-          break;
-        }
+        if (!currentCat) break;
 
         const parentId = currentCat.parent_id
           ? Number(currentCat.parent_id)
           : null;
         if (!parentId || !Number.isFinite(parentId) || visited.has(parentId)) {
-          if (debugMode)
-            console.log(
-              `getAllAncestors(${numId}): Root or cycle at ${currentId} – stop`,
-            );
           break;
         }
 
@@ -408,27 +345,24 @@ export function useExercises() {
         currentId = parentId;
       }
 
-      if (debugMode && ancestors.length > 0) {
-        console.log(`getAllAncestors(${numId}): [${ancestors.join(", ")}]`); // z.B. für 20: [4]
-      } else if (debugMode) {
-        console.log(`getAllAncestors(${numId}): [] (root or no parent)`);
-      }
-
       return ancestors;
     },
-    [idToCategoryMap, debugMode],
+    [idToCategoryMap],
   );
 
   /**
-   * Prüft, ob eine Übung zur ausgewählten Kategorie passt, unter Berücksichtigung der Baum-Hierarchie.
-   * Direkter Match: selectedCat in Übungs-Tree-IDs.
-   * Hierarchie-Match: selectedCat ist Vorfahr/Nachkomme von Übungs-IDs.
-   * Strict-Mode: Für Unterkategorien, Geschwister-Matches ausschließen (z. B. kein Trizeps bei Bizeps).
+   * Prüft, ob eine Übung zur ausgewählten Filter-Kategorie passt – unter Berücksichtigung der gesamten Baum-Hierarchie.
    *
-   * @param exerciseCategories - Kategorien aus exercise.category.
-   * @param selectedCat - Ausgewählte Kategorie-ID oder "Alle".
-   * @param exerciseTitle - Optionaler Titel für Logging.
-   * @returns True, wenn Match (direkt oder Hierarchie).
+   * Match-Logik:
+   * 1. Direkter Match: Die Übung ist exakt mit der ausgewählten Kategorie getaggt.
+   * 2. Hierarchischer Match: Die Übung liegt in einer Unterkategorie des gewählten Filters (z. B. Filter "Arme" findet Übung "Bizeps").
+   * 3. Reverse Match: Der gewählte Filter ist ein Nachkomme der Übungs-Kategorie.
+   * 4. Streng-Modus (`strictSubcategory`): Verhindert, dass Geschwister-Kategorien unter demselben Parent fälschlicherweise matchen (z. B. schließt Filter "Bizeps" reine "Trizeps"-Übungen aus, obwohl beide unter "Arme" hängen).
+   *
+   * @param {Category[] | undefined} exerciseCategories - Die dem Übungs-Objekt zugeordneten Kategorien.
+   * @param {number | "Alle"} selectedCat - Die aktuell gewählte Filter-Kategorie-ID oder der String "Alle".
+   * @param {string} [exerciseTitle] - Optionaler Übungstitel für Debug-Log-Ausgaben.
+   * @returns {boolean} `true`, wenn die Übung den Filterkriterien entspricht, sonst `false`.
    */
   const matchesCategoryWithTree = useCallback(
     (
@@ -437,7 +371,7 @@ export function useExercises() {
       exerciseTitle?: string,
     ): boolean => {
       const selCatNum = Number(selectedCat);
-      if (selectedCat === "Alle" || !Number.isFinite(selCatNum)) return true; // "Alle" matcht alles; ungültige ID -> überspringen
+      if (selectedCat === "Alle" || !Number.isFinite(selCatNum)) return true;
       if (!Array.isArray(exerciseCategories) || exerciseCategories.length === 0)
         return false;
 
@@ -457,44 +391,30 @@ export function useExercises() {
         const descendantsOfSelected = getAllDescendants(selCatNum, categoryMap);
 
         allExerciseTreeIds.forEach((exerciseId: number) => {
-          if (!Number.isFinite(exerciseId)) return; // Guard ungültige ID
+          if (!Number.isFinite(exerciseId)) return;
           const ancestorsOfExercise = getAllAncestors(exerciseId);
           if (
-            ancestorsOfSelected.includes(exerciseId) || // Übung ist Vorfahr (z.B. Arme 4 für Bizeps 20)
-            descendantsOfSelected.includes(exerciseId) || // Übung unter selectedCat
-            ancestorsOfExercise.includes(selCatNum) // selectedCat ist Vorfahr der Übung
+            ancestorsOfSelected.includes(exerciseId) ||
+            descendantsOfSelected.includes(exerciseId) ||
+            ancestorsOfExercise.includes(selCatNum)
           ) {
             hierarchyMatch = true;
           }
 
-          // Streng-Modus für Unterkategorien: Nur direkte Treffer, keine Geschwister
           if (strictSubcategory && ancestorsOfSelected.length > 0) {
-            const parent = ancestorsOfSelected[0]; // Direkter Parent (z.B. 4 für 20)
+            const parent = ancestorsOfSelected[0];
             const siblings = categoryMap.get(parent) || [];
             if (
               siblings.length > 1 &&
               !allExerciseTreeIds.includes(selCatNum)
             ) {
-              hierarchyMatch = false; // Bei mehreren Geschwistern und keinem direkten selectedCat ausschließen
+              hierarchyMatch = false;
             }
           }
         });
       }
 
-      const hasMatch = directMatch || hierarchyMatch;
-
-      // Minimales Logging: Nur bei Matches, mit Guards
-      if (debugMode && hasMatch && categoryTree?.length > 0) {
-        console.log(
-          `Match for "${
-            exerciseTitle || "Unknown"
-          }": SelectedCat ${selCatNum}, Tree IDs [${allExerciseTreeIds.join(
-            ", ",
-          )}], Direct: ${directMatch}, Hierarchy: ${hierarchyMatch}`,
-        );
-      }
-
-      return hasMatch;
+      return directMatch || hierarchyMatch;
     },
     [
       getAllCategoryIdsFromTree,
@@ -503,14 +423,16 @@ export function useExercises() {
       getAllAncestors,
       getAllDescendants,
       strictSubcategory,
-      debugMode,
       parentMap,
     ],
   );
 
   /**
-   * Memoisiertes gefiltertes und einzigartiges Übungs-Array basierend auf Suche und Kategorie.
-   * Frühe Returns bei ungeladenen States; filtert null-Kategorien.
+   * Memoisiertes Array aller Übungen, die sowohl den aktuellen Suchbegriff (`searchTerm`)
+   * im Titel enthalten als auch die hierarchischen Kategorie-Filterkriterien erfüllen.
+   * Dedupliziert das Ergebnis sicherheitshalber nach Übungs-ID.
+   *
+   * @type {Exercise[]}
    */
   const filteredExercises = useMemo((): Exercise[] => {
     if (!categoryTree?.length || !exerciseList?.length) return [];
@@ -522,7 +444,7 @@ export function useExercises() {
         !Array.isArray(ex.category) ||
         ex.category.length === 0
       ) {
-        return false; // Keine Kategorien
+        return false;
       }
       return (
         (ex.title || "").toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -530,7 +452,6 @@ export function useExercises() {
       );
     });
 
-    // Nach ID deduplizieren
     return matched.filter(
       (ex: Exercise, index: number, self: Exercise[]) =>
         index === self.findIndex((e: Exercise) => e.id === ex.id),
@@ -543,158 +464,97 @@ export function useExercises() {
     categoryTree,
   ]);
 
-  // Effect für Filter-Logging (nach Memo-Update)
-  useEffect(() => {
-    if (debugMode) {
-      console.log(
-        `Gefilterte Übungen (${selectedCategory}): ${
-          filteredExercises.length
-        } - ${filteredExercises.map((e) => e.title).join(", ")}`,
-      );
-    }
-  }, [filteredExercises, selectedCategory, debugMode]);
-
   /**
-   * Toggled Kategorien im Multi-Select um, mit hierarchischem Auto-Select/Deselect.
-   * - Bei Select: Fügt ID + alle Vorfahren (Parents) automatisch hinzu.
-   * - Bei Deselect: Entfernt ID + alle Nachkommen (Children + Enkel) automatisch.
+   * Togglet die Auswahl einer Kategorie für Multi-Select-Formulare (z. B. beim Erstellen/Bearbeiten von Übungen)
+   * und wendet eine automatische hierarchische Konsistenzlogik an:
+   * - Bei Select: Die gewählte ID sowie automatisch alle Vorfahren (Parents/Roots) werden hinzugefügt.
+   * - Bei Deselect: Die ID sowie automatisch alle untergeordneten Nachkommen (Kinder/Enkel) werden entfernt.
    *
-   * @param categoryId - Zu togglende Kategorie-ID.
+   * @param {number} categoryId - Die zu toggelnde Kategorie-ID.
    */
   const handleCategorySelect = useCallback(
     (categoryId: number): void => {
-      const numId = Number(categoryId); // Expliziter Cast: Sicherstellen von Number
+      const numId = Number(categoryId);
       if (!Number.isFinite(numId)) return;
 
       setSelectedCategories((prev: number[]) => {
-        if (!Array.isArray(prev)) return []; // Guard: Ungültiger Prev-State
-
-        // Prev zu Numbers casten (vermeidet String/Number-Mismatch)
+        if (!Array.isArray(prev)) return [];
         const prevNums = prev.map((id) => Number(id));
 
         if (prevNums.includes(numId)) {
-          // Deselect: Sammle alle zu entfernenden IDs (Parent + Nachkommen)
-          const toRemove = new Set<number>([numId]); // Mit Parent starten
-
-          // Nachkommen holen (z.B. für 4: [20,21,22])
+          // Deselect: Die ID selbst und alle untergeordneten Nachkommen entfernen
+          const toRemove = new Set<number>([numId]);
           let descendants: number[] = [];
           if (categoryMap && categoryMap.size > 0) {
             descendants = getAllDescendants(numId, categoryMap);
-          } else {
-            console.warn(
-              `categoryMap leer für Deselect ${numId} – entferne nur Parent (lade categoryTree?)`,
-            );
           }
 
           descendants.forEach((descId: number) => {
             if (Number.isFinite(descId)) {
-              toRemove.add(Number(descId)); // Cast + zu Set hinzufügen
+              toRemove.add(Number(descId));
             }
           });
 
-          if (debugMode) {
-            console.log(
-              `Deselect ${numId}: Prev [${prevNums.join(
-                ", ",
-              )}], Descendants [${descendants.join(
-                ", ",
-              )}], ToRemove [${Array.from(toRemove).join(", ")}]`,
-            );
-          }
-
-          // Einmaliger Filter: Alle toRemove entfernen
-          const newSelected = prevNums.filter(
-            (id: number) => !toRemove.has(Number(id)),
-          );
-
-          if (debugMode && descendants.length > 0) {
-            console.log(
-              `Auto-deselected ${
-                descendants.length
-              } descendants for ${numId}. New selected: [${newSelected.join(
-                ", ",
-              )}]`,
-            );
-          }
-
-          return newSelected;
+          return prevNums.filter((id: number) => !toRemove.has(Number(id)));
         } else {
-          // Select: numId + alle Vorfahren (Parents) auto hinzufügen
+          // Select: Die ID und alle übergeordneten Vorfahren hinzufügen
           const newSelected = [...prevNums, numId];
-
-          // Alle Vorfahren holen (z.B. für 20: [4])
           const ancestors = getAllAncestors(numId);
 
-          // Vorfahren hinzufügen, falls nicht da
           ancestors.forEach((ancId: number) => {
             const numAnc = Number(ancId);
             if (!newSelected.includes(numAnc) && Number.isFinite(numAnc)) {
               newSelected.push(numAnc);
-              if (debugMode) {
-                console.log(`Auto-added ancestor for ${numId}: ${numAnc}`);
-              }
             }
           });
-
-          if (debugMode && ancestors.length > 0) {
-            console.log(
-              `Auto-added ancestors for ${numId}: [${ancestors.join(
-                ", ",
-              )}]. New selected: [${newSelected.join(", ")}]`,
-            );
-          }
 
           return newSelected;
         }
       });
     },
-    [getAllAncestors, getAllDescendants, categoryMap, debugMode],
+    [getAllAncestors, getAllDescendants, categoryMap],
   );
 
   /**
-   * Rendert flache Kategorie-Optionen mit Einrückung für Dropdown.
-   * Iterativ mit Stack (pre-order DFS) für Baum-Struktur.
-   * Korrekte Reihenfolge: Parent vor Children (z. B. Arme vor Bizeps).
+   * Glättet den verschachtelten Kategoriebaum performant mittels LIFO-Stack (Pre-Order DFS Traversierung).
+   * Wandelt die baumartige Datenstruktur in eine flache, eindimensionale Liste reiner Datenobjekte um,
+   * bei der die visuelle Reihenfolge (Eltern vor Kindern) exakt gewahrt bleibt und die Einrückungsebene (`depth`)
+   * mitgeführt wird.
    *
-   * @param cats - Array von Kategorien.
-   * @param depth - Start-Tiefe für Einrückung (default 0).
-   * @returns Array von JSX option-Elementen.
+   * @param {Category[]} cats - Das Array der zu glättenden Kategorien (in der Regel die Root-Elemente).
+   * @param {number} [startDepth=0] - Die initiale Einrückungsebene (Standard: 0 für Root).
+   * @returns {FlattenedCategory[]} Ein flaches Array von Datenobjekten mit `id`, `name` und `depth`.
    */
-  const renderCategoryOptions = useCallback(
-    (cats: Category[], depth: number = 0): JSX.Element[] => {
-      if (!Array.isArray(cats)) return []; // Guard: Ungültiges Input
+  const flattenCategoryTree = useCallback(
+    (cats: Category[], startDepth: number = 0): FlattenedCategory[] => {
+      if (!Array.isArray(cats)) return [];
 
-      const options: JSX.Element[] = []; // Ergebnis: Push für korrekte pre-order
-      const stack: { cat: Category; currentDepth: number }[] = []; // Stack für DFS
+      const flatList: FlattenedCategory[] = [];
+      const stack: { cat: Category; currentDepth: number }[] = [];
 
-      // Initial: Roots in umgekehrter Reihenfolge pushen (letzter Root zuerst gepopt)
+      // Initial: Roots reverse pushen, damit LIFO von links nach rechts (bzw. oben nach unten) abarbeitet
       for (let i = cats.length - 1; i >= 0; i--) {
         const cat = cats[i];
         if (cat && Number.isFinite(cat.id)) {
-          stack.push({ cat, currentDepth: depth });
+          stack.push({ cat, currentDepth: startDepth });
         }
       }
 
-      // Stack verarbeiten (pre-order: Process vor Children push)
       while (stack.length > 0) {
-        const { cat, currentDepth } = stack.pop()!; // LIFO: Top zuerst
-        const indent = "\u00A0\u00A0 ".repeat(currentDepth); // Einrückung pro Level
+        const { cat, currentDepth } = stack.pop()!;
 
-        // Option processieren (Parent vor Children)
-        const option = (
-          <option key={cat.id} value={cat.id}>
-            {indent + cat.name}
-          </option>
-        );
-        options.push(option); // Push: Baut pre-order auf
+        flatList.push({
+          id: cat.id,
+          name: cat.name,
+          depth: currentDepth,
+        });
 
-        // Children in umgekehrter Reihenfolge pushen (first child zuerst gepopt)
         if (
           cat.children &&
           Array.isArray(cat.children) &&
           cat.children.length > 0
         ) {
-          // Reverse für korrekte left-to-right Order
+          // Kinder reverse pushen, damit das erste Kind als nächstes vom Stack gepopt wird
           [...cat.children].reverse().forEach((child: Category) => {
             if (child && Number.isFinite(child.id)) {
               stack.push({ cat: child, currentDepth: currentDepth + 1 });
@@ -703,97 +563,9 @@ export function useExercises() {
         }
       }
 
-      if (debugMode) {
-        console.log(
-          `renderCategoryOptions: Generierte ${options.length} Optionen (iterativ, pre-order)`,
-        );
-      }
-
-      return options;
+      return flatList;
     },
-    [debugMode],
-  );
-
-  /**
-   * Rendert hierarchische Checkboxes für Multi-Select.
-   * Iterativ mit Stack (pre-order DFS) für Einrückung und Hierarchie.
-   * Korrekte Reihenfolge: Parent vor Children (z. B. Arme vor Bizeps).
-   *
-   * @param cats - Array von Kategorien.
-   * @param selectedCategories - Aktuell ausgewählte IDs.
-   * @param handleCategorySelect - Toggle-Funktion.
-   * @param depth - Start-Tiefe (default 0).
-   * @returns Array von JSX label-Elementen.
-   */
-  const renderCategoryCheckboxes = useCallback(
-    (
-      cats: Category[],
-      selectedCategories: number[],
-      handleCategorySelect: (id: number) => void,
-      depth: number = 0,
-    ): JSX.Element[] => {
-      if (!Array.isArray(cats) || !Array.isArray(selectedCategories)) return []; // Guard: Ungültiges Input
-
-      const labels: JSX.Element[] = []; // Ergebnis: Push für pre-order
-      const stack: { cat: Category; currentDepth: number }[] = []; // Stack für DFS
-
-      // Initial: Roots reverse pushen (letzter Root zuerst gepopt → korrekte Order)
-      for (let i = cats.length - 1; i >= 0; i--) {
-        const cat = cats[i];
-        if (cat && Number.isFinite(cat.id)) {
-          stack.push({ cat, currentDepth: depth });
-        }
-      }
-
-      // Stack verarbeiten (pre-order: Checkbox vor Children)
-      while (stack.length > 0) {
-        const { cat, currentDepth } = stack.pop()!; // LIFO
-        const indent = " ".repeat(2 * currentDepth); // Einrückung (2 Spaces)
-
-        // Checkbox processieren
-        const checkbox = (
-          <label
-            key={cat.id}
-            style={{
-              display: "block",
-              marginLeft: `${currentDepth * 20}px`,
-              userSelect: "none",
-              padding: "2px 0",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={selectedCategories.includes(cat.id)}
-              onChange={() => handleCategorySelect(cat.id)}
-            />
-            {indent + cat.name}
-          </label>
-        );
-        labels.push(checkbox); // Push: Pre-order aufbauen
-
-        // Children reverse pushen (first child zuerst gepopt)
-        if (
-          cat.children &&
-          Array.isArray(cat.children) &&
-          cat.children.length > 0
-        ) {
-          [...cat.children].reverse().forEach((child: Category) => {
-            if (child && Number.isFinite(child.id)) {
-              stack.push({ cat: child, currentDepth: currentDepth + 1 });
-            }
-          });
-        }
-      }
-
-      if (debugMode) {
-        console.log(
-          `renderCategoryCheckboxes: Generierte ${labels.length} Checkboxes (iterativ, pre-order)`,
-        );
-      }
-
-      return labels;
-    },
-    [debugMode],
+    [],
   );
 
   return {
@@ -807,8 +579,7 @@ export function useExercises() {
     isCategoryLoading,
     categoryTree,
     fetchCategoryTree,
-    renderCategoryOptions,
-    renderCategoryCheckboxes,
+    flattenCategoryTree, // <-- Ersetzt veraltete JSX-Generatoren wie renderCategoryOptions!
     selectedCategories,
     setSelectedCategories,
     handleCategorySelect,
