@@ -9,6 +9,16 @@ import {
 
 // --- LESE-OPERATIONEN (Nutzen direkt den Pool oder einen Client) ---
 
+/**
+ * Überprüft, ob ein bestimmtes Workout (entweder ein Trainingsplan per ID oder ein absolviertes Workout per UUID)
+ * dem angegebenen Benutzer gehört.
+ *
+ * @async
+ * @param {number | string} workoutId - Die ID des Workouts (Zahl für `workout_plans`, String/UUID für `completed_workouts`).
+ * @param {string} userId - Die UUID des Benutzers zur Berechtigungsprüfung.
+ * @param {typeof pool | PoolClient} db - Die zu verwendende Datenbankverbindung (Pool oder aktiver Transaktionsclient).
+ * @returns {Promise<boolean>} Gibt `true` zurück, wenn der Benutzer der Eigentümer ist, ansonsten `false`.
+ */
 export async function ownerCheck(
   workoutId: number | string,
   userId: string,
@@ -36,6 +46,15 @@ export async function ownerCheck(
   }
 }
 
+/**
+ * Ruft alle aktiven Trainingspläne inklusive der zugehörigen Übungen und Sätze für einen bestimmten Benutzer ab.
+ *
+ * Sortiert primär nach Plantitel, sekundär nach Anzeigereihenfolge der Übungen und Tertiär nach Satznummer.
+ *
+ * @async
+ * @param {string} userId - Die UUID des Benutzers.
+ * @returns {Promise<FlatWorkoutRow[]>} Eine Liste flacher Zeilenstrukturen aller Workout-Pläne.
+ */
 export async function getWorkouts(userId: string): Promise<FlatWorkoutRow[]> {
   const result = await pool.query(
     `SELECT workout_plans.title AS plan_title,
@@ -61,6 +80,13 @@ export async function getWorkouts(userId: string): Promise<FlatWorkoutRow[]> {
   return result.rows;
 }
 
+/**
+ * Ruft einen spezifischen Trainingsplan anhand seiner ID mitsamt allen Übungen und Sätzen ab.
+ *
+ * @async
+ * @param {number} workoutId - Die ID des Workout-Plans.
+ * @returns {Promise<FlatWorkoutRow[]>} Die flache Zeilenstruktur der Übungen und Sätze des Plans.
+ */
 export async function getWorkout(workoutId: number): Promise<FlatWorkoutRow[]> {
   const result = await pool.query(
     `SELECT   workout_plans.title as plan_title,
@@ -86,6 +112,17 @@ export async function getWorkout(workoutId: number): Promise<FlatWorkoutRow[]> {
   return result.rows;
 }
 
+/**
+ * Ruft ein spezifisches absolviertes Workout anhand seiner UUID und der Benutzer-ID ab.
+ *
+ * Verwendet Left Joins und COALESCE-Ausdrücke, um auch bei Workouts ohne verknüpften Plan
+ * oder bei nachträglich hinzugefügten Übungen konsistente Daten zu liefern.
+ *
+ * @async
+ * @param {string} userId - Die UUID des Benutzers.
+ * @param {string} workoutId - Die UUID des absolvierten Workouts.
+ * @returns {Promise<FlatCompletedWorkoutRow[]>} Die flachen Zeilen des absolvierten Workouts.
+ */
 export async function getCompletedWorkout(
   userId: string,
   workoutId: string,
@@ -111,15 +148,15 @@ export async function getCompletedWorkout(
     ON        completed_workouts.id = completed_sets.completed_workout_id
     JOIN      exercises
     ON        completed_sets.exercise_id = exercises.id
-    LEFT JOIN workout_plans -- GEÄNDERT: LEFT JOIN, falls ein Workout ohne Plan gestartet wurde
+    LEFT JOIN workout_plans 
     ON        completed_workouts.workout_plan_id = workout_plans.id
-    LEFT JOIN (             -- GEÄNDERT: LEFT JOIN, damit neu hinzugefügte Übungen nicht rausfliegen
+    LEFT JOIN (             
     SELECT    workout_plan_id, exercise_id, MIN(display_order) as display_order
     FROM      plan_exercises
     GROUP BY  workout_plan_id, exercise_id)
     AS        unique_plan_exercises
     ON        completed_sets.exercise_id = unique_plan_exercises.exercise_id 
-    AND       completed_workouts.workout_plan_id = unique_plan_exercises.workout_plan_id -- GEÄNDERT: Direkt auf completed_workouts prüfen
+    AND       completed_workouts.workout_plan_id = unique_plan_exercises.workout_plan_id 
     WHERE     completed_workouts.user_id = $1
     AND       completed_workouts.id = $2
     ORDER BY  COALESCE(completed_sets.display_order, unique_plan_exercises.display_order) ASC NULLS LAST,
@@ -129,6 +166,13 @@ export async function getCompletedWorkout(
   return result.rows;
 }
 
+/**
+ * Ruft alle von einem Benutzer absolvierten Workouts ab, sortiert nach Startzeit absteigend (neueste zuerst).
+ *
+ * @async
+ * @param {string} userId - Die UUID des Benutzers.
+ * @returns {Promise<FlatCompletedWorkoutRow[]>} Eine Liste aller absolvierten Workout-Datensätze im flachen Format.
+ */
 export async function getCompletedWorkouts(
   userId: string,
 ): Promise<FlatCompletedWorkoutRow[]> {
@@ -153,9 +197,9 @@ export async function getCompletedWorkouts(
     ON        completed_workouts.id = completed_sets.completed_workout_id
     JOIN      exercises
     ON        completed_sets.exercise_id = exercises.id
-    LEFT JOIN workout_plans -- GEÄNDERT: LEFT JOIN für Workouts ohne Plan
+    LEFT JOIN workout_plans 
     ON        completed_workouts.workout_plan_id = workout_plans.id
-    LEFT JOIN (             -- GEÄNDERT: LEFT JOIN, damit nachträgliche Übungen nicht gefiltert werden
+    LEFT JOIN (             
     SELECT    workout_plan_id, exercise_id, MIN(display_order) as display_order
     FROM      plan_exercises
     GROUP BY  workout_plan_id, exercise_id)
@@ -171,60 +215,82 @@ export async function getCompletedWorkouts(
   return result.rows;
 }
 
+/**
+ * Ermittelt das chronologisch letzte absolvierte Training zu einem bestimmten Workout-Plan,
+ * um dem Benutzer die vorherigen Gewichte/Wiederholungen als Referenz anzuzeigen.
+ *
+ * @async
+ * @param {number} workoutId - Die ID des zugrundeliegenden Workout-Plans.
+ * @param {string} userId - Die UUID des Benutzers.
+ * @returns {Promise<FlatCompletedWorkoutRow[] | []>} Die Sätze des letzten Durchlaufs oder ein leeres Array.
+ */
 export async function getLastCompletedWorkout(
   workoutId: number,
   userId: string,
 ): Promise<FlatCompletedWorkoutRow[] | []> {
-  const planIdResult = await pool.query(
-    `SELECT   id
-      FROM      completed_workouts
-      WHERE     user_id = $1
-      AND       workout_plan_id = $2
-      ORDER BY  end_time DESC
-      LIMIT 1`,
-    [userId, workoutId],
+  const result = await pool.query(
+    `WITH plan_exercises_list AS (
+      -- 1. Hole alle Übungen, die aktuell in diesem Trainingsplan definiert sind
+      SELECT exercise_id 
+      FROM plan_exercises 
+      WHERE workout_plan_id = $1
+    ),
+    latest_workout_per_exercise AS (
+      -- 2. Finde für jede dieser Übungen das chronologisch allerletzte Training (unabhängig vom Plan)
+      SELECT DISTINCT ON (cs.exercise_id)
+        cs.exercise_id,
+        cs.completed_workout_id
+      FROM completed_sets cs
+      JOIN completed_workouts cw ON cs.completed_workout_id = cw.id
+      WHERE cw.user_id = $2
+        AND cs.exercise_id IN (SELECT exercise_id FROM plan_exercises_list)
+      ORDER BY cs.exercise_id, cw.end_time DESC
+    )
+    -- 3. Lade alle Sätze genau dieser letzten Durchläufe pro Übung
+    SELECT 
+      cw.id AS workout_id,
+      cw.workout_plan_id AS plan_id,
+      cw.user_id AS plan_user_id,
+      COALESCE(wp.title, cw.title) AS plan_title,
+      cw.title AS workout_title,
+      cw.duration_seconds,
+      cw.start_time,
+      cw.end_time,
+      cw.pause_seconds,
+      exercises.id AS exercise_id,
+      exercises.title,
+      COALESCE(cs.display_order, pe.display_order) AS display_order,
+      cs.set_number,
+      cs.weight,
+      cs.repetitions
+    FROM latest_workout_per_exercise lwpe
+    JOIN completed_workouts cw ON lwpe.completed_workout_id = cw.id
+    JOIN completed_sets cs ON cs.completed_workout_id = cw.id AND cs.exercise_id = lwpe.exercise_id
+    JOIN exercises ON cs.exercise_id = exercises.id
+    LEFT JOIN workout_plans wp ON cw.workout_plan_id = wp.id
+    LEFT JOIN plan_exercises pe ON pe.workout_plan_id = cw.workout_plan_id AND pe.exercise_id = cs.exercise_id
+    ORDER BY COALESCE(cs.display_order, pe.display_order) ASC NULLS LAST,
+             cs.exercise_id ASC,
+             cs.set_number ASC;`,
+    [workoutId, userId],
   );
 
-  if (planIdResult.rows.length === 0) {
-    console.log("Kein letztes Completed-Workout gefunden.");
+  if (result.rows.length === 0) {
+    console.log("Keine Historie für die Übungen dieses Plans gefunden.");
     return [];
   }
-  const lastWorkoutID: string = planIdResult.rows[0].id;
 
-  const result = await pool.query(
-    `WITH     unique_plan_exercises 
-      AS (
-      SELECT   workout_plan_id,
-                exercise_id,
-                MIN(display_order) as display_order
-      FROM     plan_exercises
-      WHERE    workout_plan_id = $1
-      GROUP BY workout_plan_id, exercise_id
-      )
-      SELECT 
-                completed_workouts.start_time AS last_workout_date,
-                completed_workouts.title AS plan_title,
-                exercises.id,
-                exercises.title,
-                completed_sets.set_number,
-                completed_sets.*, 
-                unique_plan_exercises.display_order
-      FROM      completed_workouts
-      JOIN      completed_sets
-      ON        completed_workouts.id = completed_sets.completed_workout_id
-      JOIN      exercises
-      ON        completed_sets.exercise_id = exercises.id
-      JOIN      unique_plan_exercises
-      ON        completed_sets.exercise_id = unique_plan_exercises.exercise_id 
-      AND       completed_workouts.workout_plan_id = unique_plan_exercises.workout_plan_id
-      WHERE     completed_workouts.id = $2
-      ORDER BY  unique_plan_exercises.display_order ASC, 
-                completed_sets.set_number ASC;`,
-    [workoutId, lastWorkoutID],
-  );
   return result.rows;
 }
 
+/**
+ * Berechnet aggregierte Statistiken zu den Workouts eines Benutzers
+ * (Anzahl erstellter Pläne, absolvierte Workouts und noch offene/aktive Pläne).
+ *
+ * @async
+ * @param {string} userId - Die UUID des Benutzers.
+ * @returns {Promise<{ totalPlans: number; completedWorkouts: number; activeWorkouts: number }>} Ein Objekt mit den Kennzahlen.
+ */
 export async function getWorkoutStats(userId: string): Promise<{
   totalPlans: number;
   completedWorkouts: number;
@@ -244,6 +310,15 @@ export async function getWorkoutStats(userId: string): Promise<{
   return result.rows[0];
 }
 
+/**
+ * Berechnet den prozentualen Fortschritt eines spezifischen Workout-Plans
+ * basierend auf geplanten vs. absolvierten Sätzen.
+ *
+ * @async
+ * @param {number} workoutId - Die ID des Workout-Plans.
+ * @param {string} userId - Die UUID des Benutzers.
+ * @returns {Promise<{ totalSets: number; completedSets: number; progress: number }>} Fortschrittskennzahlen.
+ */
 export async function getWorkoutProgress(
   workoutId: number,
   userId: string,
@@ -273,6 +348,16 @@ export async function getWorkoutProgress(
 
 // --- SCHREIB-OPERATIONEN (Nutzen den Client aus dem Service) ---
 
+/**
+ * Erstellt einen neuen Trainingsplan mitsamt zugehörigen Übungen und Sätzen in einer Transaktion.
+ *
+ * @async
+ * @param {PoolClient} client - Der aktive PostgreSQL-Transaktionsclient.
+ * @param {string} title - Der Titel des Trainingsplans.
+ * @param {string} userId - Die UUID des Erstellers.
+ * @param {WorkoutExercise[]} exercises - Ein Array von Übungen inklusive ihrer Sätze.
+ * @returns {Promise<number>} Die generierte ID des neu erstellten Workout-Plans.
+ */
 export async function postWorkoutPlan(
   client: PoolClient,
   title: string,
@@ -308,6 +393,21 @@ export async function postWorkoutPlan(
   return Number(planId);
 }
 
+/**
+ * Speichert ein erfolgreich absolviertes Workout mitsamt aller absolvierten Sätze in der Datenbank.
+ *
+ * @async
+ * @param {PoolClient} client - Der aktive PostgreSQL-Transaktionsclient.
+ * @param {string} userId - Die UUID des Benutzers.
+ * @param {number} workoutId - Die ID des zugrundeliegenden Plans (oder 0, falls freies Training).
+ * @param {string} title - Der Titel des absolvierten Workouts.
+ * @param {Date} startTime - Startzeitpunkt des Trainings.
+ * @param {Date} endTime - Endzeitpunkt des Trainings.
+ * @param {number} duration - Gesamtdauer in Sekunden.
+ * @param {number} pauseTime - Pausengesamtzeit in Sekunden.
+ * @param {WorkoutExercise[]} exercises - Die absolvierten Übungen und Sätze.
+ * @returns {Promise<string>} Die generierte UUID des gespeicherten Completed Workouts.
+ */
 export async function postCompletedWorkout(
   client: PoolClient,
   userId: string,
@@ -344,6 +444,15 @@ export async function postCompletedWorkout(
   return completedPlanId;
 }
 
+/**
+ * Führt einen Soft Delete für einen Trainingsplan aus (setzt `deleted_at` auf den aktuellen Zeitpunkt).
+ *
+ * @async
+ * @param {PoolClient} client - Der aktive PostgreSQL-Transaktionsclient.
+ * @param {number} workoutId - Die ID des zu löschenden Workout-Plans.
+ * @param {string} userId - Die UUID des Eigentümers.
+ * @returns {Promise<{ deletedId: number; message: string }>} Ein Bestätigungsobjekt mit der ID und Meldung.
+ */
 export async function deleteWorkout(
   client: PoolClient,
   workoutId: number,
@@ -356,6 +465,17 @@ export async function deleteWorkout(
   return { deletedId: workoutId, message: "Workout erfolgreich gelöscht" };
 }
 
+/**
+ * Aktualisiert einen bestehenden Trainingsplan, indem alte Verknüpfungen bereinigt
+ * und die übergebenen Übungen und Sätze neu eingefügt werden.
+ *
+ * @async
+ * @param {PoolClient} client - Der aktive PostgreSQL-Transaktionsclient.
+ * @param {number} workoutId - Die ID des zu aktualisierenden Workout-Plans.
+ * @param {string} title - Der neue Titel des Plans.
+ * @param {WorkoutExercise[]} exercises - Die aktualisierte Liste der Übungen und Sätze.
+ * @returns {Promise<number>} Die ID des aktualisierten Workouts.
+ */
 export async function putWorkout(
   client: PoolClient,
   workoutId: number,
@@ -394,6 +514,14 @@ export async function putWorkout(
   return workoutId;
 }
 
+/**
+ * Aktualisiert ein bereits abgeschlossenes Workout (Metadaten sowie zugehörige Sätze).
+ *
+ * @async
+ * @param {PoolClient} client - Der aktive PostgreSQL-Transaktionsclient.
+ * @param {CompletedWorkout} workout - Das aktualisierte Workout-Objekt.
+ * @returns {Promise<{ workoutId: string; userId: string; message: string }>} Metadaten zur Bestätigung der Aktualisierung.
+ */
 export async function putCompletedWorkout(
   client: PoolClient,
   workout: CompletedWorkout,
