@@ -151,8 +151,6 @@ describe("Exercise API Integration Tests (Seeded DB)", () => {
           categories: [validCategoryId],
         });
 
-      console.log("Put Operations create exercise res ", createRes.body);
-
       const myExerciseId = createRes.body.data.id;
 
       const response = await request(app)
@@ -165,7 +163,10 @@ describe("Exercise API Integration Tests (Seeded DB)", () => {
           categories: [validCategoryId],
         });
 
-      console.log("Put Operations put response: ", response.body);
+      if (response.status !== 200) {
+        console.log("Put Operations create exercise res ", createRes.body);
+        console.log("Put Operations put response: ", response.body);
+      }
 
       expect(response.status).toBe(200);
       expect(response.body.status).toBe("success");
@@ -188,16 +189,16 @@ describe("Exercise API Integration Tests (Seeded DB)", () => {
           categories: [validCategoryId],
         });
 
-      console.log("Delete /exercise/:id data: ", createRes.body.data);
-
       const myExerciseId = createRes.body.data.id;
-      console.log(createRes.body.data.id);
 
       const deleteRes = await request(app)
         .delete(`/exercise/exercise/${myExerciseId}`)
         .set("Cookie", cookie);
 
-      console.log("Delete /exercise/:id delete response: ", deleteRes.body);
+      if (deleteRes.status !== 200) {
+        console.log("Delete /exercise/:id data: ", createRes.body.data);
+        console.log("Delete /exercise/:id delete response: ", deleteRes.body);
+      }
 
       expect(deleteRes.status).toBe(200);
 
