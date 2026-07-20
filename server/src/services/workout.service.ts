@@ -88,39 +88,6 @@ export async function getWorkoutById(
   }
 }
 
-// export async function getLastWorkout(
-//   workoutId: number,
-//   userId: string,
-// ): Promise<Workout> {
-//   try {
-//     const owner = await workoutRepository.ownerCheck(workoutId, userId, pool);
-//     if (!owner) throw new NotFoundError("Workout nicht gefunden.");
-
-//     const planData = await workoutRepository.getWorkout(workoutId);
-
-//     const workoutData = await workoutRepository.getLastCompletedWorkout(
-//       workoutId,
-//       userId,
-//     );
-
-//     const data = new Set([...workoutData, ...planData]); // Kombiniere die Ergebnisse und entferne Duplikate
-//     // Da Fallback auf getWorkoutById wenn kein lastCompletedWorkout. Somit Fehler wenn kein Last Completed und ById gefunden wurde
-//     if (!Array.isArray(workoutData) || workoutData.length === 0) {
-//       throw new BadRequestError("Keine Workout-Daten gefunden.");
-//     }
-
-//     const newWorkout = buildWorkout(workoutId, Array.from(data));
-
-//     return newWorkout;
-//   } catch (error) {
-//     if (error instanceof AppError) throw error;
-//     throw new InternalServerError(
-//       "Fehler beim Abrufen des letzten Workouts.",
-//       error,
-//     );
-//   }
-// }
-
 export async function getLastWorkout(
   workoutId: number,
   userId: string,
@@ -356,8 +323,6 @@ export async function putCompletedWorkout(
       result.userId,
       result.workoutId,
     );
-
-    console.log("PUT COMPLETED WORKOUT SERVICE TEST: ", completedWorkout);
 
     return completedWorkout;
   } catch (error) {
