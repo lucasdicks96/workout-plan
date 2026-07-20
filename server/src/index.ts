@@ -13,6 +13,7 @@ import workoutRoute from "./routes/workout.route";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { doubleCsrf } from "csrf-csrf";
+import { apiLimiter, authLimiter } from "./middlewares/rateLimiter";
 env.config();
 
 const app = express();
@@ -21,44 +22,18 @@ app.use(helmet());
 
 app.set("trust proxy", "172.19.0.0/16");
 
-app.use((req, res, next) => {
-  console.log("--------------------------------");
-  console.log("Incoming Request:", req.method, req.url);
-  console.log("Remote IP:", req.ip);
-  console.log("X-Forwarded-For Header:", req.headers["x-forwarded-for"]);
-  console.log("--------------------------------");
-  next();
-});
+if (process.env.NODE_ENV === "production") {
+  app.use((req, res, next) => {
+    console.log("--------------------------------");
+    console.log("Incoming Request:", req.method, req.url);
+    console.log("Remote IP:", req.ip);
+    console.log("X-Forwarded-For Header:", req.headers["x-forwarded-for"]);
+    console.log("--------------------------------");
+    next();
+  });
+}
 
 const PostgresqlStore = pgSession(session);
-
-const authLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: process.env.NODE_ENV === "production" ? 5 : 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res, next, options) => {
-    res.status(options.statusCode).json({
-      status: "error",
-      message:
-        "Zu viele Registrierungs- oder Login-Versuche. Bitte versuchen Sie es in einer Stunde erneut.",
-      code: 429,
-    });
-  },
-});
-
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  handler: (req, res, next, options) => {
-    res.status(options.statusCode).json({
-      status: "error",
-      message:
-        "Zu viele API-Anfragen. Bitte versuchen Sie es in einer Stunde erneut.",
-      code: 429,
-    });
-  },
-});
 
 app.use(
   cors({
@@ -104,9 +79,7 @@ app.use(session(sessionConfig));
 app.use(passport.initialize());
 app.use(passport.session());
 
-const isProd = process.env.NODE_ENV === "production";
-
-if (isProd) {
+if (process.env.NODE_ENV === "production") {
   const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
     getSecret: () =>
       process.env.CSRF_SECRET || "ein-sehr-geheimes-langes-passwort",
