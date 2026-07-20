@@ -11,6 +11,7 @@ export interface CompletedWorkout {
   userId: string;
   workoutId: number;
   title: string;
+  planTitle: string;
   duration: number;
   startTime: Date;
   endTime: Date;
