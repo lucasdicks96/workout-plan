@@ -48,7 +48,7 @@ export function buildWorkout(
     }
 
     // Null-Check (`!= null` prüft auf null UND undefined):
-    // Essentiell für Übungen ohne definierte Sätze (z.B. durch SQL LEFT JOINs).
+    // Essentiell für Übungen ohne definierte Sätze (z. B. durch SQL LEFT JOINs).
     if (row.set_number != null) {
       exercise.sets.push({
         setNumber: row.set_number,
@@ -227,7 +227,7 @@ export function buildWorkoutPlansList(rows: FlatWorkoutRow[]): Workout[] {
  *    unter Verwendung eines Composite Keys (`"exerciseId-setNumber"`).
  * 2. **Plan-Konstruktion:** Baut das Workout **strikt** nach der aktuellen Plan-Vorlage auf.
  *    - Falls historische Daten zu einem Satz existieren, werden Gewicht und Wiederholungen als Vorbelegung übernommen.
- *    - Falls keine Historie existiert (z.B. bei neu im Plan hinzugefügten Übungen), werden die Zielwerte aus dem Plan (oder 0) gesetzt.
+ *    - Falls keine Historie existiert (z. B. bei neu im Plan hinzugefügten Übungen), werden die Zielwerte aus dem Plan (oder 0) gesetzt.
  *
  * @param workoutId - Die ID für das neu zu erstellende/anstehende Workout.
  * @param planRows - Flache Zeilen der aktuellen Trainingsplan-Vorlage.

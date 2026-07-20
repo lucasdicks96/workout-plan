@@ -14,7 +14,7 @@ export const CategorySchema: z.ZodType<Category> = z.lazy(() =>
     name: z.string(),
     parent_id: z.coerce.number().nullable(),
     children: z.array(CategorySchema).optional(),
-  })
+  }),
 );
 
 // 2. Exercise
@@ -36,3 +36,15 @@ export const ExerciseSetsSchema = ExerciseSchema.extend({
 });
 
 export type ExerciseSets = z.infer<typeof ExerciseSetsSchema>;
+
+/**
+ * Zod-Schema für einen einzelnen historischen Leistungssatz einer Übung.
+ */
+export const ExercisePerformanceSchema = z.object({
+  setNumber: z.coerce.number(),
+  weight: z.coerce.number(),
+  repetitions: z.coerce.number(),
+});
+
+/** TypeScript-Typ abgeleitet aus dem `ExercisePerformanceSchema`. */
+export type ExercisePerformance = z.infer<typeof ExercisePerformanceSchema>;

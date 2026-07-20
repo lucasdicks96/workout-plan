@@ -19,6 +19,16 @@ import {
   buildMergedWorkout,
 } from "../utils/workout.utils";
 
+/**
+ * Erstellt einen neuen Trainingsplan mitsamt Übungen und Sätzen innerhalb einer Transaktion.
+ *
+ * @async
+ * @param {string} title - Der Titel des neuen Trainingsplans.
+ * @param {string} userId - Die UUID des Benutzers.
+ * @param {WorkoutExercise[]} exercises - Die Liste der enthaltenen Übungen und Sätze.
+ * @returns {Promise<Workout>} Der frisch erstellte und aufgebaute Trainingsplan.
+ * @throws {InternalServerError} Wenn bei der Erstellung ein technischer Fehler auftritt.
+ */
 export async function createWorkoutPlan(
   title: string,
   userId: string,
@@ -52,6 +62,14 @@ export async function createWorkoutPlan(
   }
 }
 
+/**
+ * Ruft alle aktiven Trainingspläne eines Benutzers ab und formatiert sie in eine strukturierte Liste.
+ *
+ * @async
+ * @param {string} userId - Die UUID des Benutzers.
+ * @returns {Promise<any[]>} Eine Liste aller strukturierten Workout-Pläne.
+ * @throws {InternalServerError} Bei Datenbank- oder Verarbeitungsfehlern.
+ */
 export async function getAllWorkouts(userId: string) {
   try {
     const workoutData = await workoutRepository.getWorkouts(userId);
@@ -65,6 +83,17 @@ export async function getAllWorkouts(userId: string) {
   }
 }
 
+/**
+ * Ruft einen spezifischen Trainingsplan anhand seiner ID ab und prüft zuvor die Zugriffsberechtigung.
+ *
+ * @async
+ * @param {number} workoutId - Die ID des Workout-Plans.
+ * @param {string} userId - Die UUID des Benutzers zur Eigentümerprüfung.
+ * @returns {Promise<Workout>} Das strukturierte Workout-Objekt.
+ * @throws {NotFoundError} Wenn das Workout nicht existiert oder keine Berechtigung vorliegt.
+ * @throws {BadRequestError} Wenn keine Datensätze gefunden wurden.
+ * @throws {InternalServerError} Bei unerwarteten Fehlern.
+ */
 export async function getWorkoutById(
   workoutId: number,
   userId: string,
@@ -79,7 +108,16 @@ export async function getWorkoutById(
       throw new BadRequestError("Keine Workout-Daten gefunden.");
     }
 
-    const workout = buildWorkout(workoutId, workoutData);
+    const completedRows = await workoutRepository.getLastCompletedWorkout(
+      workoutId,
+      userId,
+    );
+
+    const workout = buildMergedWorkout(
+      workoutId,
+      workoutData,
+      completedRows || [],
+    );
 
     return workout;
   } catch (error) {
@@ -88,6 +126,17 @@ export async function getWorkoutById(
   }
 }
 
+/**
+ * Lädt die Plan-Vorlage eines Workouts und führt sie mit der Historie des letzten
+ * absolvierten Trainings zusammen (für Referenzgewichte).
+ *
+ * @async
+ * @param {number} workoutId - Die ID des Workout-Plans.
+ * @param {string} userId - Die UUID des Benutzers.
+ * @returns {Promise<Workout>} Das zusammengeführte Workout-Objekt inklusive Historie.
+ * @throws {NotFoundError} Wenn das Workout oder die Vorlage nicht gefunden wird.
+ * @throws {InternalServerError} Bei Verarbeitungsfehlern.
+ */
 export async function getLastWorkout(
   workoutId: number,
   userId: string,
@@ -102,7 +151,7 @@ export async function getLastWorkout(
       throw new NotFoundError("Trainingsplan nicht gefunden.");
     }
 
-    // 2. Lade die Historie (Kann leer sein, wenn noch nie trainiert wurde!)
+    // 2. Lade die Historie (Kann leer sein, wenn noch nie trainiert wurde)
     const completedRows = await workoutRepository.getLastCompletedWorkout(
       workoutId,
       userId,
@@ -125,6 +174,14 @@ export async function getLastWorkout(
   }
 }
 
+/**
+ * Ruft die Historie aller von einem Benutzer absolvierten Workouts ab.
+ *
+ * @async
+ * @param {string} userId - Die UUID des Benutzers.
+ * @returns {Promise<CompletedWorkout[]>} Eine Liste aller absolvierten Workouts.
+ * @throws {InternalServerError} Bei Fehlern während des Abrufs.
+ */
 export async function getCompletedWorkouts(
   userId: string,
 ): Promise<CompletedWorkout[]> {
@@ -146,6 +203,17 @@ export async function getCompletedWorkouts(
   }
 }
 
+/**
+ * Ruft die Details eines spezifischen absolvierten Workouts über seine UUID ab.
+ *
+ * @async
+ * @param {string} userId - Die UUID des Benutzers.
+ * @param {string} workoutId - Die UUID des absolvierten Workouts.
+ * @returns {Promise<CompletedWorkout>} Das strukturierte, abgeschlossene Workout.
+ * @throws {NotFoundError} Wenn kein passendes Workout gefunden wurde.
+ * @throws {BadRequestError} Wenn keine Daten vorliegen.
+ * @throws {InternalServerError} Bei technischen Fehlern.
+ */
 export async function getCompletedWorkout(
   userId: string,
   workoutId: string,
@@ -177,6 +245,23 @@ export async function getCompletedWorkout(
   }
 }
 
+/**
+ * Speichert ein erfolgreich absolviertes Training in einer atomaren Transaktion.
+ * Konvertiert Millisekunden in Sekunden für Dauer und Pausenzeiten.
+ *
+ * @async
+ * @param {number} workoutId - Die ID des zugrundeliegenden Plans.
+ * @param {string} userId - Die UUID des Benutzers.
+ * @param {Date} startTime - Startzeitpunkt.
+ * @param {Date} endTime - Endzeitpunkt.
+ * @param {number} pauseTime - Pausenzeit in Millisekunden.
+ * @param {number} duration - Gesamtdauer in Millisekunden.
+ * @param {WorkoutExercise[]} exercises - Die absolvierten Übungen und Sätze.
+ * @param {string} title - Titel des Workouts.
+ * @returns {Promise<CompletedWorkout>} Das gespeicherte, fertige Workout-Objekt.
+ * @throws {NotFoundError} Wenn der Workout-Plan nicht existiert.
+ * @throws {InternalServerError} Bei Fehlern während des Speicherns.
+ */
 export async function postCompletedWorkout(
   workoutId: number,
   userId: string,
@@ -226,12 +311,21 @@ export async function postCompletedWorkout(
   }
 }
 
+/**
+ * Führt einen Soft Delete für einen Trainingsplan innerhalb einer Transaktion aus.
+ *
+ * @async
+ * @param {number} workoutId - Die ID des zu löschenden Workouts.
+ * @param {string} userId - Die UUID des Benutzers zur Berechtigungsprüfung.
+ * @returns {Promise<{ deletedId: number; message: string }>} Das Ergebnis der Löschung.
+ * @throws {UnauthorizedError} Wenn der Benutzer keine Berechtigung besitzt.
+ * @throws {InternalServerError} Bei Transaktionsfehlern.
+ */
 export async function deleteWorkout(workoutId: number, userId: string) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
-    // Check nutzt denselben Client, damit es innerhalb der Transaktion sicher ist
     const owner = await workoutRepository.ownerCheck(workoutId, userId, client);
     if (!owner) {
       throw new UnauthorizedError(
@@ -256,6 +350,18 @@ export async function deleteWorkout(workoutId: number, userId: string) {
   }
 }
 
+/**
+ * Aktualisiert einen bestehenden Trainingsplan (Titel, Übungen und Sätze) atomar.
+ *
+ * @async
+ * @param {number} workoutId - Die ID des zu aktualisierenden Plans.
+ * @param {string} userId - Die UUID des Benutzers.
+ * @param {string} title - Der neue Titel.
+ * @param {WorkoutExercise[]} exercises - Die aktualisierte Übungsliste.
+ * @returns {Promise<Workout>} Das aktualisierte Workout-Objekt.
+ * @throws {NotFoundError} Wenn das Workout nicht gefunden wurde.
+ * @throws {InternalServerError} Bei technischen Fehlern.
+ */
 export async function putWorkout(
   workoutId: number,
   userId: string,
@@ -299,6 +405,15 @@ export async function putWorkout(
   }
 }
 
+/**
+ * Aktualisiert ein bereits absolviertes Workout (Metadaten und Sätze) innerhalb einer Transaktion.
+ *
+ * @async
+ * @param {CompletedWorkout} workout - Das aktualisierte Completed-Workout-Objekt.
+ * @returns {Promise<CompletedWorkout>} Das frisch aktualisierte absolvierte Workout.
+ * @throws {NotFoundError} Wenn das Workout nicht gefunden wurde.
+ * @throws {InternalServerError} Bei Fehlern während des Aktualisierungsprozesses.
+ */
 export async function putCompletedWorkout(
   workout: CompletedWorkout,
 ): Promise<CompletedWorkout> {
@@ -337,6 +452,14 @@ export async function putCompletedWorkout(
   }
 }
 
+/**
+ * Ermittelt allgemeine Workout-Statistiken für einen Benutzer (Anzahl Pläne, absolviert, aktiv).
+ *
+ * @async
+ * @param {string} userId - Die UUID des Benutzers.
+ * @returns {Promise<{ totalPlans: number; completedWorkouts: number; activeWorkouts: number }>} Die Statistikdaten.
+ * @throws {InternalServerError} Bei Datenbankfehlern.
+ */
 export async function getWorkoutStats(userId: string): Promise<{
   totalPlans: number;
   completedWorkouts: number;
@@ -352,6 +475,15 @@ export async function getWorkoutStats(userId: string): Promise<{
   }
 }
 
+/**
+ * Berechnet den prozentualen Fortschritt eines spezifischen Workout-Plans.
+ *
+ * @async
+ * @param {number} workoutId - Die ID des Workout-Plans.
+ * @param {string} userId - Die UUID des Benutzers.
+ * @returns {Promise<{ totalSets: number; completedSets: number; progress: number }>} Die Fortschrittskennzahlen.
+ * @throws {InternalServerError} Bei Abruf- oder Berechnungsfehlern.
+ */
 export async function getWorkoutProgress(
   workoutId: number,
   userId: string,

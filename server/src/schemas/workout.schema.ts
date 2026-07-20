@@ -1,6 +1,14 @@
 import { z } from "zod";
 
 // --- PREPROCESSOR HELPER ---
+
+/**
+ * Konvertiert unbekannte Eingangswerte (z. B. Strings aus Formularen) sicher in Zahlen.
+ * Leere Strings oder ungültige Konvertierungen geben `undefined` zurück.
+ *
+ * @param {unknown} val - Der zu konvertierende Wert.
+ * @returns {number | unknown} Die konvertierte Zahl, `undefined` oder der Originalwert.
+ */
 const preprocessNumber = (val: unknown) => {
   if (typeof val === "string") {
     const trimmed = val.trim();
@@ -13,6 +21,12 @@ const preprocessNumber = (val: unknown) => {
   return val;
 };
 
+/**
+ * Konvertiert Strings, Timestamps (Zahlen) oder Date-Instanzen sicher in ein JavaScript-`Date`-Objekt.
+ *
+ * @param {unknown} val - Der zu konvertierende Wert.
+ * @returns {Date | unknown} Das erzeugte Datumsobjekt oder den Originalwert.
+ */
 const preprocessDate = (val: unknown) => {
   if (typeof val === "string") {
     const trimmed = val.trim();
@@ -30,6 +44,10 @@ const preprocessDate = (val: unknown) => {
 
 // --- WIEDERVERWENDBARE SUB-SCHEMAS ---
 
+/**
+ * Zod-Schema für einzelne Trainingssätze (Sets) innerhalb einer Übung.
+ * Validiert Set-Nummer, Gewicht und Wiederholungen (jeweils mit Vorverarbeitung).
+ */
 export const workoutExerciseSetsSchema = z.object({
   setNumber: z.preprocess(
     preprocessNumber,
@@ -52,6 +70,9 @@ export const workoutExerciseSetsSchema = z.object({
   ),
 });
 
+/**
+ * Zod-Schema für Übungen innerhalb eines Workouts (inklusive verknüpfter Sätze).
+ */
 export const workoutExerciseSchema = z.object({
   id: z.preprocess(
     preprocessNumber,
@@ -73,6 +94,9 @@ export const workoutExerciseSchema = z.object({
 
 // --- PARAMETER SCHEMAS (URL) ---
 
+/**
+ * Zod-Schema zur Validierung von numerischen Workout-IDs in URL-Parametern.
+ */
 export const workoutIdParamSchema = z.object({
   workoutId: z
     .string()
@@ -80,12 +104,18 @@ export const workoutIdParamSchema = z.object({
     .transform(Number),
 });
 
+/**
+ * Zod-Schema zur Validierung von UUID-basierten Workout-IDs in URL-Parametern.
+ */
 export const stringIdParamSchema = z.object({
   workoutId: z.uuid("Workout ID muss eine gültige UUID sein."),
 });
 
 // --- BODY SCHEMAS (Requests) ---
 
+/**
+ * Zod-Schema zur Validierung des Request-Bodys beim Erstellen eines neuen Workout-Plans.
+ */
 export const createWorkoutBodySchema = z.object({
   title: z
     .string({ message: "Titel ist erforderlich." })
@@ -94,8 +124,13 @@ export const createWorkoutBodySchema = z.object({
     .array(workoutExerciseSchema)
     .min(1, "Es muss mindestens eine Übung vorhanden sein."),
 });
+
+/** TypeScript-Typ abgeleitet aus dem `createWorkoutBodySchema`. */
 export type CreateWorkoutBody = z.infer<typeof createWorkoutBodySchema>;
 
+/**
+ * Zod-Schema zur Validierung des Request-Bodys beim Speichern eines absolvierten Workouts.
+ */
 export const postCompletedWorkoutBodySchema = z.object({
   workoutId: z.preprocess(
     preprocessNumber,
@@ -122,10 +157,15 @@ export const postCompletedWorkoutBodySchema = z.object({
   ),
   exercises: z.array(workoutExerciseSchema).min(1, "Übungen fehlen"),
 });
+
+/** TypeScript-Typ abgeleitet aus dem `postCompletedWorkoutBodySchema`. */
 export type PostCompletedWorkoutBody = z.infer<
   typeof postCompletedWorkoutBodySchema
 >;
 
+/**
+ * Zod-Schema zur Validierung des Request-Bodys beim Aktualisieren eines absolvierten Workouts (PUT).
+ */
 export const completedWorkoutSchema = z.object({
   id: z.uuid("Ungültige ID"),
   userId: z.uuid("Ungültige User ID"),
@@ -158,4 +198,6 @@ export const completedWorkoutSchema = z.object({
     .array(workoutExerciseSchema)
     .min(1, "Es muss mindestens eine Übung vorhanden sein."),
 });
+
+/** TypeScript-Typ abgeleitet aus dem `completedWorkoutSchema` für Aktualisierungs-Payloads. */
 export type PutCompletedWorkoutBody = z.infer<typeof completedWorkoutSchema>;

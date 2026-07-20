@@ -22,10 +22,12 @@ import { getApiErrorMessage } from "../../util/errorHelper";
 /**
  * EditWorkouts
  *
- * Diese Komponente verwaltet das Bearbeiten und Löschen von Trainingsplänen.
- * Sie besitzt zwei visuelle Hauptzustände:
- * 1. Listenansicht: Zeigt alle verfügbaren Pläne an (Auswählen oder Löschen).
- * 2. Editor-Ansicht: Zeigt den `SharedWorkoutEditor` für den ausgewählten Plan an.
+ * Verwaltet das Bearbeiten und Löschen von bestehenden Trainingsplänen.
+ * Die Komponente schaltet je nach Zustand zwischen zwei Hauptansichten um:
+ * 1. **Listenansicht**: Zeigt alle vorhandenen Pläne des Nutzers an, um einen Plan zum Bearbeiten auszuwählen oder direkt zu löschen.
+ * 2. **Editor-Ansicht**: Bindet den `SharedWorkoutEditor` ein, um den Titel und die Übungsstruktur des selektierten Plans anzupassen.
+ *
+ * @returns {JSX.Element} Entweder die Plan-Übersichtsliste oder den aktiven Workout-Editor.
  */
 export default function EditWorkouts() {
   // --- Routing & Globale Hooks ---
@@ -35,30 +37,36 @@ export default function EditWorkouts() {
   const { showNotification } = useNotification();
 
   // --- State-Management ---
-  // Daten für die Listenansicht
+  /** Liste aller geladenen Trainingspläne für die Übersichts-Ansicht. */
   const [workoutPlans, setWorkoutPlans] = useState<Workout[]>([]);
 
-  // Stammdaten: Alle existierenden Übungen (werden an den Editor weitergereicht)
+  /** Master-Liste aller im System existierenden Übungen (wird an den Editor für die Auswahl übergeben). */
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
 
-  // Steuert, welcher View angezeigt wird. Null = Liste, Nummer = Editor für diese ID
+  /** 
+   * Steuert die aktive Ansicht. 
+   * `null` = Zeigt die Übersichtsliste. 
+   * `number` = Zeigt den Editor für die entsprechende Workout-ID.
+   */
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<number | null>(
     null,
   );
 
-  // Spezifische Daten des aktuell ausgewählten Workouts
+  /** Die spezifischen Übungen und Sätze des aktuell im Editor ausgewählten Workouts. */
   const [workoutExercises, setWorkoutExercises] = useState<
     WorkoutExercisesType[]
   >([]);
+  /** Der Titel des aktuell im Editor ausgewählten Workouts. */
   const [workoutName, setWorkoutName] = useState("");
 
+  /** Globaler Ladezustand für API-Anfragen. */
   const [isLoading, setIsLoading] = useState(true);
 
   // --- Daten laden (Data Fetching) ---
 
   /**
-   * Lädt einmalig beim Mounten der Komponente die Liste aller verfügbaren Übungen.
-   * Diese wird später für das Dropdown/die Auswahl im Editor benötigt.
+   * Lädt einmalig beim Mounten der Komponente den vollständigen Übungskatalog,
+   * der für das Hinzufügen von Übungen im Editor benötigt wird.
    */
   useEffect(() => {
     const fetchAllExercises = async () => {
@@ -75,12 +83,15 @@ export default function EditWorkouts() {
       }
     };
     fetchAllExercises();
-  }, []);
+  }, [showNotification]);
 
   /**
-   * Lädt die Liste aller Trainingspläne des Nutzers.
-   * Mit useCallback gewrappt, damit sie als sichere Abhängigkeit im useEffect genutzt
-   * und nach einem Speichervorgang manuell wieder aufgerufen werden kann.
+   * Lädt die Liste aller Trainingspläne des Benutzers vom Server.
+   * Mit `useCallback` gewrappt, damit die Funktion als stabile Abhängigkeit in Effects
+   * und nach erfolgreichen Speicher- oder Löschvorgängen verwendet werden kann.
+   *
+   * @async
+   * @returns {Promise<void>}
    */
   const loadAllWorkouts = useCallback(async () => {
     setIsLoading(true);
@@ -97,16 +108,19 @@ export default function EditWorkouts() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [showNotification]);
 
-  // Initiales Laden der Trainingspläne
+  // Initiales Laden der Trainingspläne beim Mounten
   useEffect(() => {
     loadAllWorkouts();
   }, [loadAllWorkouts]);
 
   /**
-   * Lädt die detaillierten Übungen und den Namen für ein spezifisches Workout.
-   * Wird nur aufgerufen, wenn der Nutzer einen Plan aus der Liste anklickt.
+   * Lädt die detaillierten Übungsdaten und den Namen für ein spezifisch ausgewähltes Workout.
+   * Wird ausgelöst, sobald `selectedWorkoutId` einen gültigen Wert annimmt.
+   *
+   * @async
+   * @returns {Promise<void>}
    */
   const loadExercises = useCallback(async () => {
     if (selectedWorkoutId === null) return;
@@ -125,14 +139,14 @@ export default function EditWorkouts() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedWorkoutId]);
+  }, [selectedWorkoutId, showNotification]);
 
-  // Reagiert auf Änderungen der selectedWorkoutId
+  // Reagiert auf Änderungen der ausgewählten Workout-ID (Öffnen/Schließen des Editors)
   useEffect(() => {
     if (selectedWorkoutId !== null) {
       loadExercises();
     } else {
-      // Cleanup: Wenn wir zur Liste zurückkehren, leeren wir den Namen des alten Workouts
+      // Cleanup: Setzt den Workout-Namen beim Verlassen des Editors zurück
       setWorkoutName("");
     }
   }, [selectedWorkoutId, loadExercises]);
@@ -140,14 +154,20 @@ export default function EditWorkouts() {
   // --- Handler-Funktionen ---
 
   /**
-   * Speichert die Änderungen am ausgewählten Trainingsplan in der Datenbank.
+   * Speichert die vorgenommenen Änderungen am aktiven Trainingsplan in der Datenbank.
+   * Zeigt bei Erfolg eine Benachrichtigung an und triggert den Schließvorgang.
+   *
+   * @async
+   * @param {string} title - Der aktualisierte Name des Trainingsplans.
+   * @param {WorkoutExercisesType[]} exercises - Die aktualisierte Liste der Übungen und Sätze.
+   * @returns {Promise<void>}
    */
   const handleSaveWorkout = async (
     title: string,
     exercises: WorkoutExercisesType[],
   ) => {
     try {
-      if (selectedWorkoutId === null) throw new Error();
+      if (selectedWorkoutId === null) throw new Error("Keine Workout-ID vorhanden");
 
       const response = await apiService.putWorkout({
         title,
@@ -161,7 +181,7 @@ export default function EditWorkouts() {
       }
     } catch (error) {
       showNotification(
-        getApiErrorMessage("Fehler beim Speichern des Trainingsplans"),
+        getApiErrorMessage(error, "Fehler beim Speichern des Trainingsplans"),
         "error",
         3000,
       );
@@ -169,22 +189,24 @@ export default function EditWorkouts() {
   };
 
   /**
-   * Setzt die ID des gewählten Plans und leitet damit den Wechsel zum Editor ein.
+   * Setzt die ID des ausgewählten Plans und leitet damit den Wechsel zur Editor-Ansicht ein.
+   *
+   * @param {number} workoutId - Die ID des anzuklickenden Trainingsplans.
    */
   const handlePlanSelect = (workoutId: number) => {
     setSelectedWorkoutId(workoutId);
   };
 
   /**
-   * Bricht die Bearbeitung ab und kehrt zur Listenansicht zurück.
+   * Bricht die Bearbeitung ab und kehrt zur Übersichtsliste zurück.
    */
   const handleBackToList = () => {
     setSelectedWorkoutId(null);
   };
 
   /**
-   * Wird aufgerufen, wenn das Erfolgs-Popup nach dem Speichern schließt.
-   * Lädt die Liste neu (damit Namensänderungen sichtbar werden) und verlässt den Editor.
+   * Cleanup nach erfolgreichem Speichern oder Löschen:
+   * Lädt die Plan-Liste neu (damit Änderungen sofort sichtbar sind) und springt zurück zur Übersicht.
    */
   const handleClosePopup = () => {
     loadAllWorkouts();
@@ -192,13 +214,17 @@ export default function EditWorkouts() {
   };
 
   /**
-   * Löscht einen Trainingsplan komplett aus der Datenbank.
+   * Löscht einen Trainingsplan unwiderruflich aus der Datenbank.
+   * Setzt den Selektions-State zurück und aktualisiert die Ansicht.
+   *
+   * @async
+   * @param {number} workoutId - Die ID des zu löschenden Trainingsplans.
+   * @returns {Promise<void>}
    */
   const handleDelete = async (workoutId: number) => {
     try {
       await apiService.deleteWorkout(workoutId);
       showNotification("Trainingsplan erfolgreich gelöscht!", "success");
-      // Fallback, falls wir gerade den Plan löschen, der evtl. noch im State hing
       setSelectedWorkoutId(null);
       handleClosePopup();
     } catch (error) {
@@ -207,7 +233,6 @@ export default function EditWorkouts() {
         "error",
         3000,
       );
-
       handleClosePopup();
     }
   };
@@ -215,17 +240,9 @@ export default function EditWorkouts() {
   // --- Render ---
   return (
     <>
-      {/* Globales Popup für Erfolgs- und Fehlermeldungen */}
-      {/* <Popup
-        ref={popupRef}
-        duration={1500}
-        onClose={handleClosePopup}
-        showBackdrop={true}
-      /> */}
-
-      {/* Bedingtes Rendern: Editor-Ansicht ODER Listen-Ansicht */}
+      {/* Bedingtes Rendern: Editor-Ansicht ODER Listen-Übersichtsansicht */}
       {selectedWorkoutId ? (
-        /* --- ANSICHT 1: Der Editor (wird nur gezeigt, wenn Daten fertig geladen sind) --- */
+        /* --- ANSICHT 1: Der Editor (wird erst gerendert, wenn die Daten fertig geladen sind) --- */
         !isLoading && (
           <SharedWorkoutEditor
             initialTitle={workoutName}
@@ -236,20 +253,20 @@ export default function EditWorkouts() {
           />
         )
       ) : (
-        /* --- ANSICHT 2: Die Listenübersicht --- */
+        /* --- ANSICHT 2: Die Listen-Übersicht --- */
         <>
           <div className={styles["exercise-list"]}>
-            {/* WorkoutPlans rendert die Karten für jeden vorhandenen Plan */}
+            {/* WorkoutPlans rendert die kartenbasierte Liste aller vorhandenen Pläne */}
             <WorkoutPlans
               isLoading={isLoading}
               workoutList={workoutPlans}
-              onClick={handlePlanSelect} // Klick auf die Karte -> Öffne Editor
-              onDelete={handleDelete} // Klick auf Löschen -> API Delete
+              onClick={handlePlanSelect} // Klick auf die Karte -> Öffnet den Editor
+              onDelete={handleDelete} // Klick auf Löschen -> Startet den API-Löschvorgang
             />
           </div>
 
           <div className={stylesButton["button-container-non-relative"]}>
-            {/* Button verlässt die "Bearbeiten"-Ansicht komplett und geht zurück zum Hub */}
+            {/* Button verlässt den Bearbeitungs-Modus komplett und kehrt zum Haupt-Hub zurück */}
             <ReturnButton
               onBack={() => navigate("/workouts")}
               className={`${stylesButton.button}`}

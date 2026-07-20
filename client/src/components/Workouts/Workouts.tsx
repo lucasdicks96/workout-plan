@@ -11,11 +11,43 @@ import EditButton from "../Buttons/EditButton";
 import PlayPauseButton from "../Buttons/PlayPauseButton";
 
 /**
+ * Die Eigenschaften (Props) für die WorkoutList-Komponente.
+ *
+ * @property {boolean} isLoading - Gibt an, ob die Trainingspläne aktuell von der API geladen werden.
+ * @property {IWorkout[]} workoutList - Array der darzustellenden Trainingspläne.
+ * @property {(workoutId: number) => void} [onClick] - Optionale Callback-Funktion, die beim Klick auf Bearbeiten/Auswählen eines Planners aufgerufen wird.
+ * @property {(workoutId: number) => void} [onDelete] - Optionale Callback-Funktion zum Löschen eines Trainingsplans.
+ */
+export interface WorkoutListProps {
+  isLoading: boolean;
+  workoutList: IWorkout[];
+  onClick?: (workoutId: number) => void;
+  onDelete?: (workoutId: number) => void;
+}
+
+/**
+ * Die Eigenschaften (Props) für die WorkoutCard-Komponente.
+ *
+ * @property {string} title - Der Name des Trainingsplans (z. B. "Push Day" oder "Ganzkörper").
+ * @property {number} workoutId - Die eindeutige Datenbank-ID des Trainingsplans.
+ * @property {(workoutId: number) => void} [onClick] - Optionale Callback-Funktion, die beim Klick auf den Bearbeiten-Button ausgeführt wird.
+ * @property {(workoutId: number) => void} [onDelete] - Optionale Callback-Funktion, die nach Bestätigung des Löschvorgangs ausgeführt wird.
+ */
+export interface WorkoutCardProps {
+  title: string;
+  workoutId: number;
+  onClick?: (workoutId: number) => void;
+  onDelete?: (workoutId: number) => void;
+}
+
+/**
  * Hauptkomponente: Workout
  *
- * Diese Komponente dient als Übersicht aller verfügbaren Trainingspläne.
- * Sie lädt die Workouts beim Mounten und bietet Navigationsmöglichkeiten zum
- * Erstellen oder Bearbeiten von Plänen.
+ * Dient als zentrale Dashboard-Übersicht aller verfügbaren Trainingspläne des Nutzers.
+ * Versteuert das initiale Laden der Daten von der API und bietet globale Navigations-Buttons
+ * zum Erstellen neuer Pläne sowie zum Wechseln in den Bearbeitungsmodus.
+ *
+ * @returns {JSX.Element} Die gerenderte Trainingsplan-Übersicht mit Aktionsleiste.
  */
 export default function Workout() {
   const [workoutList, setWorkoutList] = useState<IWorkout[]>([]);
@@ -26,9 +58,11 @@ export default function Workout() {
   useSetTitle("Trainingspläne");
 
   /**
-   * Lädt alle verfügbaren Workouts vom API-Service.
-   * useCallback wird verwendet, um die Referenz stabil zu halten und unnötige
-   * Re-Re-renders im useEffect zu vermeiden.
+   * Lädt alle verfügbaren Workouts asynchron über den API-Service.
+   * Das Ergebnis wird im State abgelegt; bei Fehlern wird eine leere Liste gefallbackt.
+   *
+   * @async
+   * @returns {Promise<void>}
    */
   const loadAllWorkouts = useCallback(async () => {
     try {
@@ -67,20 +101,18 @@ export default function Workout() {
 /**
  * Unterkomponente: WorkoutList
  *
- * Übernimmt das Mapping der Workout-Daten auf einzelne Karten.
- * Behandelt Ladezustände und Leerzustände.
+ * Übernimmt das Mapping der geladenen Workout-Daten auf einzelne Karten-Komponenten (`WorkoutCard`).
+ * Handhabt automatische UI-Fallbacks für den Ladezustand sowie für eine leere Trainingsplanliste.
+ *
+ * @param {WorkoutListProps} props - Die Eigenschaften der Komponente.
+ * @returns {JSX.Element} Die Liste der Workout-Karten oder ein entsprechender Status-Hinweis.
  */
 export function WorkoutList({
   isLoading,
   workoutList,
   onClick,
   onDelete,
-}: {
-  isLoading: boolean;
-  workoutList: IWorkout[];
-  onClick?: (workoutId: number) => void;
-  onDelete?: (workoutId: number) => void;
-}) {
+}: WorkoutListProps) {
   if (isLoading) {
     return <p className={styles["loading-text"]}>Lade Workouts...</p>;
   }
@@ -107,73 +139,85 @@ export function WorkoutList({
 /**
  * Unterkomponente: WorkoutCard
  *
- * Repräsentiert einen einzelnen Trainingsplan als Karte.
- * Enthält die Logik für:
- * 1. Anzeige (Titel, Status "In Arbeit")
- * 2. Editier-Modus (Löschen & Bearbeiten)
- * 3. Start-Logik (Prüfung auf bereits laufende Workouts im LocalStorage)
+ * Repräsentiert eine einzelne Übung als interaktive Karte im Grid/List-Layout.
+ * Passt ihr Verhalten und ihre Buttons dynamisch an die aktuelle Seiten-Route an:
+ * - Auf der Standard-Übersicht: Zeigt einen Play-Button zum Starten des Trainings und ein "In Arbeit"-Badge.
+ * - Auf der Editier-Seite: Zeigt Buttons zum Bearbeiten der Struktur oder zum Löschen des Plans.
+ *
+ * @param {WorkoutCardProps} props - Die Eigenschaften der Komponente.
+ * @returns {JSX.Element} Die gerenderte Workout-Karte.
  */
 function WorkoutCard({
   title,
   workoutId,
   onClick,
   onDelete,
-}: {
-  title: string;
-  workoutId: number;
-  onClick?: (workoutId: number) => void;
-  onDelete?: (workoutId: number) => void;
-}) {
+}: WorkoutCardProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Kontext-Variablen für UI-Zustände
+  // Kontext-Variables für UI-Zustände je nach aktueller Route
   const isEditPage: boolean = location.pathname.includes("edit-workouts");
   const isInProgress = localStorage.getItem("workoutInProgressState");
   const startedWorkoutId = localStorage.getItem("startWorkoutId");
 
-  // Konvertierung der ID aus dem Speicher
-  const startedId = parseInt(JSON.parse(startedWorkoutId || "null"));
+  /**
+   * Typsicheres Parsen der ID des aktuell laufenden Trainings aus dem LocalStorage.
+   * Verhindert `NaN`-Fehler, falls der Schlüssel nicht existiert oder `null` ist.
+   */
+  const startedId = startedWorkoutId
+    ? Number(JSON.parse(startedWorkoutId))
+    : null;
 
-  // State für die Bestätigungsansicht des Löschvorgangs
+  // State für das Aufklappen der Inline-Löschbestätigung
   const [deleteIsOpen, setDeleteIsOpen] = useState(false);
 
   /**
-   * Behandelt den Start eines Workouts.
-   * Prüft, ob bereits ein anderes Workout aktiv ist und bittet ggf. um Bestätigung,
-   * um Datenverlust zu vermeiden.
+   * Behandelt den Start- oder Fortsetzungs-Klick für diesen Trainingsplan:
+   * - Fall 1 (Kein aktives Training): Initialisiert die ID im Speicher und navigiert zur Live-Ansicht.
+   * - Fall 2 (Anderes Training aktiv): Warnt den Nutzer vor Datenverlust durch ein `window.confirm`.
+   *   Bei Bestätigung wird das alte Training überschrieben und das neue gestartet.
+   * - Fall 3 (Dieses Training aktiv): Navigiert direkt zur Ausführung, um nahtlos weiterzutrainieren.
    */
   const onStart = () => {
-    // Falls noch gar kein Workout ausgewählt wurde oder kein Fortschritt existiert
+    // Falls noch gar kein Workout ausgewählt wurde oder kein Live-Fortschritt existiert
     if (!startedWorkoutId || (startedWorkoutId && !isInProgress)) {
       localStorage.setItem("startWorkoutId", JSON.stringify(workoutId));
       navigate("start-workouts");
+      return;
     }
 
     // Logik, wenn bereits ein aktiver Fortschritt im Speicher existiert
     if (isInProgress) {
-      const progressState = JSON.parse(isInProgress);
-      const progressId = parseInt(progressState.startedWorkoutId);
+      try {
+        const progressState = JSON.parse(isInProgress);
+        const progressId = Number(progressState.startedWorkoutId);
 
-      // Falls die ID des laufenden Workouts von der aktuellen Karte abweicht
-      if (progressId !== workoutId) {
-        const confirmNew = window.confirm(
-          "Es ist bereits ein Workout im Gange. Wenn du ein neues startest, gehen die Daten des aktuellen Workouts verloren. Möchtest du wirklich ein neues Workout starten?",
-        );
-        if (!confirmNew) {
-          return;
-        } else {
-          // Alten Zustand verwerfen und neues Workout initialisieren
-          localStorage.removeItem("workoutInProgressState");
-          localStorage.setItem("startWorkoutId", JSON.stringify(workoutId));
-          navigate("start-workouts");
+        // Falls die ID des laufenden Workouts von der geklickten Karte abweicht
+        if (progressId !== workoutId) {
+          const confirmNew = window.confirm(
+            "Es ist bereits ein Workout im Gange. Wenn du ein neues startest, gehen die Daten des aktuellen Workouts verloren. Möchtest du wirklich ein neues Workout starten?",
+          );
+          if (!confirmNew) {
+            return;
+          } else {
+            // Alten Zustand verwerfen und neues Workout initialisieren
+            localStorage.removeItem("workoutInProgressState");
+            localStorage.setItem("startWorkoutId", JSON.stringify(workoutId));
+            navigate("start-workouts");
+          }
         }
-      }
 
-      // Falls es dasselbe Workout ist, einfach zur Ausführung navigieren
-      if (progressId === startedId) {
+        // Falls es dasselbe Workout ist, einfach direkt zur Ausführung navigieren
+        if (progressId === startedId) {
+          navigate("start-workouts");
+          return;
+        }
+      } catch (error) {
+        console.error("Fehler beim Prüfen des laufenden Workouts:", error);
+        // Fallback bei beschädigtem JSON im Speicher: Neu starten
+        localStorage.setItem("startWorkoutId", JSON.stringify(workoutId));
         navigate("start-workouts");
-        return;
       }
     }
   };
@@ -204,12 +248,12 @@ function WorkoutCard({
         </div>
       )}
 
-      {/* Statusanzeige: Wenn dieses spezielle Workout aktuell aktiv ist */}
+      {/* Statusanzeige: Wenn genau dieser Trainingsplan aktuell in Ausführung ist */}
       {!isEditPage && isInProgress && workoutId === startedId && (
         <span className={styles["in-progress-badge"]}>In Arbeit</span>
       )}
 
-      {/* Play-Button zum Starten/Fortsetzen (nur auf der Hauptübersicht) */}
+      {/* Play-Button zum Starten/Fortsetzen (nur auf der Hauptübersicht sichtbar) */}
       {!isEditPage && (
         <PlayPauseButton
           onStart={onStart}

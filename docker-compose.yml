@@ -1,21 +1,47 @@
+# ==============================================================================
+# Docker Compose Konfiguration
+# 
+# Multi-Container-Setup für die Produktion bestehend aus:
+# 1. Backend:  Express API-Server mit Log-Rotation und Datenbank-Anbindung
+# 2. Frontend: Nginx-Server zum Ausliefern des Web-Clients inklusive SSL-Config
+# 3. Tunnel:   Cloudflare Tunnel daemon für sicheren externen Zugriff
+# ==============================================================================
+
 version: '3.8'
 
+# ==========================================
+# Netzwerk-Definitionen
+# ==========================================
 networks:
+  # Internes Bridge-Netzwerk für die direkte Container-zu-Container Kommunikation
   fitness-network:
     driver: bridge
-  proxy_net:
-    external: true # Wichtig: Nutzt das Netzwerk, das wir vorhin erstellt haben
 
+  # Extern vordefiniertes Netzwerk zur Einbindung des Cloudflare Tunnels oder Reverse-Proxies
+  proxy_net:
+    external: true
+
+# ==========================================
+# Service-Definitionen (Anwendungs-Container)
+# ==========================================
 services:
+
+  # ----------------------------------------------------------------------------
+  # Backend Service (Node.js / Express API)
+  # ----------------------------------------------------------------------------
   backend:
     build: 
       context: .
       dockerfile: ./server/Dockerfile
+
+    # Log-Rotation zur Begrenzung der Dateigröße auf dem Host-System
     logging:
       driver: "json-file"
       options:
-        max-size: "100m"
-        max-file: "3"
+        max-size: "100m" # Maximale Größe pro Log-Datei
+        max-file: "3"    # Maximal 3 alte Log-Dateien aufbewahren
+
+    # Laufzeit-Umgebungsvariablen aus der .env-Datei
     environment:
       - PORT=${PORT}
       - NODE_ENV=production
@@ -25,31 +51,45 @@ services:
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - CSRF_SECRET=${CSRF_SECRET}
       - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY}
+
     restart: unless-stopped
     networks:
       - fitness-network
-      - proxy_net # Damit der Proxy das Backend erreichen kann
+      - proxy_net # Ermöglicht dem Cloudflare-Tunnel/Proxy den direkten Aufruf der API
 
+  # ----------------------------------------------------------------------------
+  # Frontend Service (Nginx Webserver für das Client-Build)
+  # ----------------------------------------------------------------------------
   frontend:
     build: 
       context: .
       dockerfile: ./client/Dockerfile
+      # Build-Argumente, die zur Kompilierzeit in das Frontend-Bundle (Vite) injiziert werden
       args:
         VITE_API_URL: ${VITE_API_URL}
         VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY}
+
+    # Schreibgeschütztes Einbinden der Nginx-Konfiguration und SSL-Zertifikate
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
+
+    # Start-Reihenfolge: Backend muss vor dem Frontend gestartet werden
     depends_on:
       - backend
+
     restart: unless-stopped
     networks:
       - fitness-network
       - proxy_net
 
+  # ----------------------------------------------------------------------------
+  # Cloudflare Tunnel Service (Sicherer öffentlicher Zugang ohne Port-Mapping)
+  # ----------------------------------------------------------------------------
   tunnel:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
+    # Befehl zum Herstellen der gesicherten Verbindung zu Cloudflare mittels Token
     command: tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
       - proxy_net

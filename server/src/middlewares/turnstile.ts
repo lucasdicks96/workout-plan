@@ -1,5 +1,25 @@
 import { Request, Response, NextFunction } from "express";
 
+/**
+ * Express-Middleware: `verifyTurnstile`
+ * 
+ * Validiert das Cloudflare Turnstile Bot-Abwehr-Token, das vom Client im Request-Body 
+ * (unter dem Schlüssel `turnstileToken`) mitgesendet wird.
+ * 
+ * Ablauf der Überprüfung:
+ * 1. Prüft, ob das Token im Request-Body vorhanden ist (andernfalls 400 Bad Request).
+ * 2. Sendet eine Verifizierungsanfrage an die Cloudflare Siteverify-API (`https://challenges.cloudflare.com/turnstile/v0/siteverify`) 
+ *    unter Verwendung des geheimen Schlüssels (`TURNSTILE_SECRET_KEY`) und optional der Client-IP (`remoteip`).
+ * 3. Prüft das Antwort-Ergebnis von Cloudflare. Bei ungültigem Token wird die Anfrage mit einem 403 (Forbidden) abgelehnt.
+ * 4. Bei erfolgreicher Verifizierung wird die Anfrage per `next()` an den nächsten Handler (z. B. Zod-Validierung oder Controller) weitergereicht.
+ * 5. Fängt Netzwerk- oder Serverfehler ab und gibt einen 500er (Internal Server Error) zurück.
+ *
+ * @async
+ * @param {Request} req - Das Express-Request-Objekt (erwartet `req.body.turnstileToken` und optional `req.ip`).
+ * @param {Response} res - Das Express-Response-Objekt.
+ * @param {NextFunction} next - Die Express-Next-Funktion zur Weiterleitung bei erfolgreicher Prüfung.
+ * @returns {Promise<Response | void>}
+ */
 export const verifyTurnstile = async (
   req: Request,
   res: Response,

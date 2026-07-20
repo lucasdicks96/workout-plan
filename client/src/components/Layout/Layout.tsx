@@ -10,8 +10,11 @@ import { TitleContext } from "../../context/TitleContext";
 
 /**
  * MenuIcon
- * Ein klassisches Hamburger-Menü-Icon im SVG-Format.
- * Wird auf mobilen Geräten angezeigt, um die Off-Canvas-Sidebar zu öffnen.
+ * 
+ * Ein klassisches Hamburger-Menü-Icon im skalierbaren SVG-Format.
+ * Wird primär auf mobilen Endgeräten angezeigt, um die Off-Canvas-Sidebar zu öffnen oder zu schließen.
+ *
+ * @returns {JSX.Element} Das gerenderte SVG-Icon.
  */
 const MenuIcon = () => (
   <svg
@@ -37,43 +40,46 @@ const MenuIcon = () => (
 
 /**
  * Layout
- * Die Haupt-Rahmenkomponente (Shell) der gesamten Anwendung.
- * Sie umschließt alle Unterseiten und koordiniert das Zusammenspiel zwischen
- * der Navigation (Sidebar), dem globalen Seitentitel und dem eigentlichen Inhalt.
+ * 
+ * Die Haupt-Rahmenkomponente (App Shell) der gesamten Anwendung.
+ * Sie umschließt alle Unterseiten und koordiniert das zentrale Layout-Zusammenspiel:
+ * - Stellt den `TitleContext.Provider` zur Verfügung, über den Unterseiten dynamisch den Header-Titel verändern können.
+ * - Steuert den Öffnungszustand und das responsive Verhalten der Navigation (`Sidebar`).
+ * - Rendert den Hauptinhalt über die React-Router `<Outlet />`-Komponente.
+ *
+ * @returns {JSX.Element} Das gerenderte Anwendungs-Layout inklusive Header, Sidebar und Content-Bereich.
  */
 function Layout() {
   // --- State-Management ---
 
-  // Speichert den dynamischen Titel der aktuell aufgerufenen Seite.
-  // Wird über den TitleContext von den jeweiligen Unterseiten aktualisiert.
+  /** Speichert den dynamischen Titel der aktuell aufgerufenen Seite (wird von Unterseiten via Context aktualisiert). */
   const [title, setTitle] = useState<string>("");
 
-  // Steuert die Sichtbarkeit der Sidebar auf mobilen Endgeräten.
+  /** Steuert die Sichtbarkeit und das Einblenden der Sidebar auf mobilen Endgeräten. */
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
-  // Hilfsfunktionen zum Umschalten und expliziten Schließen der Sidebar
+  /** Schaltet den Öffnungszustand der Sidebar um (Toggle). */
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+  
+  /** Schließt die Sidebar explizit (z. B. nach Klick auf einen Menüpunkt). */
   const closeSidebar = () => setIsSidebarOpen(false);
 
   return (
     /* 
       TitleContext.Provider stellt die setTitle-Funktion für alle tiefer 
-      liegenden Komponenten (wie z.B. die Exercises-Seite) zur Verfügung. 
-      Dadurch können Unterseiten den Titel im Header verändern.
+      liegenden Komponenten (wie z. B. die Übungs- oder Workout-Seiten) zur Verfügung. 
     */
     <TitleContext.Provider value={setTitle}>
       <div className={styles.layout}>
-        
         {/* Die Seitenleiste erhält den Öffnungszustand und die Funktion zum Schließen */}
         <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
-        
-        {/* Hauptbereich, der sich rechts neben der Sidebar befindet (auf Desktop) */}
+
+        {/* Hauptbereich, der sich rechts neben der Sidebar befindet (auf Desktop-Ansichten) */}
         <div className={styles.wrapper}>
-          
           {/* 
             Header-Bereich 
-            Auf Desktop: Zeigt nur den Seitentitel.
-            Auf Mobile: Zeigt zusätzlich den Hamburger-Button zum Öffnen der Sidebar.
+            - Auf Desktop: Zeigt primär den dynamischen Seitentitel.
+            - Auf Mobile: Zeigt zusätzlich den Hamburger-Menü-Button zum Öffnen der Sidebar.
           */}
           <header className={styles.header}>
             <button className={styles["menu-button"]} onClick={toggleSidebar}>
@@ -84,14 +90,13 @@ function Layout() {
 
           {/* 
             Content-Bereich
-            Das <Outlet /> von react-router-dom fungiert als Platzhalter. 
-            Hier werden die jeweiligen Unterseiten (z.B. Dashboard, Übungen) 
+            Das <Outlet /> von react-router-dom fungiert als dynamischer Platzhalter. 
+            Hier werden die jeweiligen Unterseiten (z. B. Dashboard, Übungen, Verlauf) 
             hineingerendert, je nachdem, auf welcher Route sich der User befindet.
           */}
           <main className={styles.content}>
             <Outlet />
           </main>
-          
         </div>
       </div>
     </TitleContext.Provider>

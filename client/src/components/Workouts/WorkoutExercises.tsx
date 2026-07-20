@@ -7,27 +7,53 @@ import {
   WorkoutExercises as WorkoutExercisesType,
 } from "../../schemas/workout.schema";
 
+/**
+ * Die Eigenschaften (Props) für die WorkoutExercises-Komponente.
+ */
 type WorkoutExercisesProps = {
+  /** Die Liste aller im aktuellen Workout enthaltenen Übungen und Sätze. */
   workoutList: WorkoutExercisesType[];
+  /** Callback-Funktion zum Aktualisieren eines spezifischen Feldes (Gewicht oder Wiederholungen). */
   onUpdate?: (
     key: number,
     setIndex: number,
     field: keyof WorkoutExerciseSets,
     value: string,
   ) => void;
+  /** Callback-Funktion zum Hinzufügen eines neuen Satzes zu einer bestimmten Übung. */
   onAddSet?: (key: number) => void;
+  /** Callback-Funktion zum Löschen des letzten Satzes einer Übung. */
   onRemoveSet?: (key: number) => void;
+  /** Optionaler Callback zum Entfernen einer kompletten Übung aus dem Workout. */
   onRemove?: (key: number) => void;
+  /** Optionaler Callback für den Zurück-Button. */
   onBack?: () => void;
+  /** Callback zum Aktualisieren der Reihenfolge nach einer erfolgreichen Drag-&-Drop-Operation. */
   onReorderWorkoutList?: (workoutList: WorkoutExercisesType[]) => void;
 };
 
+/**
+ * Repräsentiert das aktuell im Fokus stehende Eingabefeld, 
+ * damit die +/- Quick-Buttons wissen, ob gerade Wiederholungen oder Gewicht angepasst werden sollen.
+ */
 type ActiveInput = {
   exerciseKey: number;
   setIndex: number;
   field: keyof WorkoutExerciseSets;
 };
 
+/**
+ * Eine performante, interaktive Komponenten-Ansicht zur Verwaltung der Übungen und Sätze in einem Workout.
+ * 
+ * Bietet folgende Kernfunktionen:
+ * - HTML5 Drag & Drop zum intuitiven Umsortieren der Übungsreihenfolge (`onReorderWorkoutList`).
+ * - Direktes Bearbeiten von Wiederholungen und Gewichten in Eingabefeldern.
+ * - Quick-Increment/Decrement Buttons (+/-) für die schnelle Bedienung am Smartphone.
+ * - Memoisiert (`memo`), um unnötige Re-Renders bei reinen Timer- oder UI-Änderungen in Elternkomponenten zu verhindern.
+ *
+ * @param {WorkoutExercisesProps} props - Die Eigenschaften der Komponente.
+ * @returns {JSX.Element} Die gerenderte Liste aller Workout-Übungen oder einen leeren Hinweis-Text.
+ */
 function WorkoutExercises({
   workoutList,
   onUpdate,
@@ -36,20 +62,39 @@ function WorkoutExercises({
   onRemoveSet,
   onReorderWorkoutList,
 }: WorkoutExercisesProps) {
+  /** Speichert das aktuell fokussierte Input-Feld für die +/- Steuerung. */
   const [activeInput, setActiveInput] = useState<ActiveInput | null>(null);
+  /** Speichert den Array-Index des Übungskartenelements, das gerade per Drag & Drop bewegt wird. */
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
+  /**
+   * Event-Handler beim Start des Drag-Vorgangs einer Übungskarte.
+   * 
+   * @param {number} index - Der Index der gezogenen Übung.
+   * @returns Ein React DragEvent-Listener.
+   */
   const onDragStart =
     (index: number) => (event: React.DragEvent<HTMLDivElement>) => {
       setDraggedIdx(index);
       event.dataTransfer.effectAllowed = "move";
     };
 
+  /**
+   * Verhindert das Standardverhalten beim Ziehen über ein gültiges Drop-Ziel,
+   * damit das Drop-Event ausgelöst werden darf.
+   */
   const onDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
   };
 
+  /**
+   * Event-Handler beim Loslassen (Drop) einer Übungskarte an einer neuen Position.
+   * Berechnet die neue Array-Reihenfolge und stößt die Neusortierung an.
+   *
+   * @param {number} index - Der Ziel-Index an der Drop-Position.
+   * @returns Ein React DragEvent-Listener.
+   */
   const onDrop =
     (index: number) => (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
@@ -70,6 +115,17 @@ function WorkoutExercises({
     return <p>Dieses Workout enthält keine Übungen.</p>;
   }
 
+  /**
+   * Erhöht oder verringert den Wert des aktiven Inputs (Gewicht oder Wiederholungen)
+   * um einen bestimmten Betrag (z. B. +1 oder -1) über die Quick-Buttons.
+   * 
+   * Ermittelt anhand von `activeInput`, welches Feld (Repetitions oder Weight) gerade im Fokus ist,
+   * und verhindert negative Werte (< 0).
+   *
+   * @param {number} exerciseKey - Die ID der Übung.
+   * @param {number} setIndex - Der Index des Satzes.
+   * @param {number} amount - Der Betrag, um den der Wert verändert werden soll (z. B. 1 oder -1).
+   */
   const handleValueChange = (
     exerciseKey: number,
     setIndex: number,
@@ -77,6 +133,7 @@ function WorkoutExercises({
   ) => {
     if (!onUpdate) return;
 
+    // Fallback auf Wiederholungen, falls kein Input im Fokus ist
     let targetField: keyof WorkoutExerciseSets = "repetitions";
 
     if (
@@ -110,7 +167,6 @@ function WorkoutExercises({
             onDrop={onDrop(idx)}
             className={`${stylesWorkoutExercises.card}`}
             style={{
-              // minHeight: "fit-content",
               boxShadow:
                 draggedIdx === idx ? "0 4px 12px rgba(0, 0, 0, 0.3)" : "none",
               border: draggedIdx === idx ? "2px solid #2196f3" : undefined,

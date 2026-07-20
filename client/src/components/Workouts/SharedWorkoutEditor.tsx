@@ -14,20 +14,22 @@ import { Exercise } from "../../schemas/exercise.schema";
 // ==========================================
 
 /**
- * Props für den SharedWorkoutEditor
- * Diese Komponente ist generisch aufgebaut, damit sie von verschiedenen übergeordneten
- * Komponenten (z.B. "Neuen Plan erstellen" oder "Historie bearbeiten") genutzt werden kann.
+ * Die Eigenschaften (Props) für den SharedWorkoutEditor.
+ * 
+ * Diese Komponente ist modular und generisch aufgebaut, damit sie flexibel
+ * von verschiedenen übergeordneten Ansichten (z. B. "Neuen Plan erstellen", "Plan bearbeiten" 
+ * oder "Historie nachträglich korrigieren") wiederverwendet werden kann.
  */
-interface SharedWorkoutEditorProps {
-  /** Der anfängliche Name des Workouts (leer bei Neu-Erstellung, befüllt bei Editierung) */
+export interface SharedWorkoutEditorProps {
+  /** Der anfängliche Name des Workouts (leer bei Neu-Erstellung, vorausgefüllt bei Editierung). */
   initialTitle: string;
-  /** Die Liste der bereits vorhandenen Übungen und Sätze */
+  /** Die Liste der bereits im Workout vorhandenen Übungen und Sätze. */
   initialExercises: WorkoutExercisesType[];
-  /** Die Master-Liste aller existierenden Übungen (für den Auswahl-Bildschirm) */
+  /** Die vollständige Master-Liste aller existierenden Übungen (wird für den Auswahl-Bildschirm benötigt). */
   allExercises: Exercise[];
-  /** Callback, der ausgelöst wird, wenn der Nutzer speichert und alle Validierungen bestanden sind */
+  /** Asynchrone Callback-Funktion, die beim Klick auf Bestätigen nach erfolgreicher Validierung ausgelöst wird. */
   onSave: (title: string, exercises: WorkoutExercisesType[]) => Promise<void>;
-  /** Callback, der ausgelöst wird, wenn der Nutzer die Bearbeitung abbricht */
+  /** Callback-Funktion, die beim Abbrechen der Bearbeitung (Zurück-Button) ausgeführt wird. */
   onCancel: () => void;
 }
 
@@ -38,9 +40,16 @@ interface SharedWorkoutEditorProps {
 /**
  * SharedWorkoutEditor
  *
- * Das visuelle Herzstück für die Workout-Bearbeitung.
- * Kapselt die UI für die Eingabe des Namens, das Auflisten der Übungen (inkl. Sätze, Reps, Gewicht),
- * die Validierung vor dem Speichern und das Umschalten zur Übungsauswahl.
+ * Das visuelle Herzstück und der zentrale Editor für die Erstellung und Bearbeitung von Workouts.
+ * 
+ * Kapselt die gesamte Benutzeroberfläche und Steuerung für:
+ * - Die Eingabe des Trainingsplan-Namens.
+ * - Das Verwalten, Sortieren (Drag & Drop) und Bearbeiten von Übungsblöcken und Sätzen (via `useWorkoutManager`).
+ * - Umfassende Frontend-Validierungen vor dem Abspeichern (Name vorhanden, mindestens 1 Übung, mindestens 1 Satz pro Übung).
+ * - Das Umschalten zwischen dem Editor und dem Übungs-Auswahlkatalog (`ExerciseSelectionList`).
+ *
+ * @param {SharedWorkoutEditorProps} props - Die Eigenschaften der Komponente.
+ * @returns {JSX.Element} Entweder den Übungs-Auswahlbildschirm oder den aktiven Workout-Editor.
  */
 export default function SharedWorkoutEditor({
   initialTitle,
@@ -54,7 +63,7 @@ export default function SharedWorkoutEditor({
   const [error, setError] = useState<string | null>(null);
 
   // --- Custom Hook für die Workout-Logik ---
-  // Lagert die komplexe Logik (Hinzufügen/Entfernen von Sätzen, Reordering etc.) aus der UI aus.
+  // Lagert die komplexe Logik (Hinzufügen/Entfernen von Sätzen, Reordering, State-Mutationen) aus der UI aus.
   const {
     workoutList,
     isSelecting,
@@ -70,12 +79,19 @@ export default function SharedWorkoutEditor({
   // --- Aktionen ---
 
   /**
-   * handleConfirm
-   * Prüft die Benutzereingaben auf Gültigkeit, bevor die Daten an die
-   * Eltern-Komponente (`onSave`) übergeben werden.
+   * Prüft die Benutzereingaben auf vollständige Gültigkeit, bevor die Daten
+   * an die übergeordnete `onSave`-Funktion übergeben werden.
+   * 
+   * Validierungsregeln:
+   * 1. Der Workout-Name darf nach dem Trimmen nicht leer sein.
+   * 2. Das Workout muss mindestens eine Übung enthalten.
+   * 3. Jede einzelne Übung muss mindestens einen aktiven Satz besitzen.
+   *
+   * @async
+   * @returns {Promise<void>}
    */
   const handleConfirm = async () => {
-    // 1. Validierung: Hat das Workout einen Namen?
+    // 1. Validierung: Hat das Workout einen gültigen Namen?
     if (workoutName.trim().length === 0) {
       return setError("Trainingsname darf nicht leer sein.");
     }
@@ -90,32 +106,32 @@ export default function SharedWorkoutEditor({
       return setError("Jede Übung muss mindestens einen Satz enthalten.");
     }
 
-    // Wenn alles okay ist: Fehler zurücksetzen und Speichervorgang einleiten
+    // Wenn alle Prüfungen bestanden sind: Fehler zurücksetzen und Speichervorgang einleiten
     setError(null);
     await onSave(workoutName, workoutList);
   };
 
   // --- Bedingtes Rendering ---
 
-  // Wenn der Nutzer auf "Übung hinzufügen" geklickt hat, zeigen wir nur den Auswahl-Bildschirm.
+  // Wenn der Nutzer auf "Übung hinzufügen" geklickt hat, wird temporär nur der Auswahl-Bildschirm angezeigt.
   if (isSelecting) {
     return (
       <ExerciseSelectionList
         allExercises={allExercises}
-        onBack={() => setIsSelecting(false)} // Bricht die Auswahl ab und kehrt zum Editor zurück
+        onBack={() => setIsSelecting(false)} // Schließt die Auswahl und kehrt zum Editor zurück
         workoutList={workoutList}
         onSelectExercise={addExerciseToWorkout} // Fügt die gewählte Übung dem aktuellen Workout hinzu
       />
     );
   }
 
-  // Standard-Ansicht: Der Workout-Editor
+  // Standard-Ansicht: Der eigentliche Workout-Editor
   return (
     <>
-      {/* Anzeige von Validierungsfehlern (z.B. fehlender Name) */}
+      {/* Anzeige von Validierungsfehlern (z. B. bei leerem Namen oder fehlenden Sätzen) */}
       {error && <p style={{ color: "var(--c-danger)" }}>{error}</p>}
 
-      {/* Eingabefeld für den Workout-Namen */}
+      {/* Eingabefeld für den Namen des Trainingsplans */}
       <input
         className="input"
         name="name"
@@ -128,13 +144,13 @@ export default function SharedWorkoutEditor({
 
       {/* 
         WorkoutExercises
-        Verwaltet das Rendern der einzelnen Übungsblöcke (inklusive Drag & Drop Reordering).
+        Verwaltet das Rendern der einzelnen Übungsblöcke und Sätze (inklusive Drag-&-Drop-Reordering).
       */}
       <WorkoutExercises
         onReorderWorkoutList={reorderWorkoutList}
         onRemove={removeExerciseFromWorkout}
         onUpdate={(key, setIndex, field, value) => {
-          // Typkonvertierung: Input-Felder liefern Strings, aber wir speichern Gewichte/Reps als Numbers
+          // Typkonvertierung: HTML-Input-Felder liefern Strings, aber wir speichern Gewichte/Reps als Numbers
           const numericValue = Number(value);
           if (!isNaN(numericValue)) {
             updateExerciseInWorkout(key, setIndex, field, numericValue);
@@ -145,13 +161,13 @@ export default function SharedWorkoutEditor({
         onRemoveSet={handleRemoveSet}
       />
 
-      {/* Aktionsleiste am unteren Rand */}
+      {/* Aktionsleiste am unteren Bildschirmrand */}
       <div className={stylesButton["button-container"]}>
         <ReturnButton
           onBack={onCancel}
           className={`${stylesButton.left} ${stylesButton.button}`}
         />
-        {/* Aktiviert den Auswahl-Modus (isSelecting = true), wodurch die Ansicht wechselt */}
+        {/* Aktiviert den Auswahl-Modus (isSelecting = true), wodurch die Ansicht auf die Übungsliste wechselt */}
         <AddButton onAdd={() => setIsSelecting(true)} />
         <ConfirmButton
           onConfirm={handleConfirm}

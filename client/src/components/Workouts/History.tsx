@@ -10,24 +10,37 @@ import { CompletedWorkout } from "../../schemas/workout.schema";
 import EditButton from "../Buttons/EditButton";
 
 /**
+ * Die Eigenschaften (Props) für die HistoryItem-Komponente.
+ *
+ * @property {CompletedWorkout} workout - Das vollständige Objekt des absolvierten Workouts.
+ */
+export interface HistoryItemProps {
+  workout: CompletedWorkout;
+}
+
+/**
  * Hauptkomponente: History
  *
- * Diese Seite zeigt eine chronologische Liste aller vom Benutzer absolvierten Workouts an.
- * Sie lädt die Daten beim Mounten über den apiService und behandelt potenzielle
- * Netzwerkfehler spezifisch für Axios oder allgemeine Serverfehler.
+ * Diese Seite zeigt eine chronologische Übersicht aller vom Benutzer erfolgreich absolvierten Workouts an.
+ * Sie lädt die Verlaufsdaten beim Mounten über den `apiService` und behandelt potenzielle
+ * Netzwerk- oder Serverfehler spezifisch über Axios-Fehlerprüfungen.
+ *
+ * @returns {JSX.Element} Die gerenderte Historien-Liste oder einen leeren Platzhalter-Hinweis.
  */
 export default function History() {
-  // State für die Liste der abgeschlossenen Workouts
   const [workouts, setWorkouts] = useState<CompletedWorkout[]>([]);
   const { user } = useAuth();
 
-  // Setzt den Titel im globalen Layout-Context
+  // Setzt den Seitentitel im globalen Layout-Context
   useSetTitle("Verlauf");
 
   /**
-   * Lädt die Workout-Historie vom Server.
-   * useCallback stellt sicher, dass die Funktion nur neu erstellt wird,
-   * wenn sich das User-Objekt ändert.
+   * Lädt die Workout-Historie asynchron vom Server, sofern ein authentifizierter Nutzer vorliegt.
+   * Fängt Fehler ab und unterscheidet dabei zwischen Axios-spezifischen Fehlermeldungen 
+   * und allgemeinen Serverausfällen.
+   *
+   * @async
+   * @returns {Promise<void>}
    */
   const loadWorkout = useCallback(async () => {
     try {
@@ -36,7 +49,7 @@ export default function History() {
 
       setWorkouts(response.data);
     } catch (error) {
-      // Spezifische Fehlerbehandlung für Axios-Requests
+      // Spezifische Fehlerbehandlung für Axios-Anfragen
       if (isAxiosError(error)) {
         if (
           error.response &&
@@ -48,25 +61,25 @@ export default function History() {
           console.error("Fehler beim Laden der Workouts");
         }
       } else {
-        // Fallback für nicht-netzwerkbezogene Fehler
+        // Fallback für nicht-netzwerkbezogene oder unerwartete Fehler
         console.error("Interner Serverfehler");
       }
     }
   }, [user]);
 
-  // Effekt zum initialen Laden der Daten
+  // Effekt zum initialen Laden der Verlaufsdaten beim Mounten oder Benutzerwechsel
   useEffect(() => {
     loadWorkout();
   }, [loadWorkout]);
 
   return (
     <>
-      {/* Anzeige eines Platzhalters, falls die Liste leer ist */}
+      {/* Anzeige eines Platzhalters, falls noch keine Workouts absolviert wurden */}
       {!workouts || workouts.length === 0 ? (
         <div>Bisher wurden keine Workouts absolviert</div>
       ) : (
         <div className={styles["exercise-list"]}>
-          {/* Mappen der Workouts auf die HistoryItem-Komponente */}
+          {/* Mappen der abgeschlossenen Workouts auf einzelne HistoryItem-Karten */}
           {workouts.map((workout) => (
             <HistoryItem key={workout.id} workout={workout} />
           ))}
@@ -77,18 +90,19 @@ export default function History() {
 }
 
 /**
- * Hilfskomponente: HistoryItem
+ * Unterkomponente: HistoryItem
  *
- * Repräsentiert eine einzelne Karte im Verlauf.
- * Zeigt den Titel des Workouts sowie das formatierte Datum und die Uhrzeit an.
- * Ermöglicht die Navigation zur Bearbeitungsseite des spezifischen Verlaufs-Eintrags.
+ * Repräsentiert eine einzelne Karte im Trainingsverlauf.
+ * Zeigt den Titel des abgeschlossenen Workouts sowie das lokalisierte Startdatum und die Uhrzeit an.
+ * Bietet einen Bearbeitungs-Button, der zur Detailansicht/Korrektur dieses spezifischen Eintrags navigiert.
  *
- * @param workout Das Objekt des abgeschlossenen Workouts
+ * @param {HistoryItemProps} props - Die Eigenschaften der Komponente.
+ * @returns {JSX.Element} Die gerenderte Verlaufskarte.
  */
-const HistoryItem = ({ workout }: { workout: CompletedWorkout }) => {
+const HistoryItem = ({ workout }: HistoryItemProps) => {
   const navigate = useNavigate();
 
-  // Konvertierung des ISO-Zeitstempels in ein JavaScript Date-Objekt
+  // Konvertierung des ISO-Zeitstempels in ein lesbares JavaScript-Date-Objekt
   const date = new Date(workout.startTime);
 
   return (

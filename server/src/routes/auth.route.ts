@@ -18,11 +18,26 @@ import {
 
 const router = Router();
 
+/**
+ * Hilfsfunktion, die die Callback-basierte Passport-Login-Methode (`req.logIn`) 
+ * in eine moderne Promise-basierte Syntax wrappt.
+ *
+ * @async
+ * @param {Request} req - Das Express-Request-Objekt.
+ * @param {Express.User} user - Das zu registrierende/anzumeldende Benutzerobjekt.
+ * @returns {Promise<void>}
+ */
 const logInAsync = (req: Request, user: Express.User) =>
   new Promise<void>((resolve, reject) => {
     req.logIn(user, (err) => (err ? reject(err) : resolve()));
   });
 
+/**
+ * POST /register
+ * 
+ * Registriert einen neuen Benutzer, validiert das Cloudflare Turnstile Token,
+ * prüft die Anmeldedaten über Zod und loggt den Benutzer nach erfolgreicher Erstellung sofort ein.
+ */
 router.post(
   "/register",
   verifyTurnstile,
@@ -48,6 +63,12 @@ router.post(
   },
 );
 
+/**
+ * POST /login
+ * 
+ * Führt eine Vorvalidierung der Anmeldedaten über Zod durch, authentifiziert den Benutzer 
+ * über Passport Local Strategy und initialisiert die Benutzersitzung.
+ */
 router.post(
   "/login",
   (
@@ -55,7 +76,7 @@ router.post(
     res: Response<ApiResponse<UserWithoutPassword>>,
     next: NextFunction,
   ) => {
-    // Pre-Validierung vor Passport
+    // Pre-Validierung vor Passport, um ungültige Formate frühzeitig abzufangen
     try {
       authCredentialsSchema.parse(req.body);
     } catch (error) {
@@ -88,6 +109,12 @@ router.post(
   },
 );
 
+/**
+ * GET /status
+ * 
+ * Prüft den Authentifizierungsstatus des aktuellen Clients und gibt 
+ * die Benutzerdaten zurück, sofern eine aktive und gültige Session vorliegt.
+ */
 router.get(
   "/status",
   isAuthenticated,
@@ -108,6 +135,12 @@ router.get(
   ),
 );
 
+/**
+ * POST /logout
+ * 
+ * Beendet die aktuelle Sitzung des Benutzers, zerstört den Session-Store in PostgreSQL 
+ * und löscht sowohl das Connect-SID-Cookie als auch das CSRF-Token-Cookie im Browser.
+ */
 router.post(
   "/logout",
   async (req: Request, res: Response<ApiResponse>, next: NextFunction) => {
@@ -127,7 +160,7 @@ router.post(
 
       const isProduction = process.env.NODE_ENV === "production";
 
-      // 2. Session-Cookie im Browser löschen (mit exakten Optionen!)
+      // 2. Session-Cookie im Browser löschen (mit exakten Sicherheitsoptionen)
       res.clearCookie("connect.sid", {
         path: "/",
         httpOnly: true,
@@ -135,7 +168,7 @@ router.post(
         secure: isProduction,
       });
 
-      // 3. NEU: Auch das CSRF-Cookie löschen
+      // 3. Auch das CSRF-Cookie (je nach Umgebung mit entsprechendem Präfix) löschen
       const csrfCookieName = isProduction ? "__Host-xsrf-token" : "xsrf-token";
       res.clearCookie(csrfCookieName, {
         path: "/",

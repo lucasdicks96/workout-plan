@@ -1,28 +1,56 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Turnstile } from "@marsidev/react-turnstile"; // 1. Turnstile importieren
+import { Turnstile } from "@marsidev/react-turnstile";
 import { useAuth } from "../../hooks/useAuth";
 import styles from "../../styles/AuthPage.module.css";
 import "../../styles/global.css";
 
-function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
+/**
+ * Die Eigenschaften (Props) für die AuthPage-Komponente.
+ */
+interface AuthPageProps {
+  /** Gibt an, ob sich die Seite im Registrierungs-Modus (`true`) oder im Login-Modus (`false`) befindet. Standard: false */
+  isRegister?: boolean;
+}
+
+/**
+ * Eine zentrale Authentifizierungsseite für Login und Registrierung.
+ * 
+ * Versteuert die Formulareingaben für E-Mail und Passwort und bindet im Registrierungs-Modus
+ * automatisch das Cloudflare Turnstile Widget zur Bot-Abwehr ein. Nach erfolgreicher Authentifizierung 
+ * erfolgt eine automatische Weiterleitung zum Dashboard.
+ *
+ * @param {AuthPageProps} props - Die Eigenschaften der Komponente.
+ * @returns {JSX.Element} Die gerenderte Authentifizierungsbox mit Tabs und Formular.
+ */
+function AuthPage({ isRegister = false }: AuthPageProps) {
   const { login, register } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   
-  // 2. State für den Turnstile-Token
+  /** Speichert den erfolgreichen Cloudflare Turnstile Bot-Abwehr-Token (wird nur bei der Registrierung benötigt). */
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
+  /**
+   * Verarbeitet den Absende-Vorgang des Formulars (Login oder Registrierung):
+   * - Bei Registrierung: Prüft, ob der Turnstile-Token vorliegt, und ruft `register` auf.
+   * - Bei Login: Ruft direkt die `login`-Funktion auf.
+   * - Navigiert bei Erfolg zum Dashboard.
+   *
+   * @async
+   * @param {React.FormEvent<HTMLFormElement>} e - Das Formular-Submit-Event.
+   * @returns {Promise<void>}
+   */
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
     try {
       if (isRegister) {
-        // Sicherstellen, dass der Token vorhanden ist, bevor wir senden
+        // Sicherstellen, dass der Token vorhanden ist, bevor die Registrierung abgeschickt wird
         if (!turnstileToken) {
           setError("Bitte warte kurz, bis der Bot-Schutz geladen ist.");
           return;
@@ -46,6 +74,8 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
     <div className={styles["auth-page"]}>
       <div className={styles["auth-box"]}>
         <h1 className={styles["auth-title"]}>Fitness Tracker</h1>
+        
+        {/* Navigation-Tabs zwischen Login und Registrierung */}
         <div className={styles["auth-tabs"]}>
           <NavLink
             to="/login"
@@ -64,6 +94,7 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
             Registrieren
           </NavLink>
         </div>
+
         <form onSubmit={handleAuth} className={styles["auth-form"]}>
           <div>
             <label className={styles["auth-label"]}>E-Mail</label>
@@ -88,14 +119,14 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
             />
           </div>
 
-          {/* 3. Turnstile-Widget nur beim Registrieren anzeigen */}
+          {/* Cloudflare Turnstile-Widget (wird ausschließlich im Registrierungs-Modus angezeigt) */}
           {isRegister && (
             <div style={{ margin: "16px 0", display: "flex", justifyContent: "center" }}>
               <Turnstile
                 siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || ""}
                 onSuccess={(token) => {
                   setTurnstileToken(token);
-                  setError(""); // Eventuelle "Token fehlt" Fehler löschen
+                  setError(""); // Eventuelle "Token fehlt"-Fehlermeldungen beim Erfolg löschen
                 }}
                 onError={() => setError("Bot-Schutz konnte nicht geladen werden.")}
                 onExpire={() => setTurnstileToken(null)}
@@ -104,8 +135,9 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
           )}
 
           {error && <p className={styles["auth-error"]}>{error}</p>}
+          
           <div>
-            {/* Button beim Registrieren deaktivieren, solange noch kein Token da ist */}
+            {/* Submit-Button: Wird während der Registrierung blockiert, solange der Turnstile-Token noch fehlt */}
             <button 
               type="submit" 
               className="button"
@@ -120,4 +152,5 @@ function AuthPage({ isRegister = false }: { isRegister?: boolean }) {
     </div>
   );
 }
+
 export default AuthPage;

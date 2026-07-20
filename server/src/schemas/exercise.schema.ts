@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+/**
+ * Preprocessing-Hilfsfunktion für Zod, um unbekannte Werte (z. B. Strings aus Formularen 
+ * oder URL-Params) sicher in Ganzzahlen zu konvertieren. 
+ * Leere Strings oder ungültige Werte werden in `undefined` aufgelöst.
+ *
+ * @param {unknown} val - Der zu konvertierende Eingangswert.
+ * @returns {number | unknown} Die konvertierte Zahl, `undefined` oder den Originalwert, falls kein String vorliegt.
+ */
 const preprocessNumber = (val: unknown) => {
   if (typeof val === "string") {
     const trimmed = val.trim();
@@ -12,7 +20,14 @@ const preprocessNumber = (val: unknown) => {
   return val;
 };
 
-// 1. Schema für das Erstellen (POST)
+/**
+ * Zod-Schema zur Validierung des Request-Bodys beim Erstellen einer neuen Übung.
+ * 
+ * Validierungsregeln:
+ * - `title`: Muss ein nicht-leerer String sein (wird automatisch getrimmt, maximal flexibel).
+ * - `description`: Ein String (fällt standardmäßig auf einen leeren String zurück).
+ * - `categories`: Ein Array von mindestens einer gültigen Kategorie-ID (wird vorab per `preprocessNumber` bereinigt).
+ */
 export const createExerciseBodySchema = z.object({
   title: z
     .string({ message: "Titel ist erforderlich und muss ein Text sein." })
@@ -36,9 +51,14 @@ export const createExerciseBodySchema = z.object({
     .min(1, "Muss mindestens eine Kategorie enthalten."),
 });
 
+/** TypeScript-Typ abgeleitet aus dem `createExerciseBodySchema` für Erstellungs-Payloads. */
 export type CreateExerciseBody = z.infer<typeof createExerciseBodySchema>;
 
-// 2. Schema für das Updaten (PUT)
+/**
+ * Zod-Schema zur Validierung des Request-Bodys beim Aktualisieren einer bestehenden Übung.
+ * 
+ * Erweitert das `createExerciseBodySchema` um eine zwingend erforderliche, positive numerische `id`.
+ */
 export const updateExerciseBodySchema = createExerciseBodySchema.extend({
   id: z.preprocess(
     preprocessNumber,
@@ -49,9 +69,13 @@ export const updateExerciseBodySchema = createExerciseBodySchema.extend({
   ),
 });
 
+/** TypeScript-Typ abgeleitet aus dem `updateExerciseBodySchema` für Aktualisierungs-Payloads. */
 export type UpdateExerciseBody = z.infer<typeof updateExerciseBodySchema>;
 
-// 3. Schema für URL-Parameter (z.B. /exercise/:id)
+/**
+ * Zod-Schema zur Validierung von URL-Parametern (z. B. `/exercise/:id`), 
+ * die eine numerische Übungs-ID als String enthalten und direkt in eine Zahl transformieren.
+ */
 export const exerciseIdParamSchema = z.object({
   id: z
     .string()

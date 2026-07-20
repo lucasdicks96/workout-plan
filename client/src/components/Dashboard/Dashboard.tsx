@@ -16,16 +16,24 @@ type ViewMode = "MONTH" | "YEAR";
 
 /**
  * Dashboard-Komponente.
- * Die Startseite nach dem Login. Zeigt eine Zusammenfassung der Benutzeraktivitäten,
- * Quick-Stats (z.B. Wochenziele) und einen visuellen Trainingsverlauf (Kalender/Heatmap).
+ * 
+ * Die zentrale Startseite nach erfolgreichem Login. 
+ * Sie bietet eine umfassende Übersicht über die Benutzeraktivitäten und Kennzahlen:
+ * - Willkommensbereich und Quick-Stats (Gesamtzahl der Workouts, Abstand zum letzten Training, Wochenziel-Fortschritt).
+ * - Visueller Aktivitätsverlauf mit Umschaltmöglichkeit zwischen einer Jahres-Heatmap (GitHub-Style) und einem Monatskalender.
+ * - Ein Feed der letzten absolvierten Workouts inklusive Dauer und Datum.
+ *
+ * @returns {JSX.Element} Das gerenderte Dashboard-Layout.
  */
 export default function Dashboard() {
   // Setzt den globalen Seitentitel im Header
   useSetTitle("Dashboard");
 
+  /** Liste aller vom Benutzer absolvierten Workouts. */
   const [completedWorkouts, setCompletedWorkouts] = useState<
     CompletedWorkout[]
   >([]);
+  /** Steuert den Aktivitätsverlauf-Ansichtsmodus ("YEAR" für Heatmap oder "MONTH" für Kalender). */
   const [viewMode, setViewMode] = useState<ViewMode>("YEAR");
 
   /**
@@ -51,7 +59,12 @@ export default function Dashboard() {
 
   /**
    * Bereitet die Rohdaten der Workouts für die verschiedenen UI-Widgets auf.
-   * Wird dank `useMemo` nur neu berechnet, wenn sich `completedWorkouts` ändert.
+   * Wird dank `useMemo` nur dann neu berechnet, wenn sich `completedWorkouts` ändert:
+   * 1. Erstellt einen Datums-Set und eine Zähl-Map für die Kalender/Heatmap.
+   * 2. Berechnet die Anzahl der Workouts in der aktuellen Woche (ab Montag).
+   * 3. Generiert die Datenstruktur für die Jahres-Heatmap (letzte 365 Tage inklusive Intensitäts-Level).
+   * 4. Ermittelt die vergangenen Tage seit dem letzten Workout.
+   * 5. Filtert die letzten 3 Workouts für den Feed heraus.
    */
   const { heatmapData, workoutDatesSet, quickStats, recentWorkouts } =
     useMemo(() => {
@@ -67,10 +80,10 @@ export default function Dashboard() {
       mondayOfThisWeek.setHours(0, 0, 0, 0);
       mondayOfThisWeek.setDate(now.getDate() - dayOfWeek + 1);
 
-      // 1. Zähle Workouts pro Tag und prüfe aktuelle Woche
+      // 1. Zähle Workouts pro Tag und prüfe, ob sie in der aktuellen Woche liegen
       completedWorkouts.forEach((w) => {
         const dateObj = new Date(w.startTime);
-        // Zeitzonen-Korrektur, um den genauen lokalen Tagestring (YYYY-MM-DD) zu erhalten
+        // Zeitzonen-Korrektur, um den exakten lokalen Datumstring (YYYY-MM-DD) zu erhalten
         const localDate = new Date(
           dateObj.getTime() - dateObj.getTimezoneOffset() * 60000,
         );
@@ -84,7 +97,7 @@ export default function Dashboard() {
         }
       });
 
-      // 2. Generiere Datenstruktur für die Jahres-Heatmap (letzte 365 Tage)
+      // 2. Generiere Datenstruktur für die Jahres-Heatmap (die letzten 365 Tage)
       const heatData = [];
       const today = new Date();
       for (let i = 365; i >= 0; i--) {
@@ -120,7 +133,7 @@ export default function Dashboard() {
       return {
         heatmapData: heatData,
         workoutDatesSet: datesSet,
-        recentWorkouts: completedWorkouts.slice(0, 3), // Beschränkt den Feed auf die letzten 3
+        recentWorkouts: completedWorkouts.slice(0, 3), // Beschränkt den Feed auf die letzten 3 Einträge
         quickStats: {
           total: completedWorkouts.length,
           thisWeek: workoutsThisWeek,
@@ -130,19 +143,19 @@ export default function Dashboard() {
     }, [completedWorkouts]);
 
   /**
-   * Hilfsfunktion: Konvertiert Sekunden in eine gut lesbare Minuten-Anzeige.
+   * Hilfsfunktion: Konvertiert Sekunden in eine übersichtliche Minuten-Anzeige.
    *
-   * @param seconds - Dauer in Sekunden
-   * @returns Formatierter String, z.B. "45 Min."
+   * @param {number} seconds - Die Dauer in Sekunden.
+   * @returns {string} Formatted String, z. B. "45 Min."
    */
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     return `${mins} Min.`;
   };
 
-  // Ziel für diese Woche (TODO: Später aus User-Settings laden)
+  // Ziel für diese Woche (wird aktuell statisch gehalten, später aus User-Settings ladbar)
   const weeklyGoal = 3;
-  // Limitiert den Fortschrittsbalken auf maximal 100%
+  // Limitiert den Fortschrittsbalken prozentual auf maximal 100%
   const progressPercent = Math.min(
     (quickStats.thisWeek / weeklyGoal) * 100,
     100,
@@ -158,8 +171,6 @@ export default function Dashboard() {
             Bleib dran! Dein nächstes Workout wartet schon auf dich.
           </p>
         </div>
-        {/* Platzhalter-Button für das nächste Workout */}
-        {/* <button className={styles["start-button"]}>Workout starten</button> */}
       </div>
 
       {/* --- Quick Stats Grid --- */}
@@ -192,9 +203,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* --- Main Layout: Kalender & Feed --- */}
+      {/* --- Main Layout: Kalender & Aktivitäts-Feed --- */}
       <div className={styles["main-grid"]}>
-        {/* Linke Seite: Kalender / Heatmap */}
+        {/* Linke Spalte: Aktivitätsverlauf (Monatskalender oder Jahres-Heatmap) */}
         <div className={styles["widget-card"]}>
           <div className={styles["widget-header"]}>
             <h2 className={styles["widget-title"]}>Aktivitätsverlauf</h2>
@@ -264,7 +275,7 @@ export default function Dashboard() {
                   className={styles["custom-calendar"]}
                   locale="de-DE"
                   tileContent={({ date, view }) => {
-                    // Markiert Tage im Monatskalender, an denen trainiert wurde
+                    // Markiert Tage im Monatskalender, an denen aktiv trainiert wurde
                     if (view === "month") {
                       const localDate = new Date(
                         date.getTime() - date.getTimezoneOffset() * 60000,
@@ -282,7 +293,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Rechte Seite: Letzte Aktivitäten (Feed) */}
+        {/* Rechte Spalte: Letzte Aktivitäten (Feed der neuesten Workouts) */}
         <div className={styles["widget-card"]}>
           <div className={styles["widget-header"]}>
             <h2 className={styles["widget-title"]}>Letzte Workouts</h2>
@@ -291,7 +302,7 @@ export default function Dashboard() {
           <div className={styles["feed-list"]}>
             {recentWorkouts.length > 0 ? (
               recentWorkouts.map((workout) => {
-                // Formatiert das Datum auf z.B. "15. Okt"
+                // Formatiert das Startdatum in ein kurzes deutsches Format (z. B. "15. Okt")
                 const formattedDate = new Date(
                   workout.startTime,
                 ).toLocaleDateString("de-DE", {
