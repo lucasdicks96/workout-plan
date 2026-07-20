@@ -102,7 +102,7 @@ export async function getCompletedWorkout(
               completed_workouts.pause_seconds,
               completed_sets.exercise_id,
               exercises.title,
-              unique_plan_exercises.display_order,
+              COALESCE(completed_sets.display_order, unique_plan_exercises.display_order) AS display_order,
               completed_sets.set_number,
               completed_sets.weight,
               completed_sets.repetitions
@@ -122,7 +122,7 @@ export async function getCompletedWorkout(
     AND       completed_workouts.workout_plan_id = unique_plan_exercises.workout_plan_id -- GEÄNDERT: Direkt auf completed_workouts prüfen
     WHERE     completed_workouts.user_id = $1
     AND       completed_workouts.id = $2
-    ORDER BY  unique_plan_exercises.display_order ASC NULLS LAST, -- GEÄNDERT: NULLS LAST für Übungen ohne Plan
+    ORDER BY  COALESCE(completed_sets.display_order, unique_plan_exercises.display_order) ASC NULLS LAST,
               completed_sets.set_number ASC;`,
     [userId, workoutId],
   );
@@ -147,7 +147,7 @@ export async function getCompletedWorkouts(
               completed_sets.repetitions,
               completed_sets.weight,
               exercises.title,
-              unique_plan_exercises.display_order
+    COALESCE  (completed_sets.display_order, unique_plan_exercises.display_order) AS display_order
     FROM      completed_workouts
     JOIN      completed_sets
     ON        completed_workouts.id = completed_sets.completed_workout_id
@@ -164,7 +164,7 @@ export async function getCompletedWorkouts(
     AND       completed_workouts.workout_plan_id = unique_plan_exercises.workout_plan_id
     WHERE     completed_workouts.user_id = $1
     ORDER BY  completed_workouts.start_time DESC,   
-              unique_plan_exercises.display_order ASC NULLS LAST, -- GEÄNDERT: Neue Übungen ans Ende der jeweiligen Einheit
+    COALESCE  (completed_sets.display_order, unique_plan_exercises.display_order) ASC NULLS LAST,
               completed_sets.set_number ASC;`,
     [userId],
   );
@@ -420,14 +420,15 @@ export async function putCompletedWorkout(
     console.log("PUT COMPLETED WORKOUT REPO TEST: ", workout.exercises);
     if (exercise.sets && exercise.sets.length > 0) {
       await client.query(
-        `INSERT INTO completed_sets (completed_workout_id, exercise_id, set_number, repetitions, weight)
-      SELECT $4, $5, * FROM UNNEST($1::int[], $2::int[], $3::float[])`,
+        `INSERT INTO completed_sets (completed_workout_id, exercise_id, display_order, set_number, repetitions, weight)
+      SELECT $4, $5, $6, * FROM UNNEST($1::int[], $2::int[], $3::float[])`,
         [
           exercise.sets.map((s) => s.setNumber),
           exercise.sets.map((s) => s.repetitions),
           exercise.sets.map((s) => s.weight),
           workout.id,
           exercise.id,
+          exercise.displayOrder,
         ],
       );
     }
