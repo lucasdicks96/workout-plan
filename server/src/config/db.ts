@@ -1,32 +1,53 @@
 import dotenv from "dotenv";
-import pg from "pg";
+import pg, { PoolConfig } from "pg";
 import path from "path";
+import fs from "fs";
 
-// Lädt lokal entweder .env.test oder .env (wird im Docker-Container ignoriert, 
-// da die Variablen dort direkt durch docker-compose injiziert werden)
-const envFile = process.env.NODE_ENV === "test" ? ".env.test" : ".env";
-dotenv.config({ path: path.resolve(process.cwd(), envFile) });
+const isTest = process.env.NODE_ENV === "test";
+const envFile = isTest ? ".env.test" : ".env";
+const envPath = path.resolve(process.cwd(), envFile);
 
-// Der hybride Connection-Pool
-const pool = new pg.Pool(
-  process.env.DATABASE_URL
-    ? {
-        // Weg 1: Produktion / Docker (Nutzt den kompletten Connection-String)
-        connectionString: process.env.DATABASE_URL,
-      }
-    : {
-        // Weg 2: Lokale Entwicklung / Tests (Fällt auf deine alten Variablen zurück)
-        user: process.env.PG_USER,
-        host: process.env.PG_HOST,
-        database: process.env.PG_DATABASE,
-        password: process.env.PG_PASSWORD,
-        port: parseInt(process.env.PG_PORT || "5432"),
-      }
-);
+// 1. SCHUTZSCHICHT: Im Testmodus MUSS die .env.test physisch existieren
+if (isTest && !fs.existsSync(envPath)) {
+  throw new Error(
+    `🛑 FATAL: NODE_ENV ist 'test', aber die Datei "${envPath}" wurde nicht gefunden! Abbruch, um Fallback auf Live-Daten zu verhindern.`,
+  );
+}
 
-// Optional: Ein kleiner Helfer, um im Server-Log direkt zu sehen, ob die Datenbank da ist
+dotenv.config({ path: envPath });
+
+// 2. SCHUTZSCHICHT: Im Testmodus muss der DB-Name explizit als Test-DB erkennbar sein
+const dbName = process.env.PG_DATABASE || "";
+const dbUrl = process.env.DATABASE_URL || "";
+
+if (isTest && !dbName.endsWith("_test") && !dbUrl.includes("_test")) {
+  throw new Error(
+    `🛑 FATAL: Testmodus aktiv, aber Zieldatenbank schützt nicht vor Datenverlust! Name/URL: "${dbName || dbUrl}". Erwarte "_test" im Namen.`,
+  );
+}
+
+// 3. HYBRIDE CONFIG: Greift sowohl für den Pool als auch für den Rate-Limiter!
+export const dbConfig: PoolConfig = process.env.DATABASE_URL
+  ? {
+      // Weg 1: Produktion / Docker (Nutzt den kompletten Connection-String)
+      connectionString: process.env.DATABASE_URL,
+    }
+  : {
+      // Weg 2: Lokale Entwicklung / Tests (Fällt auf Einzelvariablen zurück)
+      user: process.env.PG_USER,
+      host: process.env.PG_HOST,
+      database: process.env.PG_DATABASE,
+      password: process.env.PG_PASSWORD,
+      port: parseInt(process.env.PG_PORT || "5432", 10),
+    };
+
+// Der Pool nutzt einfach direkt die fertige Config
+const pool = new pg.Pool(dbConfig);
+
 pool.on("connect", () => {
-  console.log(`[DB] Erfolgreich verbunden. Modus: ${process.env.DATABASE_URL ? "URL" : "Variablen"}`);
+  // console.log(
+  //   `[DB] Erfolgreich verbunden. Modus: ${process.env.DATABASE_URL ? "URL" : "Variablen"}`,
+  // );
 });
 
 export default pool;
