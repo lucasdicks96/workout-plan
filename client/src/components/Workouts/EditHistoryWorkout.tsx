@@ -127,7 +127,7 @@ export default function EditHistoryWorkout() {
         Erstellen von Plänen als auch für das Editieren von Historien-Einträgen genutzt wird.
       */}
       <SharedWorkoutEditor
-        initialTitle={completedWorkout.planTitle}
+        initialTitle={completedWorkout.title}
         initialExercises={completedWorkout.exercises}
         allExercises={allExercises}
         onSave={handleSave}
