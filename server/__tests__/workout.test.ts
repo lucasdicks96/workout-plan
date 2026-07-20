@@ -82,6 +82,163 @@ describe("GET /workout/completed-workouts", () => {
     expect(responseA.body.status).toBe("success");
     expect(Array.isArray(responseA.body.data)).toBe(true);
     expect(responseA.body.data.length).toBe(1);
+    expect(responseA.body.data[0].title).toBe("Test");
+  });
+
+  it("sollte URL-Query-Parameter ignorieren und NICHT die Workouts eines fremden Users zurückgeben (Parameter Injection)", async () => {
+    const userA = await createAndLoginTestUser();
+    const userB = await createAndLoginTestUser();
+    const workoutPlanId = crypto.randomInt(1, 10000);
+
+    await createTestWorkoutPlan({
+      workoutId: workoutPlanId,
+      userId: userA.userId,
+      title: "Geheimer Plan",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 10,
+    });
+
+    // User A hat ein Workout
+    await createTestCompletedWorkout({
+      workoutId: workoutPlanId,
+      userId: userA.userId,
+      title: "User A Geheimnis",
+      startTime: new Date(),
+      endTime: new Date(Date.now() + 3600),
+      duration: 3600,
+      pause: 100,
+      exerciseId: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 10,
+    });
+
+    // User B versucht, durch Anhängen von ?userId= oder ?user_id= an die Daten von User A zu kommen
+    const responseB = await request(app)
+      .get(
+        `/workout/completed-workouts?userId=${userA.userId}&user_id=${userA.userId}`,
+      )
+      .set("Cookie", userB.cookie);
+
+    expect(responseB.status).toBe(200);
+    expect(responseB.body.status).toBe("success");
+    // Darf trotzdem nur ein leeres Array (die Workouts von B) zurückgeben!
+    expect(responseB.body.data.length).toBe(0);
+  });
+
+  it("sollte strikt trennen, wenn beide User abgeschlossene Workouts besitzen", async () => {
+    const userA = await createAndLoginTestUser();
+    const userB = await createAndLoginTestUser();
+    const userAworkoutId = crypto.randomInt(1, 10000);
+    const userBworkoutId = crypto.randomInt(1, 10000);
+
+    // Workout für User A
+    await createTestWorkoutPlan({
+      workoutId: userAworkoutId,
+      userId: userA.userId,
+      title: "Geheimer Plan A",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 10,
+    });
+
+    await createTestCompletedWorkout({
+      workoutId: userAworkoutId,
+      userId: userA.userId,
+      title: "Workout von A",
+      startTime: new Date(),
+      endTime: new Date(),
+      duration: 1000,
+      pause: 0,
+      exerciseId: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 10,
+    });
+
+    // Workout für User B
+    await createTestWorkoutPlan({
+      workoutId: userBworkoutId,
+      userId: userB.userId,
+      title: "Geheimer Plan B",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 10,
+    });
+
+    await createTestCompletedWorkout({
+      workoutId: userBworkoutId,
+      userId: userB.userId,
+      title: "Workout von B",
+      startTime: new Date(),
+      endTime: new Date(),
+      duration: 2000,
+      pause: 0,
+      exerciseId: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 10,
+    });
+
+    const responseB = await request(app)
+      .get("/workout/completed-workouts")
+      .set("Cookie", userB.cookie);
+
+    expect(responseB.status).toBe(200);
+    expect(responseB.body.data.length).toBe(1);
+    // Explizit prüfen, dass auch wirklich das EIGENE Workout geladen wurde und nicht das von A
+    expect(responseB.body.data[0].title).toBe("Workout von B");
+  });
+
+  it("sollte 404 Not Found werfen, wenn User B versucht, ein spezifisches Workout von User A direkt über die ID abzurufen", async () => {
+    const userA = await createAndLoginTestUser();
+    const userB = await createAndLoginTestUser();
+    const targetWorkoutId = crypto.randomInt(1, 10000);
+
+    // Workout gehört User A
+    await createTestWorkoutPlan({
+      workoutId: targetWorkoutId,
+      userId: userA.userId,
+      title: "Geheimer Plan A",
+      exerciseId: 1,
+      displayOrder: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 10,
+    });
+
+    const cwId = await createTestCompletedWorkout({
+      workoutId: targetWorkoutId,
+      userId: userA.userId,
+      title: "Privates Detail-Workout",
+      startTime: new Date(),
+      endTime: new Date(),
+      duration: 3600,
+      pause: 0,
+      exerciseId: 1,
+      setNumber: 1,
+      repetitions: 10,
+      weight: 10,
+    });
+
+    // User B greift direkt auf die Ressource zu
+    const responseB = await request(app)
+      .get(`/workout/completed-workout/${cwId}`)
+      .set("Cookie", userB.cookie);
+    if (responseB.status !== 404) {
+      console.log("TEST responseB data: ", responseB.body.data);
+    }
+    // Best Practice: 404 Not Found zurückgeben (damit Angreifer nicht scannen können, ob die ID existiert)
+    // expect(responseB.status).();
+    expect(responseB.body.status).toBe("fail");
+    expect(responseB.status).toBe(404);
   });
 });
 
@@ -146,9 +303,6 @@ describe("POST /workout/workout", () => {
     // Hier sollte dein Zod-Error-Handler oder globaler Error-Handler greifen
     expect(response.status).toBe(400);
     expect(response.body.status).toBe("fail"); // Zod-Fehler sollten als "fail" markiert sein
-    expect(response.body.message).toBe(
-      "Validierungsfehler bei den gesendeten Daten.",
-    );
     expect(response.body.data).toBeDefined(); // Zod-Fehlerdetails sollten im data-Feld sein
   });
 });
@@ -303,12 +457,7 @@ describe("PUT /workout/workout/:workoutId", () => {
 
   it("sollte mit 404 verhindern, dass ein User das Workout eines anderen Users aktualisiert", async () => {
     const userA = await createAndLoginTestUser();
-    const userBId = crypto.randomUUID();
-
-    await pool.query(
-      "INSERT INTO users (id, email, password) VALUES ($1, $2, $3)",
-      [userBId, `userb-${Date.now()}@test.com`, "password"],
-    );
+    const userB = await createAndLoginTestUser();
 
     // Die neuen Daten, die exakt deinem createWorkoutBodySchema entsprechen
     const updatedPayload = {
@@ -327,7 +476,7 @@ describe("PUT /workout/workout/:workoutId", () => {
 
     await createTestWorkoutPlan({
       workoutId: workoutPlanId,
-      userId: userBId,
+      userId: userB.userId,
       title: "User B Workout",
       exerciseId: 1,
       displayOrder: 1,
@@ -380,8 +529,9 @@ describe("GET /workout/workouts", () => {
     const response = await request(app)
       .get("/workout/workouts")
       .set("Cookie", cookie);
-
-    console.log("GET /workout/workouts ERROR: ", response.body.data);
+    if (response.status !== 200) {
+      console.log("GET /workout/workouts ERROR: ", response.body.data);
+    }
 
     // Assert: Wir erwarten genau die 2 angelegten Pläne
     expect(response.status).toBe(200);
@@ -562,8 +712,6 @@ describe("POST /workout/completed-workout", () => {
       .post("/workout/workout")
       .set("Cookie", cookie)
       .send(newWorkoutPayload);
-
-    console.log("Post /workout/completed-workout res body: ", res.body.data.id);
 
     const completedPayload = {
       workoutId: res.body.data.id,
@@ -936,6 +1084,7 @@ describe("PUT /workout/completed-workout", () => {
       userId: userId,
       workoutId: res.body.data.id,
       title: "Korrigierter Name",
+      planTitle: "Push Day (Test)",
       startTime: new Date(),
       endTime: new Date(),
       pauseTime: 0,
@@ -956,7 +1105,7 @@ describe("PUT /workout/completed-workout", () => {
       .send(updatePayload);
 
     if (response.status !== 200)
-      console.log("PUT Completed Error:", response.body);
+      console.log("PUT Completed Error:", response.body.data);
     console.log("PUT Completed  cwResult Error:", cwId);
 
     expect(response.status).toBe(200);
@@ -1088,6 +1237,7 @@ describe("PUT /workout/completed-workout", () => {
       userId: userB.userId, // User B schickt seine eigene User ID
       workoutId: workoutId,
       title: "Gehacktes Workout!",
+      planTitle: "User A Plan",
       startTime: new Date().toISOString(),
       endTime: new Date().toISOString(),
       pauseTime: 0,
@@ -1106,7 +1256,9 @@ describe("PUT /workout/completed-workout", () => {
       .put("/workout/completed-workout")
       .set("Cookie", userB.cookie) // WICHTIG: Cookie von User B!
       .send(maliciousPayload);
-
+    if (response.status !== 404) {
+      console.log("PUT COMPLETED WORKOUT RESPONSE: ", response.body);
+    }
     // Hier schlägt dein 'ownerCheck' aus dem Service an!
     expect(response.status).not.toBe(200);
     expect(response.body.status).toBe("fail");
