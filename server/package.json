@@ -11,6 +11,7 @@
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server/src/server.js",
     "build": "tsc",
+    "seed:demo": "tsx src/scripts/seedDemo.ts",
     "test": "jest --runInBand",
     "test:watch": "jest --watchAll --runInBand"
   },
