@@ -23,7 +23,7 @@ const router = Router();
  *
  * Ruft alle für den authentifizierten Benutzer verfügbaren Übungen ab
  * (globale Systemübungen sowie eigene benutzerdefinierte Übungen).
- * 
+ *
  * @security Authentifiziert via Session (`isAuthenticated`).
  * @returns {ApiResponse<Exercise[]>} 200 - Array aller verfügbaren Übungen.
  */
@@ -45,7 +45,7 @@ router.get(
  * GET /user-exercises
  *
  * Ruft exklusiv die vom authentifizierten Benutzer selbst erstellten Übungen ab.
- * 
+ *
  * @security Authentifiziert via Session (`isAuthenticated`).
  * @returns {ApiResponse<Exercise[]>} 200 - Array der eigenen benutzerdefinierten Übungen.
  */
@@ -70,10 +70,10 @@ router.get(
  *
  * Ruft die absolvierten Leistungssätze (Gewicht & Wiederholungen) des allerletzten Trainings
  * für eine spezifische Übung des angemeldeten Benutzers ab.
- * 
+ *
  * @param {string} req.params.exerciseId - Die eindeutige ID der abzufragenden Übung.
  * @security Authentifiziert via Session (`isAuthenticated`).
- * @returns {ApiResponse<{ setNumber: number; weight: number; repetitions: number }[]>} 
+ * @returns {ApiResponse<{ setNumber: number; weight: number; repetitions: number }[]>}
  *          200 - Array der Sätze aus dem letzten Durchlauf dieser Übung.
  */
 router.get(
@@ -111,7 +111,7 @@ router.get(
  * GET /category-tree
  *
  * Ruft den vollständigen, hierarchischen Kategoriebaum für Übungen ab.
- * 
+ *
  * @security Authentifiziert via Session (`isAuthenticated`).
  * @returns {ApiResponse<Category[]>} 200 - Der hierarchische Kategoriebaum.
  */
@@ -134,7 +134,7 @@ router.get(
  *
  * Validiert den Request-Body über das `createExerciseBodySchema` und erstellt
  * eine neue, benutzerspezifische Übung mitsamt Kategorie-Zuordnungen.
- * 
+ *
  * @security Authentifiziert via Session (`isAuthenticated`).
  * @returns {ApiResponse<number>} 201 - Die ID der neu erstellten Übung.
  */
@@ -144,7 +144,7 @@ router.post(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, CreateExerciseBody>,
-      res: Response<ApiResponse<number>>,
+      res: Response<ApiResponse<{ id: number }>>,
     ) => {
       // Validierung über Zod: Löst bei ungültigen Eingaben automatisch einen Validierungsfehler aus
       const { title, description, categories } = createExerciseBodySchema.parse(
@@ -160,7 +160,11 @@ router.post(
 
       res
         .status(201)
-        .json({ status: "success", message: result.message, data: result.id });
+        .json({
+          status: "success",
+          message: result.message,
+          data: { id: result.id },
+        });
     },
   ),
 );
@@ -170,7 +174,7 @@ router.post(
  *
  * Aktualisiert eine bestehende Übung über die im Request-Body übergebene ID
  * und validiert die Daten mit dem `updateExerciseBodySchema`.
- * 
+ *
  * @security Authentifiziert via Session (`isAuthenticated`).
  * @returns {ApiResponse} 200 - Erfolgsmeldung der Aktualisierung.
  */
@@ -203,7 +207,7 @@ router.put(
  *
  * Aktualisiert eine bestehende Übung, wobei die ID als URL-Parameter übergeben
  * und validiert wird, während Titel, Beschreibung und Kategorien im Body stehen.
- * 
+ *
  * @param {string} req.params.id - Die eindeutige ID der zu aktualisierenden Übung.
  * @security Authentifiziert via Session (`isAuthenticated`).
  * @returns {ApiResponse} 200 - Erfolgsmeldung der Aktualisierung.
@@ -238,7 +242,7 @@ router.put(
  * DELETE /exercise/:id
  *
  * Führt einen Soft Delete für eine benutzerdefinierte Übung anhand der ID in der URL aus.
- * 
+ *
  * @param {string} req.params.id - Die eindeutige ID der zu löschenden Übung.
  * @security Authentifiziert via Session (`isAuthenticated`).
  * @returns {ApiResponse} 200 - Erfolgsmeldung der Löschung.

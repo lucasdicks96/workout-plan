@@ -218,7 +218,7 @@ describe("Exercise API Integration Tests (Seeded DB)", () => {
         .set("Cookie", cookie)
         .send({ title: "Pre-Update Body", categories: [validCategoryId] });
 
-      const myExerciseId = createRes.body.data;
+      const myExerciseId = createRes.body.data.id;
 
       const response = await request(app)
         .put("/exercise/exercise")
@@ -247,7 +247,7 @@ describe("Exercise API Integration Tests (Seeded DB)", () => {
           categories: [validCategoryId],
         });
 
-      const myExerciseId = createRes.body.data;
+      const myExerciseId = createRes.body.data.id;
 
       const response = await request(app)
         .put(`/exercise/exercise/${myExerciseId}`)
@@ -285,7 +285,7 @@ describe("Exercise API Integration Tests (Seeded DB)", () => {
           categories: [validCategoryId],
         });
 
-      const myExerciseId = createRes.body.data;
+      const myExerciseId = createRes.body.data.id;
 
       const deleteRes = await request(app)
         .delete(`/exercise/exercise/${myExerciseId}`)

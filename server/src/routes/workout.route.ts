@@ -27,7 +27,7 @@ const router = Router();
  *
  * Ruft alle aktiven Trainingspläne inklusive der dazugehörigen Übungen und Sätze
  * für den aktuell authentifizierten Benutzer ab.
- * 
+ *
  * @route GET /workouts
  * @security Authentifiziert via Session (`isAuthenticated`).
  * @returns {ApiResponse<Workout[]>} 200 - Liste aller aktiven Trainingspläne des Benutzers.
@@ -55,7 +55,7 @@ router.get(
  *
  * Ruft die detaillierten Informationen eines spezifischen Trainingsplans
  * anhand seiner numerischen ID ab.
- * 
+ *
  * @route GET /workout/:workoutId
  * @param {string} req.params.workoutId - Die eindeutige numerische ID des Trainingsplans.
  * @security Authentifiziert via Session (`isAuthenticated`).
@@ -89,7 +89,7 @@ router.get(
  *
  * Ruft die Daten des chronologisch letzten absolvierten Trainings zu einem bestimmten
  * Workout-Plan ab (dient zur Anzeige der vorherigen Gewichte/Wiederholungen als Referenz).
- * 
+ *
  * @route GET /last-workout/:workoutId
  * @param {string} req.params.workoutId - Die eindeutige ID des Trainingsplans.
  * @security Authentifiziert via Session (`isAuthenticated`).
@@ -123,7 +123,7 @@ router.get(
  *
  * Validiert die Formulardaten über Zod und erstellt einen neuen Trainingsplan
  * mitsamt Übungen und Sätzen für den Benutzer.
- * 
+ *
  * @route POST /workout
  * @security Authentifiziert via Session (`isAuthenticated`).
  * @returns {ApiResponse<number>} 200 - Die generierte ID des erstellten Trainingsplans.
@@ -134,7 +134,7 @@ router.post(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, CreateWorkoutBody>,
-      res: Response<ApiResponse<number>>,
+      res: Response<ApiResponse<{ id: number }>>,
     ) => {
       const { title, exercises } = createWorkoutBodySchema.parse(req.body);
       const { id } = await workoutService.createWorkoutPlan(
@@ -146,7 +146,7 @@ router.post(
       res.status(200).json({
         status: "success",
         message: "Workout erfolgreich gespeichert",
-        data: id,
+        data: { id: id },
       });
     },
   ),
@@ -156,7 +156,7 @@ router.post(
  * DELETE /workout/:workoutId
  *
  * Führt einen Soft Delete für einen bestimmten Trainingsplan anhand der ID in der URL aus.
- * 
+ *
  * @route DELETE /workout/:workoutId
  * @param {string} req.params.workoutId - Die ID des zu löschenden Trainingsplans.
  * @security Authentifiziert via Session (`isAuthenticated`).
@@ -183,7 +183,7 @@ router.delete(
  *
  * Speichert ein erfolgreich absolviertes Training (inklusive Start-/Endzeit, Dauer,
  * Pausenzeiten und absolvierter Sätze) in der Datenbank ab.
- * 
+ *
  * @route POST /completed-workout
  * @security Authentifiziert via Session (`isAuthenticated`).
  * @returns {ApiResponse<string>} 200 - Die eindeutige UUID des gespeicherten absolvierten Workouts.
@@ -194,7 +194,7 @@ router.post(
   authenticatedHandler(
     async (
       req: AuthenticatedRequest<any, any, PostCompletedWorkoutBody>,
-      res: Response<ApiResponse<string>>,
+      res: Response<ApiResponse<{ id: string }>>,
     ) => {
       const {
         workoutId,
@@ -220,7 +220,7 @@ router.post(
       res.status(200).json({
         status: "success",
         message: "Abgeschlossenes Workout erfolreich gespeichert",
-        data: id,
+        data: { id: id },
       });
     },
   ),
@@ -230,7 +230,7 @@ router.post(
  * GET /completed-workouts
  *
  * Ruft eine Historie aller vom Benutzer absolvierten Workouts ab.
- * 
+ *
  * @route GET /completed-workouts
  * @security Authentifiziert via Session (`isAuthenticated`).
  * @returns {ApiResponse<CompletedWorkout[]>} 200 - Historie aller absolvierten Workouts.
@@ -260,7 +260,7 @@ router.get(
  * GET /completed-workout/:workoutId
  *
  * Ruft die Details eines spezifischen absolvierten Workouts anhand seiner UUID ab.
- * 
+ *
  * @route GET /completed-workout/:workoutId
  * @param {string} req.params.workoutId - Die eindeutige UUID des absolvierten Workouts.
  * @security Authentifiziert via Session (`isAuthenticated`).
@@ -294,7 +294,7 @@ router.get(
  *
  * Aktualisiert einen bestehenden Trainingsplan (Titel sowie verknüpfte Übungen und Sätze)
  * basierend auf der ID in der URL.
- * 
+ *
  * @route PUT /workout/:workoutId
  * @param {string} req.params.workoutId - Die ID des zu aktualisierenden Trainingsplans.
  * @security Authentifiziert via Session (`isAuthenticated`).
@@ -325,7 +325,7 @@ router.put(
  * PUT /completed-workout
  *
  * Aktualisiert die Daten und Sätze eines bereits absolvierten Workouts.
- * 
+ *
  * @route PUT /completed-workout
  * @security Authentifiziert via Session (`isAuthenticated`).
  * @returns {ApiResponse} 200 - Erfolgsmeldung der Aktualisierung.
