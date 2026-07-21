@@ -2,13 +2,13 @@ import { Request, Response, NextFunction } from "express";
 
 /**
  * Express-Middleware: `verifyTurnstile`
- * 
- * Validiert das Cloudflare Turnstile Bot-Abwehr-Token, das vom Client im Request-Body 
+ *
+ * Validiert das Cloudflare Turnstile Bot-Abwehr-Token, das vom Client im Request-Body
  * (unter dem Schlüssel `turnstileToken`) mitgesendet wird.
- * 
+ *
  * Ablauf der Überprüfung:
  * 1. Prüft, ob das Token im Request-Body vorhanden ist (andernfalls 400 Bad Request).
- * 2. Sendet eine Verifizierungsanfrage an die Cloudflare Siteverify-API (`https://challenges.cloudflare.com/turnstile/v0/siteverify`) 
+ * 2. Sendet eine Verifizierungsanfrage an die Cloudflare Siteverify-API (`https://challenges.cloudflare.com/turnstile/v0/siteverify`)
  *    unter Verwendung des geheimen Schlüssels (`TURNSTILE_SECRET_KEY`) und optional der Client-IP (`remoteip`).
  * 3. Prüft das Antwort-Ergebnis von Cloudflare. Bei ungültigem Token wird die Anfrage mit einem 403 (Forbidden) abgelehnt.
  * 4. Bei erfolgreicher Verifizierung wird die Anfrage per `next()` an den nächsten Handler (z. B. Zod-Validierung oder Controller) weitergereicht.
@@ -23,7 +23,7 @@ import { Request, Response, NextFunction } from "express";
 export const verifyTurnstile = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   // Wir erwarten, dass das Frontend den Token im Body als "turnstileToken" mitsendet
   const { turnstileToken } = req.body;
@@ -51,7 +51,7 @@ export const verifyTurnstile = async (
         method: "POST",
         body: formData,
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      }
+      },
     );
 
     const data = await cfResponse.json();
@@ -60,7 +60,8 @@ export const verifyTurnstile = async (
       console.warn("Turnstile Validierung abgelehnt:", data["error-codes"]);
       return res.status(403).json({
         status: "error",
-        message: "Die Bot-Überprüfung ist fehlgeschlagen. Bitte versuche es erneut.",
+        message:
+          "Die Bot-Überprüfung ist fehlgeschlagen. Bitte versuche es erneut.",
         code: "TURNSTILE_FAILED",
       });
     }
@@ -71,7 +72,8 @@ export const verifyTurnstile = async (
     console.error("Fehler bei der Cloudflare Turnstile Abfrage:", error);
     return res.status(500).json({
       status: "error",
-      message: "Ein interner Fehler bei der Sicherheitsüberprüfung ist aufgetreten.",
+      message:
+        "Ein interner Fehler bei der Sicherheitsüberprüfung ist aufgetreten.",
       code: "TURNSTILE_SERVICE_ERROR",
     });
   }
