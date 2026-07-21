@@ -130,7 +130,7 @@ if (process.env.NODE_ENV === "production") {
 
   /**
    * Endpunkt zur Bereitstellung eines frisch generierten CSRF-Tokens für den Client.
-   * 
+   *
    * @route GET /csrf-token
    * @returns {{ csrfToken: string }} JSON-Objekt mit dem CSRF-Token.
    */
@@ -145,7 +145,7 @@ if (process.env.NODE_ENV === "production") {
 } else {
   /**
    * Entwicklungs-Endpunkt für CSRF-Tokens.
-   * 
+   *
    * @route GET /csrf-token
    * @returns {{ csrfToken: string }} Ein statisches Dummy-Token für lokale Tests.
    */
@@ -158,8 +158,7 @@ if (process.env.NODE_ENV === "production") {
  * Rate-Limiting-Zuordnungen.
  * Schützt sensible Endpunkte (Authentifizierung, API-Abfragen) vor Brute-Force- und Denial-of-Service-Angriffen.
  */
-app.use("/user/register", authLimiter);
-app.use("/user/login", authLimiter);
+
 app.use("/workout", apiLimiter);
 app.use("/exercise", apiLimiter);
 

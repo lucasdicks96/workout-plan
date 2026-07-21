@@ -15,11 +15,12 @@ import {
   AuthCredentialsBody,
   authCredentialsSchema,
 } from "../schemas/user.schema";
+import { authLimiter } from "../middlewares/rateLimiter";
 
 const router = Router();
 
 /**
- * Hilfsfunktion, die die Callback-basierte Passport-Login-Methode (`req.logIn`) 
+ * Hilfsfunktion, die die Callback-basierte Passport-Login-Methode (`req.logIn`)
  * in eine moderne Promise-basierte Syntax wrappt.
  *
  * @async
@@ -34,13 +35,27 @@ const logInAsync = (req: Request, user: Express.User) =>
 
 /**
  * POST /register
- * 
- * Registriert einen neuen Benutzer, validiert das Cloudflare Turnstile Token,
- * prüft die Anmeldedaten über Zod und loggt den Benutzer nach erfolgreicher Erstellung sofort ein.
+ *
+ * Registriert einen neuen Benutzer (nur im Development-Modus aktiv).
+ * In anderen Umgebungen wird die Route mit 404 abgefangen, noch bevor
+ * Cloudflare Turnstile aufgerufen wird.
  */
 router.post(
   "/register",
+  // 1. Guard-Middleware: Prüft dynamisch bei jedem Request den Modus
+  (req, res, next) => {
+    if (process.env.NODE_ENV === "production") {
+      return res.status(404).json({
+        status: "fail",
+        message: "Seite nicht gefunden",
+      });
+    }
+    next();
+  },
+  authLimiter,
+  // Bot-Schutz erst ausführen, wenn wir wirklich im Dev-Modus sind
   verifyTurnstile,
+  // Registrierungs-Logik
   async (
     req: Request<any, any, AuthCredentialsBody>,
     res: Response<ApiResponse<UserWithoutPassword>>,
@@ -65,12 +80,13 @@ router.post(
 
 /**
  * POST /login
- * 
- * Führt eine Vorvalidierung der Anmeldedaten über Zod durch, authentifiziert den Benutzer 
+ *
+ * Führt eine Vorvalidierung der Anmeldedaten über Zod durch, authentifiziert den Benutzer
  * über Passport Local Strategy und initialisiert die Benutzersitzung.
  */
 router.post(
   "/login",
+  authLimiter,
   (
     req: Request<any, any, AuthCredentialsBody>,
     res: Response<ApiResponse<UserWithoutPassword>>,
@@ -111,8 +127,8 @@ router.post(
 
 /**
  * GET /status
- * 
- * Prüft den Authentifizierungsstatus des aktuellen Clients und gibt 
+ *
+ * Prüft den Authentifizierungsstatus des aktuellen Clients und gibt
  * die Benutzerdaten zurück, sofern eine aktive und gültige Session vorliegt.
  */
 router.get(
@@ -137,8 +153,8 @@ router.get(
 
 /**
  * POST /logout
- * 
- * Beendet die aktuelle Sitzung des Benutzers, zerstört den Session-Store in PostgreSQL 
+ *
+ * Beendet die aktuelle Sitzung des Benutzers, zerstört den Session-Store in PostgreSQL
  * und löscht sowohl das Connect-SID-Cookie als auch das CSRF-Token-Cookie im Browser.
  */
 router.post(

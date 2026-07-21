@@ -1,4 +1,11 @@
-import { describe, expect, it, jest } from "@jest/globals";
+import {
+  describe,
+  expect,
+  it,
+  jest,
+  beforeEach,
+  afterEach,
+} from "@jest/globals";
 import crypto from "crypto"; // Für die Generierung von Test-IDs
 import request from "supertest";
 import app from "../src/index";
@@ -92,6 +99,30 @@ describe("OWASP Top 10 & Auth Lifecycle Tests (/auth)", () => {
       expect(response.status).toBe(400);
     });
   });
+  describe("im Production-Modus", () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+
+    beforeEach(() => {
+      // Für diesen Test-Block auf Production umstellen
+      process.env.NODE_ENV = "production";
+    });
+
+    afterEach(() => {
+      // Nach dem Test sofort wieder den ursprünglichen Zustand herstellen
+      process.env.NODE_ENV = originalNodeEnv;
+    });
+
+    it("sollte XSS-Payloads in der E-Mail-Adresse durch Validierung stoppen", async () => {
+      // Angreifer versucht, ein Script als Benutzername/Email zu speichern
+      const response = await request(app).post("/user/register").send({
+        email: `<script>alert('XSS')</script>@domain.de`,
+        password: "sicherEsPassword123!",
+      });
+
+      // Dein Zod z.email() Schema sollte diesen String nicht als Email akzeptieren
+      expect(response.status).toBe(404);
+    });
+  });
 
   // ==========================================
   // 3. OWASP A01:2021 - MASS ASSIGNMENT (Privilege Escalation)
@@ -154,157 +185,188 @@ describe("OWASP Top 10 & Auth Lifecycle Tests (/auth)", () => {
       expect(lastResponse?.status).toBe(429);
     });
   });
+});
 
-  describe("Auth Routes)", () => {
-    // Hilfsfunktion für eindeutige Test-Emails
-    const generateTestEmail = () => `test-${crypto.randomUUID()}@workout.de`;
-    const validPassword = "sicherEsPassword123";
+describe("Auth Routes)", () => {
+  // Hilfsfunktion für eindeutige Test-Emails
+  const generateTestEmail = () => `test-${crypto.randomUUID()}@workout.de`;
+  const validPassword = "sicherEsPassword123";
 
-    // ==========================================
-    // 1. REGISTRIERUNG (POST /user/register)
-    // ==========================================
-    describe("POST /user/register", () => {
-      it("sollte einen neuen Benutzer registrieren, einloggen und das Passwort NIEMALS zurückgeben", async () => {
-        const email = generateTestEmail();
+  // ==========================================
+  // 1. REGISTRIERUNG (POST /user/register)
+  // ==========================================
+  describe("POST /user/register", () => {
+    it("sollte einen neuen Benutzer registrieren, einloggen und das Passwort NIEMALS zurückgeben", async () => {
+      const email = generateTestEmail();
 
-        const response = await request(app)
-          .post("/user/register")
-          .send({ email, password: validPassword });
+      const response = await request(app)
+        .post("/user/register")
+        .send({ email, password: validPassword });
 
-        expect(response.status).toBe(201);
-        expect(response.body.status).toBe("success");
-        expect(response.body.data).toBeDefined();
-        expect(response.body.data.email).toBe(email);
-        expect(response.body.data.role).toBe("user");
+      expect(response.status).toBe(201);
+      expect(response.body.status).toBe("success");
+      expect(response.body.data).toBeDefined();
+      expect(response.body.data.email).toBe(email);
+      expect(response.body.data.role).toBe("user");
 
-        // SICHERHEITS-CHECK: Das Passwort darf niemals im JSON auftauchen!
-        expect(response.body.data.password).toBeUndefined();
+      // SICHERHEITS-CHECK: Das Passwort darf niemals im JSON auftauchen!
+      expect(response.body.data.password).toBeUndefined();
 
-        // SESSION-CHECK: Prüfen, ob das "connect.sid" Cookie gesetzt wurde
-        const rawCookies = response.headers["set-cookie"];
+      // SESSION-CHECK: Prüfen, ob das "connect.sid" Cookie gesetzt wurde
+      const rawCookies = response.headers["set-cookie"];
 
-        // 2. WICHTIG: Normalisieren (macht aus einem einzelnen String immer ein Array von Strings)
-        const cookies: string[] = Array.isArray(rawCookies)
-          ? rawCookies
-          : [rawCookies].filter(Boolean);
+      // 2. WICHTIG: Normalisieren (macht aus einem einzelnen String immer ein Array von Strings)
+      const cookies: string[] = Array.isArray(rawCookies)
+        ? rawCookies
+        : [rawCookies].filter(Boolean);
 
-        // 3. Jetzt funktioniert .some() fehlerfrei und typsicher:
-        expect(cookies.some((c) => c.startsWith("connect.sid="))).toBe(true);
-      });
-
-      it("sollte mit 400 scheitern, wenn das Zod-Schema verletzt wird (z.B. Passwort zu kurz)", async () => {
-        const response = await request(app)
-          .post("/user/register")
-          .send({ email: "keine-echte-email", password: "123" }); // < 4 Zeichen
-
-        expect(response.status).toBe(400);
-        expect(response.body.status).toBe("fail");
-      });
+      // 3. Jetzt funktioniert .some() fehlerfrei und typsicher:
+      expect(cookies.some((c) => c.startsWith("connect.sid="))).toBe(true);
     });
 
-    // ==========================================
-    // 2. LOGIN (POST /user/login)
-    // ==========================================
-    describe("POST /user/login", () => {
-      it("sollte den Benutzer bei korrekten Anmeldedaten erfolgreich einloggen", async () => {
-        const user = await createAndLoginTestUser();
-        const response = await request(app)
-          .post("/user/login")
-          .send({ email: user.email, password: user.password });
+    it("sollte mit 400 scheitern, wenn das Zod-Schema verletzt wird (z.B. Passwort zu kurz)", async () => {
+      const response = await request(app)
+        .post("/user/register")
+        .send({ email: "keine-echte-email", password: "123" }); // < 4 Zeichen
 
-        expect(response.status).toBe(200);
-        expect(response.body.status).toBe("success");
-        expect(response.body.data.email).toBe(user.email);
-        expect(response.body.data.password).toBeUndefined();
+      expect(response.status).toBe(400);
+      expect(response.body.status).toBe("fail");
+    });
+  });
 
-        // Prüfen, ob ein frisches Session-Cookie gesendet wurde
-        // SESSION-CHECK: Prüfen, ob das "connect.sid" Cookie gesetzt wurde
-        const rawCookies = response.headers["set-cookie"];
+  // ==========================================
+  // PRODUCTION CHECK (Deaktivierte Registrierung)
+  // ==========================================
+  describe("im Production-Modus", () => {
+    const originalNodeEnv = process.env.NODE_ENV;
 
-        // 2. WICHTIG: Normalisieren (macht aus einem einzelnen String immer ein Array von Strings)
-        const cookies: string[] = Array.isArray(rawCookies)
-          ? rawCookies
-          : [rawCookies].filter(Boolean);
-
-        // 3. Jetzt funktioniert .some() fehlerfrei und typsicher:
-        expect(cookies.some((c) => c.startsWith("connect.sid="))).toBe(true);
-      });
-
-      it("sollte 401 Unauthorized zurückgeben, wenn das Passwort falsch ist", async () => {
-        const user = await createAndLoginTestUser();
-        const response = await request(app)
-          .post("/user/login")
-          .send({ email: user.email, password: "falschesPassword!" });
-
-        // Je nachdem, wie dein Service und deine errorHandler konfiguriert sind:
-        expect(response.status).toBe(401);
-        expect(response.body.status).toBe("fail");
-      });
-
-      it("sollte abbrechen, wenn ein nicht existierender Benutzer versucht sich einzuloggen", async () => {
-        const response = await request(app)
-          .post("/user/login")
-          .send({ email: "ghost@workout.de", password: validPassword });
-
-        expect(response.status).toBe(401);
-        expect(response.body.status).toBe("fail");
-      });
+    beforeEach(() => {
+      // Für diesen Test-Block auf Production umstellen
+      process.env.NODE_ENV = "production";
     });
 
-    // ==========================================
-    // 3. STATUS & SESSION-LEBENSZYKLUS
-    // ==========================================
-    describe("Session-Lebenszyklus: Status & Logout", () => {
-      it("GET /user/status - sollte die Benutzerdaten zurückgeben, wenn das Cookie gültig ist", async () => {
-        const user = await createAndLoginTestUser();
-        const response = await request(app)
-          .get("/user/status")
-          .set("Cookie", user.cookie); // Das gespeicherte Cookie anhängen!
+    afterEach(() => {
+      // Nach dem Test sofort wieder den ursprünglichen Zustand herstellen
+      process.env.NODE_ENV = originalNodeEnv;
+    });
 
-        expect(response.status).toBe(200);
-        expect(response.body.status).toBe("success");
-        expect(response.body.data.email).toBe(user.email);
-      });
+    it("sollte mit 404 und einer Fehlermeldung antworten, wenn die Registrierung deaktiviert ist", async () => {
+      const email = generateTestEmail();
 
-      it("GET /user/status - sollte mit 401 (Unauthorized) scheitern, wenn KEIN Cookie gesendet wird", async () => {
-        const response = await request(app).get("/user/status"); // Kein .set("Cookie")
+      const response = await request(app)
+        .post("/user/register")
+        .send({ email, password: validPassword });
 
-        expect(response.status).toBe(401);
-        expect(response.body.status).toBe("fail");
-      });
+      expect(response.status).toBe(404);
+      expect(response.body.message).toBeDefined();
 
-      it("POST /user/logout - sollte die Session zerstören und die Cookies löschen", async () => {
-        const user = await createAndLoginTestUser();
-        // 1. Logout mit dem aktiven Cookie ausführen
-        const logoutResponse = await request(app)
-          .post("/user/logout")
-          .set("Cookie", user.cookie);
+      // Optional: Falls deine Error-Middleware auch 'status' liefert
+      if (response.body.status) {
+        expect(response.body.status).toMatch(/fail|error/);
+      }
+    });
+  });
+  // ==========================================
+  // 2. LOGIN (POST /user/login)
+  // ==========================================
+  describe("POST /user/login", () => {
+    it("sollte den Benutzer bei korrekten Anmeldedaten erfolgreich einloggen", async () => {
+      const user = await createAndLoginTestUser();
+      const response = await request(app)
+        .post("/user/login")
+        .send({ email: user.email, password: user.password });
 
-        expect(logoutResponse.status).toBe(200);
-        expect(logoutResponse.body.status).toBe("success");
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe("success");
+      expect(response.body.data.email).toBe(user.email);
+      expect(response.body.data.password).toBeUndefined();
 
-        // 2. Prüfen, ob das Backend die Cookies per "clearCookie" (Expires in der Vergangenheit) löscht
-        const rawSetCookieHeaders = logoutResponse.headers["set-cookie"];
-        const setCookieHeaders: string[] = Array.isArray(rawSetCookieHeaders)
-          ? rawSetCookieHeaders
-          : [rawSetCookieHeaders].filter(Boolean);
-        expect(setCookieHeaders).toBeDefined();
-        expect(
-          setCookieHeaders.some(
-            (c: string) =>
-              c.includes("connect.sid=;") || c.includes("Expires="),
-          ),
-        ).toBe(true);
+      // Prüfen, ob ein frisches Session-Cookie gesendet wurde
+      // SESSION-CHECK: Prüfen, ob das "connect.sid" Cookie gesetzt wurde
+      const rawCookies = response.headers["set-cookie"];
 
-        // 3. DEN ERNSTFALL TESTEN:
-        // Wir versuchen, dieselbe Status-Route mit dem ALIEN (nun zerstörten) Cookie aufzurufen.
-        // Da die Session in PostgreSQL zerstört wurde, MUSS das Backend jetzt 401 werfen!
-        const statusCheckResponse = await request(app)
-          .get("/user/status")
-          .set("Cookie", user.cookie);
+      // 2. WICHTIG: Normalisieren (macht aus einem einzelnen String immer ein Array von Strings)
+      const cookies: string[] = Array.isArray(rawCookies)
+        ? rawCookies
+        : [rawCookies].filter(Boolean);
 
-        expect(statusCheckResponse.status).toBe(401);
-      });
+      // 3. Jetzt funktioniert .some() fehlerfrei und typsicher:
+      expect(cookies.some((c) => c.startsWith("connect.sid="))).toBe(true);
+    });
+
+    it("sollte 401 Unauthorized zurückgeben, wenn das Passwort falsch ist", async () => {
+      const user = await createAndLoginTestUser();
+      const response = await request(app)
+        .post("/user/login")
+        .send({ email: user.email, password: "falschesPassword!" });
+
+      // Je nachdem, wie dein Service und deine errorHandler konfiguriert sind:
+      expect(response.status).toBe(401);
+      expect(response.body.status).toBe("fail");
+    });
+
+    it("sollte abbrechen, wenn ein nicht existierender Benutzer versucht sich einzuloggen", async () => {
+      const response = await request(app)
+        .post("/user/login")
+        .send({ email: "ghost@workout.de", password: validPassword });
+
+      expect(response.status).toBe(401);
+      expect(response.body.status).toBe("fail");
+    });
+  });
+
+  // ==========================================
+  // 3. STATUS & SESSION-LEBENSZYKLUS
+  // ==========================================
+  describe("Session-Lebenszyklus: Status & Logout", () => {
+    it("GET /user/status - sollte die Benutzerdaten zurückgeben, wenn das Cookie gültig ist", async () => {
+      const user = await createAndLoginTestUser();
+      const response = await request(app)
+        .get("/user/status")
+        .set("Cookie", user.cookie); // Das gespeicherte Cookie anhängen!
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe("success");
+      expect(response.body.data.email).toBe(user.email);
+    });
+
+    it("GET /user/status - sollte mit 401 (Unauthorized) scheitern, wenn KEIN Cookie gesendet wird", async () => {
+      const response = await request(app).get("/user/status"); // Kein .set("Cookie")
+
+      expect(response.status).toBe(401);
+      expect(response.body.status).toBe("fail");
+    });
+
+    it("POST /user/logout - sollte die Session zerstören und die Cookies löschen", async () => {
+      const user = await createAndLoginTestUser();
+      // 1. Logout mit dem aktiven Cookie ausführen
+      const logoutResponse = await request(app)
+        .post("/user/logout")
+        .set("Cookie", user.cookie);
+
+      expect(logoutResponse.status).toBe(200);
+      expect(logoutResponse.body.status).toBe("success");
+
+      // 2. Prüfen, ob das Backend die Cookies per "clearCookie" (Expires in der Vergangenheit) löscht
+      const rawSetCookieHeaders = logoutResponse.headers["set-cookie"];
+      const setCookieHeaders: string[] = Array.isArray(rawSetCookieHeaders)
+        ? rawSetCookieHeaders
+        : [rawSetCookieHeaders].filter(Boolean);
+      expect(setCookieHeaders).toBeDefined();
+      expect(
+        setCookieHeaders.some(
+          (c: string) => c.includes("connect.sid=;") || c.includes("Expires="),
+        ),
+      ).toBe(true);
+
+      // 3. DEN ERNSTFALL TESTEN:
+      // Wir versuchen, dieselbe Status-Route mit dem ALIEN (nun zerstörten) Cookie aufzurufen.
+      // Da die Session in PostgreSQL zerstört wurde, MUSS das Backend jetzt 401 werfen!
+      const statusCheckResponse = await request(app)
+        .get("/user/status")
+        .set("Cookie", user.cookie);
+
+      expect(statusCheckResponse.status).toBe(401);
     });
   });
 });

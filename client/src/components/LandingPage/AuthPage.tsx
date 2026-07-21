@@ -15,9 +15,9 @@ interface AuthPageProps {
 
 /**
  * Eine zentrale Authentifizierungsseite für Login und Registrierung.
- * 
+ *
  * Versteuert die Formulareingaben für E-Mail und Passwort und bindet im Registrierungs-Modus
- * automatisch das Cloudflare Turnstile Widget zur Bot-Abwehr ein. Nach erfolgreicher Authentifizierung 
+ * automatisch das Cloudflare Turnstile Widget zur Bot-Abwehr ein. Nach erfolgreicher Authentifizierung
  * erfolgt eine automatische Weiterleitung zum Dashboard.
  *
  * @param {AuthPageProps} props - Die Eigenschaften der Komponente.
@@ -28,9 +28,10 @@ function AuthPage({ isRegister = false }: AuthPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  
+
   /** Speichert den erfolgreichen Cloudflare Turnstile Bot-Abwehr-Token (wird nur bei der Registrierung benötigt). */
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const allowRegistration = import.meta.env.DEV;
 
   const navigate = useNavigate();
 
@@ -49,7 +50,7 @@ function AuthPage({ isRegister = false }: AuthPageProps) {
     setError("");
 
     try {
-      if (isRegister) {
+      if (isRegister && allowRegistration) {
         // Sicherstellen, dass der Token vorhanden ist, bevor die Registrierung abgeschickt wird
         if (!turnstileToken) {
           setError("Bitte warte kurz, bis der Bot-Schutz geladen ist.");
@@ -74,26 +75,31 @@ function AuthPage({ isRegister = false }: AuthPageProps) {
     <div className={styles["auth-page"]}>
       <div className={styles["auth-box"]}>
         <h1 className={styles["auth-title"]}>Fitness Tracker</h1>
-        
-        {/* Navigation-Tabs zwischen Login und Registrierung */}
-        <div className={styles["auth-tabs"]}>
-          <NavLink
-            to="/login"
-            className={({ isActive }) =>
-              `${styles["auth-tab"]} ${isActive ? styles["auth-tab-active"] : ""}`
-            }
-          >
-            Login
-          </NavLink>
-          <NavLink
-            to="/register"
-            className={({ isActive }) =>
-              `${styles["auth-tab"]} ${isActive ? styles["auth-tab-active"] : ""}`
-            }
-          >
-            Registrieren
-          </NavLink>
-        </div>
+        <>
+          {/* Navigation-Tabs zwischen Login und Registrierung */}
+          {allowRegistration ? (
+            <div className={styles["auth-tabs"]}>
+              <NavLink
+                to="/login"
+                className={({ isActive }) =>
+                  `${styles["auth-tab"]} ${isActive ? styles["auth-tab-active"] : ""}`
+                }
+              >
+                Login
+              </NavLink>
+              <NavLink
+                to="/register"
+                className={({ isActive }) =>
+                  `${styles["auth-tab"]} ${isActive ? styles["auth-tab-active"] : ""}`
+                }
+              >
+                Registrieren
+              </NavLink>
+            </div>
+          ) : (
+            <NavLink to="/login" className={`${styles["auth-tab"]}`}></NavLink>
+          )}
+        </>
 
         <form onSubmit={handleAuth} className={styles["auth-form"]}>
           <div>
@@ -120,29 +126,41 @@ function AuthPage({ isRegister = false }: AuthPageProps) {
           </div>
 
           {/* Cloudflare Turnstile-Widget (wird ausschließlich im Registrierungs-Modus angezeigt) */}
-          {isRegister && (
-            <div style={{ margin: "16px 0", display: "flex", justifyContent: "center" }}>
+          {isRegister && allowRegistration && (
+            <div
+              style={{
+                margin: "16px 0",
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
               <Turnstile
                 siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || ""}
                 onSuccess={(token) => {
                   setTurnstileToken(token);
                   setError(""); // Eventuelle "Token fehlt"-Fehlermeldungen beim Erfolg löschen
                 }}
-                onError={() => setError("Bot-Schutz konnte nicht geladen werden.")}
+                onError={() =>
+                  setError("Bot-Schutz konnte nicht geladen werden.")
+                }
                 onExpire={() => setTurnstileToken(null)}
               />
             </div>
           )}
 
           {error && <p className={styles["auth-error"]}>{error}</p>}
-          
+
           <div>
             {/* Submit-Button: Wird während der Registrierung blockiert, solange der Turnstile-Token noch fehlt */}
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="button"
               disabled={isRegister && !turnstileToken}
-              style={isRegister && !turnstileToken ? { opacity: 0.6, cursor: "not-allowed" } : undefined}
+              style={
+                isRegister && !turnstileToken
+                  ? { opacity: 0.6, cursor: "not-allowed" }
+                  : undefined
+              }
             >
               {isRegister ? "Konto erstellen" : "Einloggen"}
             </button>
