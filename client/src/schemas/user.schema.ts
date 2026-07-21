@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const UserSchema = z.object({
   id: z.string(),
-  email: z.string().email(), // Bonus: Validiert sofort, ob es eine echte E-Mail ist!
+  email: z.email("Muss eine gültige E-Mail sein.").trim().toLowerCase(), // Bonus: Validiert sofort, ob es eine echte E-Mail ist!
   password: z.string().optional(),
   role: z.enum(["user", "admin"]),
 });
