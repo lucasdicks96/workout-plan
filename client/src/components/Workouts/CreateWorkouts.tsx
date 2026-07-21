@@ -5,6 +5,7 @@ import { useSetTitle } from "../../hooks/useSetTitle";
 import { useWorkoutManager } from "../../hooks/useWorkoutManager";
 import { apiService } from "../../services/apiService";
 import stylesButton from "../../styles/Button.module.css";
+import stylesExercises from "../../styles/Exercises.module.css";
 import { Exercise } from "../../schemas/exercise.schema";
 import AddButton from "../Buttons/AddButton";
 import ConfirmButton from "../Buttons/ConfirmButton";
@@ -184,11 +185,11 @@ export default function CreateWorkout() {
     <>
       {/* Eingabefeld für den Titel des neuen Trainingsplans */}
       <input
-        className="input"
+        className={stylesExercises["search-input"]}
         name="title"
         style={{ maxWidth: "20rem" }}
         type="text"
-        placeholder="Name des Trainingsplans"
+        placeholder="Name des Trainingsplans..."
         value={workoutName}
         onChange={(e) => setWorkoutName(e.target.value)}
       />
