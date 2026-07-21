@@ -94,7 +94,8 @@ router.post(
   ) => {
     // Pre-Validierung vor Passport, um ungültige Formate frühzeitig abzufangen
     try {
-      authCredentialsSchema.parse(req.body);
+      const validatedData = authCredentialsSchema.parse(req.body);
+      req.body.email = validatedData.email;
     } catch (error) {
       return next(error);
     }
