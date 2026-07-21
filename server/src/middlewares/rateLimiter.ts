@@ -2,22 +2,22 @@ import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 
 /**
  * Strenger Rate-Limiter für sicherheitsrelevante Authentifizierungs-Endpunkte (Login & Registrierung).
- * 
+ *
  * Schützt den Server vor Brute-Force-Angriffen und Credential Stuffing.
- * 
+ *
  * Konfiguration:
  * - **KeyGenerator**: Erzeugt einen spezifischen Präfix-Schlüssel (`rl_auth:<ip>`) basierend auf der Client-IP.
  * - **Zeitfenster (windowMs)**: 1 Stunde (`60 * 60 * 1000`).
  * - **Maximale Versuche (max)**: Maximal 5 Versuche pro IP innerhalb des Zeitfensters.
- * - **Test-Bypass (skip)**: Im Testmodus (`NODE_ENV === "test"`) wird der Limiter standardmäßig übersprungen, 
+ * - **Test-Bypass (skip)**: Im Testmodus (`NODE_ENV === "test"`) wird der Limiter standardmäßig übersprungen,
  *   es sei denn, der Request enthält den Header `x-test-rate-limit: true`.
  * - **Custom Handler**: Gibt bei Überschreitung des Limits eine strukturierte 429-Fehlermeldung im JSON-Format zurück.
  */
 export const authLimiter = rateLimit({
   // Nutzt automatisch den blitzschnellen, internen MemoryStore
   keyGenerator: (req) => `rl_auth:${ipKeyGenerator(req.ip || "127.0.0.1")}`,
-  windowMs: 60 * 60 * 1000, // 1 Stunde
-  max: 5,
+  windowMs: process.env.NODE_ENV === "production" ? 15 * 60 * 1000 : 1 * 1000,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   // Deine Weiche für die Jest-Tests bleibt erhalten:
@@ -31,7 +31,7 @@ export const authLimiter = rateLimit({
     res.status(options.statusCode).json({
       status: "error",
       message:
-        "Zu viele Registrierungs- oder Login-Versuche. Bitte versuchen Sie es in einer Stunde erneut.",
+        "Zu viele Registrierungs- oder Login-Versuche. Bitte versuchen Sie es in einer viertel Stunde erneut.",
       code: 429,
     });
   },
@@ -39,7 +39,7 @@ export const authLimiter = rateLimit({
 
 /**
  * Allgemeiner API-Rate-Limiter zum Schutz der regulären Endpunkte vor Überlastung (DDoS, Spam oder Scraping).
- * 
+ *
  * Konfiguration:
  * - **KeyGenerator**: Generiert einen isolierten Schlüssel (`rl_api:<ip>`) pro Client-IP.
  * - **Zeitfenster (windowMs)**: Dynamisch konfiguriert (15 Minuten in der Produktion, 1 Sekunde in der lokalen Entwicklung / bei Tests).
