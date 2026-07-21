@@ -106,7 +106,7 @@ interface CustomTooltipProps {
  * @returns {JSX.Element} Die gerenderte Analyseansicht mit Filtern, Diagramm und Datentabelle.
  */
 export default function AnalyseWorkouts() {
-  useSetTitle("Analyse Workouts");
+  useSetTitle("Leistungsübersicht");
   const { showNotification } = useNotification();
 
   /** Zustand aller absolvierten Workouts aus der API */

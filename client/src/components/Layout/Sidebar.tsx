@@ -326,7 +326,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
         />
         <NavItem
           icon={<HistoryIcon />}
-          label="Verlauf"
+          label="Historie"
           path="/history"
           onClick={onClose}
         />

@@ -32,7 +32,7 @@ export default function History() {
   const { user } = useAuth();
 
   // Setzt den Seitentitel im globalen Layout-Context
-  useSetTitle("Verlauf");
+  useSetTitle("Trainingshistorie");
 
   /**
    * Lädt die Workout-Historie asynchron vom Server, sofern ein authentifizierter Nutzer vorliegt.
