@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Turnstile } from "@marsidev/react-turnstile";
+import { Turnstile, TurnstileInstance } from "@marsidev/react-turnstile";
 import { useAuth } from "../../hooks/useAuth";
 import styles from "../../styles/AuthPage.module.css";
 import "../../styles/global.css";
@@ -35,6 +35,8 @@ function AuthPage({ isRegister = false }: AuthPageProps) {
 
   const navigate = useNavigate();
 
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
+
   /**
    * Verarbeitet den Absende-Vorgang des Formulars (Login oder Registrierung):
    * - Bei Registrierung: Prüft, ob der Turnstile-Token vorliegt, und ruft `register` auf.
@@ -48,6 +50,7 @@ function AuthPage({ isRegister = false }: AuthPageProps) {
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    console.log("handleAuth email: ", email);
 
     try {
       if (isRegister && allowRegistration) {
@@ -63,6 +66,8 @@ function AuthPage({ isRegister = false }: AuthPageProps) {
       }
       navigate("/dashboard", { replace: true });
     } catch (err) {
+      setTurnstileToken(null);
+      turnstileRef.current?.reset();
       if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -101,7 +106,7 @@ function AuthPage({ isRegister = false }: AuthPageProps) {
           )}
         </>
 
-        <form onSubmit={handleAuth} className={styles["auth-form"]}>
+        <form onSubmit={handleAuth} className={styles["auth-form"]} noValidate>
           <div>
             <label className={styles["auth-label"]}>E-Mail</label>
             <input
@@ -135,6 +140,7 @@ function AuthPage({ isRegister = false }: AuthPageProps) {
               }}
             >
               <Turnstile
+                ref={turnstileRef}
                 siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || ""}
                 onSuccess={(token) => {
                   setTurnstileToken(token);
