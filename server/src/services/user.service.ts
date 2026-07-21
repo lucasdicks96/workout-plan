@@ -3,12 +3,13 @@ import * as userRepository from "../repositories/user.repository";
 import { ConflictError, InternalServerError } from "../types/errors.types";
 import { hashPassword } from "./auth.service";
 import { UserWithoutPassword } from "../types/user.types";
+import { authCredentialsSchema } from "../schemas/user.schema";
 
 /**
- * Erstellt einen neuen Benutzer, indem das Passwort sicher verschlüsselt 
+ * Erstellt einen neuen Benutzer, indem das Passwort sicher verschlüsselt
  * und der Datensatz in der Datenbank gespeichert wird.
- * 
- * Fängt PostgreSQL-spezifische Fehler ab (wie Verletzungen von Unique-Constraints, Code `23505`) 
+ *
+ * Fängt PostgreSQL-spezifische Fehler ab (wie Verletzungen von Unique-Constraints, Code `23505`)
  * und wandelt diese in einen sauberen `ConflictError` um.
  *
  * @async
@@ -20,8 +21,15 @@ import { UserWithoutPassword } from "../types/user.types";
  */
 export async function createUser(email: string, password: string) {
   try {
-    const hashedPassword = await hashPassword(password);
-    const user = await userRepository.postUser(email, hashedPassword);
+    const validatedData = authCredentialsSchema.parse({
+      email: email,
+      password: password,
+    });
+    const hashedPassword = await hashPassword(validatedData.password);
+    const user = await userRepository.postUser(
+      validatedData.email,
+      hashedPassword,
+    );
 
     return user;
   } catch (error) {
@@ -36,8 +44,8 @@ export async function createUser(email: string, password: string) {
 
 /**
  * Aktualisiert die Anmeldedaten (E-Mail und Passwort) eines bestehenden Benutzers.
- * 
- * Verschlüsselt das neue Passwort und fängt eventuelle Unique-Constraint-Verletzungen 
+ *
+ * Verschlüsselt das neue Passwort und fängt eventuelle Unique-Constraint-Verletzungen
  * bei der E-Mail-Adresse ab.
  *
  * @async
@@ -88,7 +96,7 @@ export async function deleteUser(id: string): Promise<boolean> {
 }
 
 /**
- * Ruft aggregierte statistische Kennzahlen für einen bestimmten Benutzer ab 
+ * Ruft aggregierte statistische Kennzahlen für einen bestimmten Benutzer ab
  * (z. B. Gesamtzahl absolvierter Workouts, genutzter Übungen und Sätze).
  *
  * @async
