@@ -10,7 +10,7 @@ Eine Übersicht aller wichtigen Befehle für lokale Entwicklung, Docker-Verwaltu
 
 ```bash
 # Befehl: npm run seed:demo <email> [password]
-npm run seed:demo recruiter@company.de StartPasswort123!
+npm run seed:demo demo@demo.de StartPasswort123!
 
 # Führt das Seeding direkt im laufenden Backend-Container aus
 docker compose exec backend npm run seed:demo firma-xyz@workout.de MeinSicheresPasswort123!
