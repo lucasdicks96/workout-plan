@@ -6,9 +6,9 @@ import { AppError } from "../types/errors.types";
 
 /**
  * Passport Local Strategy Konfiguration.
- * 
+ *
  * Verwendet die E-Mail-Adresse als Anmeldenamen (`usernameField: "email"`) und das Passwort.
- * Die Verifizierung der Anmeldedaten wird an den `authService` delegiert. 
+ * Die Verifizierung der Anmeldedaten wird an den `authService` delegiert.
  * Spezifische Anwendungsfehler (`AppError`) werden abgefangen und als authentifizierungs-
  * fehlgeschlagen-Meldungen an Passport übergeben.
  */
@@ -60,11 +60,18 @@ passport.serializeUser(function (user: any, done: any) {
  */
 passport.deserializeUser(async function (id: string, done: any) {
   try {
-    const { password, ...user } = await getUserById(id);
-    if (!user) {
+    // 1. Ergebnis aus der DB holen
+    const dbUser = await getUserById(id);
+
+    // 2. Prüfen: Wenn der User gelöscht wurde / nicht existiert -> Session verwerfen
+    if (!dbUser) {
       return done(null, false);
     }
-    done(null, user);
+
+    // 3. Erst jetzt gefahrlos destrukturieren!
+    const { password, ...userWithoutPassword } = dbUser;
+
+    done(null, userWithoutPassword);
   } catch (err) {
     done(err);
   }
