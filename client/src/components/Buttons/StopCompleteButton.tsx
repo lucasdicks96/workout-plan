@@ -36,7 +36,7 @@ const StopIcon: React.FC = () => {
     >
       <g id="Layer_1" />
       <g id="stop">
-        <rect height="1.5rem" width="1.5rem" />
+        <rect height="100%" width="100%" />
       </g>
     </svg>
   );
