@@ -50,7 +50,6 @@ function AuthPage({ isRegister = false }: AuthPageProps) {
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    console.log("handleAuth email: ", email);
 
     try {
       if (isRegister && allowRegistration) {
