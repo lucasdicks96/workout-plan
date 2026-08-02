@@ -3,7 +3,7 @@
 # ==========================================
 # Nutzt das schlanke Node.js Alpine-Image zum Installieren der Abhängigkeiten 
 # und zum Generieren der statischen Produktions-Assets mit Vite.
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Setzt das Arbeitsverzeichnis innerhalb des Containers
 WORKDIR /app

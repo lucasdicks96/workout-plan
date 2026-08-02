@@ -21,7 +21,7 @@ RUN npm run build -w server
 # STAGE 2: Produktions-Stage (Laufzeitumgebung)
 # ==========================================
 # Startet mit einem frischen Image ohne Entwicklungs-Build-Tools zur Minimierung der Image-Größe
-FROM node:20-alpine
+FROM node:24-alpine
 
 # Setzt das finale Arbeitsverzeichnis für die Anwendung
 WORKDIR /app
