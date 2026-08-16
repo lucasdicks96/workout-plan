@@ -17,9 +17,9 @@ import Modal from "./Modal";
 
 /**
  * Exercises
- * 
+ *
  * Die Hauptansicht für das Durchsuchen, Filtern und Verwalten von Trainingsübungen.
- * 
+ *
  * Steuert den globalen Datenfluss:
  * - Setzt den Seitentitel im Header auf "Übungen".
  * - Bündelt die Filter- und Suchlogik über den `useExercises`-Hook.
@@ -97,7 +97,7 @@ type ExerciseProps = {
  * ExerciseList
  *
  * Verantwortlich für das Rendern des Übungs-Grids sowie die Modal-Steuerung.
- * 
+ *
  * Erkennt über den URL-Pfad (`isEditPage`), ob wir uns im Bearbeitungsmodus befinden,
  * und öffnet beim Klick auf eine editierbare (eigene) Übung das entsprechende Bearbeitungs-Modal.
  *
@@ -121,7 +121,7 @@ export function ExerciseList({
 
   /**
    * Wird aufgerufen, wenn auf eine Übungskarte geklickt wird.
-   * Das Modal wird **nur** geöffnet, wenn wir uns im Edit-Modus befinden 
+   * Das Modal wird **nur** geöffnet, wenn wir uns im Edit-Modus befinden
    * **und** es sich um eine vom Benutzer selbst erstellte Übung handelt (`userId !== null`).
    *
    * @param {Exercise} exercise - Das angeklickte Übungsobjekt.
@@ -169,11 +169,8 @@ export function ExerciseList({
             {exerciseList.map((item) => (
               <ExerciseCard
                 key={item.id}
-                title={item.title}
-                userId={item.userId}
-                description={item.description}
-                id={item.id}
-                onClick={() => handleCardClick(item)}
+                exercise={item}
+                onClick={handleCardClick}
                 isEditPage={isEditPage}
               />
             ))}
@@ -182,6 +179,30 @@ export function ExerciseList({
       )}
     </>
   );
+  // return (
+  //   <>
+  //     <div className={styles["exercise-list"]}>
+  //       {exerciseList.map((item) => (
+  //         <ExerciseCard
+  //           key={item.id}
+  //           exercise={item}
+  //           onClick={handleCardClick}
+  //           isEditPage={isEditPage}
+  //         />
+  //       ))}
+  //     </div>
+
+  //     {/* Das Modal liegt über der Liste und unmountet sie nicht */}
+  //     {isOpen && selectedExercise && (
+  //       <Modal
+  //         isOpen={isOpen}
+  //         onClose={handleCloseModal}
+  //         exerciseData={selectedExercise}
+  //         onUpdateSuccess={onUpdateSuccess}
+  //       />
+  //     )}
+  //   </>
+  // );
 }
 
 // ==========================================
@@ -192,9 +213,10 @@ export function ExerciseList({
  * Die Eigenschaften für die ExerciseCard-Komponente.
  * Erweitert das Basis-`Exercise`-Schema um spezifische UI-Handler und Modus-Flags.
  */
-type ExerciseCardProps = Exercise & {
+type ExerciseCardProps = {
   /** Callback-Funktion, die beim Klick auf die Karte (bzw. den Edit-Button) ausgelöst wird. */
-  onClick: () => void;
+  exercise: Exercise;
+  onClick: (exercise: Exercise) => void;
   /** Gibt an, ob der Editier-Modus aktiv ist (`true` blendet den Edit-Button ein). */
   isEditPage?: boolean;
 };
@@ -203,9 +225,9 @@ type ExerciseCardProps = Exercise & {
  * ExerciseCard
  *
  * Eine rein visuelle Präsentationskomponente für eine einzelne Übung im Grid.
- * 
+ *
  * Optimierungen:
- * - Mit `React.memo` gewrappt, damit die Karte nur dann neu gerendert wird, 
+ * - Mit `React.memo` gewrappt, damit die Karte nur dann neu gerendert wird,
  *   wenn sich ihre spezifischen Props (z. B. Titel oder Beschreibungsänderungen) verändern.
  * - Blendet automatisch ein Badge ("Eigene Übung") ein, wenn die Übung dem Nutzer gehört.
  *
@@ -213,25 +235,27 @@ type ExerciseCardProps = Exercise & {
  * @returns {JSX.Element} Die gerenderte Übungskarte.
  */
 const ExerciseCard = memo(
-  ({ title, description, userId, onClick, isEditPage }: ExerciseCardProps) => {
+  ({ exercise, onClick, isEditPage }: ExerciseCardProps) => {
     return (
       <div className={styles.card}>
         {/* Visueller Indikator (Badge) für vom Benutzer selbst erstellte Übungen */}
-        {typeof userId === "string" && (
+        {typeof exercise.userId === "string" && (
           <span className={styles["own-exercise-badge"]}>Eigene Übung</span>
         )}
 
-        <h3>{title}</h3>
+        <h3>{exercise.title}</h3>
 
         {/* Editier-Button wird ausschließlich im aktiven Edit-Modus eingeblendet */}
         {isEditPage && (
           <EditButton
-            onEdit={onClick}
+            onEdit={() => onClick(exercise)}
             className={`${stylesButton["button-rounded"]}`}
           />
         )}
 
-        <div className={styles["exercise-card-description"]}>{description}</div>
+        <div className={styles["exercise-card-description"]}>
+          {exercise.description}
+        </div>
       </div>
     );
   },
