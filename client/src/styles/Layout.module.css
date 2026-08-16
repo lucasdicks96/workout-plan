@@ -40,6 +40,7 @@
 
 .menu-button {
   display: none; /* Auf großen Bildschirmen verstecken */
+  position: absolute;
   background: none;
   border: none;
   color: var(--c-text-primary);
@@ -51,6 +52,7 @@
 .title {
   /* margin-top entfernt, da der Titel jetzt im Flex-Header sitzt */
   margin: 0;
+  padding: 0 2.5rem;
   text-align: center; /* Optional: Zentriert sieht mit Button links oft seltsam aus */
   flex-grow: 1;
 }
