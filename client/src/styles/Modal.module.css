@@ -135,5 +135,6 @@
     padding: 2rem;
     width: 100%;
     max-width: 600px;
+    left: calc(50% + (280px / 2));
   }
 }
