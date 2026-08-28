@@ -55,7 +55,7 @@
 .exercise-list {
   display: grid;
   /* Klassischer, sicherer Ansatz ohne verschachteltes min() */
-  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 1.5rem;
   width: 100%;
   max-width: 1920px;
@@ -337,12 +337,12 @@ h2 {
 /* Landscape Modus (z.B. Handy gedreht) */
 @media (max-height: 800px) and (orientation: landscape) {
   .exercise-list {
-    max-height: none; 
+    max-height: 40vh; 
     /* grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));  */
   }
 
   .card {
-    min-height: 7rem; /* Etwas flacher, weil der Bildschirm quer ist */
+    min-height: 8rem; /* Etwas flacher, weil der Bildschirm quer ist */
   }
 
   .filter-container {
