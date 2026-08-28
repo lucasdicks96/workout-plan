@@ -2,7 +2,7 @@
 # STAGE 1: Build-Stage (Kompilierung)
 # ==========================================
 # Verwendet das schlanke Node.js Alpine-Image als temporäre Bau-Umgebung.
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Setzt das Arbeitsverzeichnis innerhalb des Containers
 WORKDIR /app
