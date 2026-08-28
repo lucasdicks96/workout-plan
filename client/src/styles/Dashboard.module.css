@@ -166,7 +166,7 @@
 }
 
 .toggle-btn:hover {
-  color: var(--c-bg, #2563eb);
+  color: var(--c-primary-hover, #2563eb);
 }
 
 .toggle-btn-active {
