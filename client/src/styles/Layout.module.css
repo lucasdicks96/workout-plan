@@ -99,7 +99,7 @@
 }
 
 /* Responsive Layout */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .menu-button {
     display: flex; /* Button auf Mobile anzeigen */
     align-items: center;
